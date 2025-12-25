@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { SmartFormData, INITIAL_STATE } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
 import SmartFormSummary from "./SmartFormSummary";
@@ -113,6 +113,10 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
             data={data}
             update={update}
             updatePhoto={updatePhoto}
+            // Przekazujemy funkcję nawigacji, aby StepCategory mógł automatycznie przejść dalej
+            onNext={() =>
+              step === 8 ? handleAiGeneration() : setStep((s) => s + 1)
+            }
           />
         ) : (
           <SmartFormSummary
@@ -125,46 +129,7 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
         )}
       </div>
 
-      {/* Dolna Belka Nawigacji */}
-      <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-xl border-t border-gray-200 p-4 z-50">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <button
-            onClick={() => (step === 1 ? onBack() : setStep((s) => s - 1))}
-            className="flex items-center px-6 py-3 font-bold text-gray-500 hover:text-black hover:bg-gray-100 rounded-xl transition-all"
-          >
-            <ChevronLeft size={20} className="mr-2" /> Wróć
-          </button>
-
-          {step < 9 && (
-            <button
-              onClick={() =>
-                step === 8 ? handleAiGeneration() : setStep((s) => s + 1)
-              }
-              className="flex items-center px-8 py-4 bg-black text-white font-bold rounded-xl hover:scale-105 hover:bg-gray-900 transition-all shadow-lg"
-            >
-              {step === 8 ? (
-                <>
-                  Generuj z AI{" "}
-                  <Sparkles size={20} className="ml-2 text-yellow-400" />
-                </>
-              ) : (
-                <>
-                  Dalej <ChevronRight size={20} className="ml-2" />
-                </>
-              )}
-            </button>
-          )}
-
-          {step === 9 && (
-            <button
-              onClick={() => setStep(10)}
-              className="flex items-center px-8 py-4 bg-black text-white font-bold rounded-xl hover:scale-105 transition-all shadow-lg"
-            >
-              Przejdź do Wyceny <ChevronRight size={20} className="ml-2" />
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Dolna Belka Nawigacji została usunięta zgodnie z instrukcją */}
     </div>
   );
 }
