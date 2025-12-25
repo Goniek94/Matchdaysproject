@@ -1,6 +1,12 @@
 "use client";
 
-import { PenLine, ScanSearch } from "lucide-react";
+import {
+  PenLine,
+  Sparkles,
+  ArrowRight,
+  Smartphone,
+  Keyboard,
+} from "lucide-react";
 
 interface FlowSelectionProps {
   onSelectManual: () => void;
@@ -12,51 +18,68 @@ export default function FlowSelection({
   onSelectAI,
 }: FlowSelectionProps) {
   return (
-    <div className="max-w-5xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="text-center mb-16 space-y-4">
-        <span className="inline-block py-1 px-3 rounded-full bg-gray-100 border border-gray-200 text-xs font-bold uppercase tracking-widest text-gray-500 mb-2">
-          Start Selling
+    <div className="max-w-6xl mx-auto px-4 py-12">
+      {/* Nagłówek */}
+      <div className="text-center mb-16">
+        <span className="inline-block py-2 px-4 rounded-full bg-gray-100 text-xs font-bold uppercase tracking-widest text-gray-500 mb-4">
+          Wybierz tryb dodawania
         </span>
-        <h1 className="text-5xl md:text-6xl font-black tracking-tight text-gray-900">
-          How do you want to sell?
+        <h1 className="text-4xl md:text-6xl font-black text-gray-900 mb-4 tracking-tight">
+          Jak chcesz sprzedać?
         </h1>
-        <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-          Choose the workflow that suits you best. You can always switch later.
+        <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+          Wybierz metodę, która najbardziej Ci odpowiada. Możesz zaufać naszej
+          technologii lub wprowadzić wszystko ręcznie.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
-        {/* MANUAL OPTION */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* OPCJA 1: RĘCZNA */}
         <button
           onClick={onSelectManual}
-          className="group relative flex flex-col items-start text-left bg-white p-10 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"
+          className="group text-left p-10 rounded-[2rem] border-2 border-gray-100 bg-white hover:border-gray-300 transition-colors relative overflow-hidden"
         >
-          <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-black group-hover:text-white transition-colors">
-            <PenLine size={28} />
+          <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-8">
+            <Keyboard size={32} className="text-gray-900" />
           </div>
-          <h3 className="text-2xl font-bold mb-2">Manual Entry</h3>
-          <p className="text-gray-500 leading-relaxed">
-            I know all the details, specs, and I have my photos ready. Perfect
-            for experts who want full control.
+
+          <h3 className="text-3xl font-bold mb-3 text-gray-900">
+            Wypełniam sam
+          </h3>
+          <p className="text-gray-500 font-medium leading-relaxed mb-10 max-w-sm">
+            Dla ekspertów. Wypełnij formularz krok po kroku, wprowadzając własne
+            opisy i parametry.
           </p>
+
+          <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide border-b-2 border-transparent group-hover:border-black w-max transition-all pb-1">
+            Wybieram Manual <ArrowRight size={16} />
+          </div>
         </button>
 
-        {/* AI ASSIST OPTION */}
+        {/* OPCJA 2: SMART AI */}
         <button
           onClick={onSelectAI}
-          className="group relative flex flex-col items-start text-left bg-gradient-to-br from-white to-blue-50/30 p-10 rounded-3xl border border-blue-100 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-300"
+          className="group text-left p-10 rounded-[2rem] border-2 border-blue-50 bg-blue-50/30 hover:bg-blue-50 hover:border-blue-200 transition-colors relative overflow-hidden"
         >
-          <div className="absolute top-6 right-6 bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-            Recommended
+          <div className="absolute top-8 right-8 bg-blue-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">
+            Polecane
           </div>
-          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-            <ScanSearch size={28} />
+
+          <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-8 text-blue-600">
+            <Sparkles size={32} />
           </div>
-          <h3 className="text-2xl font-bold mb-2">AI Assist</h3>
-          <p className="text-gray-500 leading-relaxed">
-            Upload photos and let AI detect brand, team, year, and condition.
-            We'll pre-fill the form for you.
+
+          <h3 className="text-3xl font-bold mb-3 text-gray-900">
+            Smart AI Assistant
+          </h3>
+          <p className="text-gray-600 font-medium leading-relaxed mb-10 max-w-sm">
+            Zrób zdjęcia, a my zajmiemy się resztą. System rozpozna produkt,
+            znajdzie jego parametry i wyceni go.
           </p>
+
+          <div className="flex items-center gap-2 text-sm font-bold text-blue-700 uppercase tracking-wide border-b-2 border-transparent group-hover:border-blue-700 w-max transition-all pb-1">
+            Rozpocznij ze wsparciem AI <ArrowRight size={16} />
+          </div>
         </button>
       </div>
     </div>
