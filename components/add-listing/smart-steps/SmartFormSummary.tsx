@@ -1,243 +1,267 @@
-import { Sparkles, Edit3, CheckCircle2 } from "lucide-react";
+// components/add-listing/smart-steps/SmartFormSummary.tsx
+import { useState, useEffect } from "react";
+import {
+  Sparkles,
+  Edit3,
+  CheckCircle2,
+  Shirt,
+  Globe,
+  Hash,
+  Tag,
+  Trophy,
+  Layers,
+  Activity,
+  Image as ImageIcon,
+  CalendarDays,
+  Ruler,
+  ArrowRight,
+} from "lucide-react";
 import Image from "next/image";
 import { SmartFormData, CONDITIONS } from "./types";
 
 interface SmartFormSummaryProps {
-  step: number;
   data: SmartFormData;
   update: (field: keyof SmartFormData, val: any) => void;
   updateAi: (key: string, val: string) => void;
-  onSubmit: () => void;
+  onNext: () => void;
 }
 
 export default function SmartFormSummary({
-  step,
   data,
   update,
   updateAi,
-  onSubmit,
+  onNext,
 }: SmartFormSummaryProps) {
-  // KROK 9: PODSUMOWANIE AI
-  if (step === 9) {
-    return (
-      <div className="max-w-6xl mx-auto animate-in fade-in duration-700 pb-24">
-        <div className="text-center mb-12">
-          <span className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-4">
-            <Sparkles size={14} /> Analiza Zakończona
-          </span>
-          <h2 className="text-4xl font-black text-gray-900">
-            Sprawdź dane przedmiotu
-          </h2>
-          <p className="text-gray-500 mt-2">
-            Nasz system AI przygotował opis. Możesz edytować każde pole.
-          </p>
-        </div>
+  const [activeImage, setActiveImage] = useState<string | null>(null);
 
-        <div className="flex flex-col lg:flex-row gap-12 items-start">
-          {/* LEWA: ZDJĘCIA */}
-          <div className="w-full lg:w-5/12 space-y-4 sticky top-8">
-            <div className="aspect-[3/4] rounded-[2rem] overflow-hidden relative shadow-2xl bg-gray-100">
-              {data.photos.front && (
-                <Image
-                  src={data.photos.front}
-                  alt="Main"
-                  fill
-                  className="object-cover"
-                />
-              )}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-8">
-                <span className="text-white font-bold text-sm tracking-widest uppercase">
-                  Podgląd Główny
-                </span>
+  useEffect(() => {
+    if (data.photos.front) {
+      setActiveImage(data.photos.front);
+    }
+  }, [data.photos.front]);
+
+  const allPhotos = [
+    { src: data.photos.front, label: "Front" },
+    { src: data.photos.back, label: "Back" },
+    { src: data.photos.neckTag, label: "Tag" },
+    ...data.galleryPhotos.map((src, i) => ({
+      src,
+      label: `Extra ${i + 1}`,
+    })),
+  ].filter((item) => item.src !== null);
+
+  return (
+    <div className="max-w-6xl mx-auto animate-in fade-in duration-700 pb-24">
+      <div className="text-center mb-12">
+        <span className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-4">
+          <Sparkles size={14} /> Analysis Complete
+        </span>
+        <h2 className="text-4xl font-black text-gray-900">Review Your Item</h2>
+        <p className="text-gray-500 mt-2">
+          Our AI has prepared the details. You can edit any field below.
+        </p>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-12 items-start">
+        {/* --- LEFT COLUMN --- */}
+        <div className="w-full lg:w-7/12 space-y-8">
+          <div className="group relative">
+            <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
+              Listing Title
+            </label>
+            <textarea
+              value={data.aiGenerated.title}
+              onChange={(e) => updateAi("title", e.target.value)}
+              className="w-full text-3xl font-black text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-black outline-none resize-none overflow-hidden leading-tight transition-all placeholder:text-gray-300"
+              rows={2}
+              placeholder="e.g. Authentic FC Barcelona Shirt..."
+            />
+            <Edit3
+              className="absolute top-8 right-0 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+              size={20}
+            />
+          </div>
+
+          <div className="aspect-[4/3] w-full rounded-[2rem] overflow-hidden relative shadow-2xl bg-gray-100 border border-gray-100 group">
+            {activeImage ? (
+              <Image
+                src={activeImage}
+                alt="Main view"
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2">
+                <ImageIcon size={48} className="opacity-20" />
+                <span className="text-sm font-medium">No image selected</span>
               </div>
-            </div>
-            {/* Miniaturki */}
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {[data.photos.back, data.photos.neckTag, ...data.galleryPhotos]
-                .filter(Boolean)
-                .map((url, i) => (
-                  <div
-                    key={i}
-                    className="w-20 h-20 rounded-xl relative flex-shrink-0 overflow-hidden border border-gray-200"
-                  >
-                    <Image
-                      src={url as string}
-                      alt=""
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ))}
+            )}
+            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-sm">
+              <span className="text-gray-900 font-bold text-xs uppercase tracking-wide flex items-center gap-2">
+                <ImageIcon size={14} /> Preview Mode
+              </span>
             </div>
           </div>
 
-          {/* PRAWA: DANE I OPIS */}
-          <div className="w-full lg:w-7/12 space-y-8">
-            {/* Tytuł i Opis */}
-            <div className="space-y-6">
-              <div className="group relative">
-                <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
-                  Tytuł Ogłoszenia
-                </label>
-                <textarea
-                  value={data.aiGenerated.title}
-                  onChange={(e) => updateAi("title", e.target.value)}
-                  className="w-full text-3xl font-black text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-black outline-none resize-none h-auto overflow-hidden leading-tight transition-all"
-                  rows={2}
-                />
-                <Edit3
-                  className="absolute top-6 right-0 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                  size={20}
-                />
-              </div>
-
-              <div className="group relative">
-                <label className="text-[10px] font-bold uppercase text-gray-400 mb-1 block">
-                  Opis AI
-                </label>
-                <textarea
-                  value={data.aiGenerated.description}
-                  onChange={(e) => updateAi("description", e.target.value)}
-                  className="w-full h-48 bg-gray-50 rounded-2xl p-6 text-gray-600 leading-relaxed border border-transparent focus:bg-white focus:border-gray-200 focus:ring-2 focus:ring-black outline-none resize-none transition-all"
-                />
-              </div>
+          <div className="relative">
+            <div className="flex gap-4 overflow-x-auto pb-4 pt-2 scrollbar-hide snap-x">
+              {allPhotos.map((photo, i) => (
+                <button
+                  key={i}
+                  onClick={() => setActiveImage(photo.src)}
+                  className={`relative w-24 h-24 rounded-xl flex-shrink-0 overflow-hidden border transition-all duration-200 snap-start ${
+                    activeImage === photo.src
+                      ? "border-black ring-2 ring-black ring-offset-2 scale-105 shadow-md"
+                      : "border-gray-200 hover:border-gray-400 hover:opacity-80 opacity-60"
+                  }`}
+                >
+                  <Image
+                    src={photo.src as string}
+                    alt={photo.label}
+                    fill
+                    className="object-cover"
+                  />
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Tabela Atrybutów */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-lg shadow-gray-100/50">
-              <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                <CheckCircle2 size={18} className="text-green-500" />{" "}
-                Zweryfikowane Cechy
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
-                {[
-                  { l: "Marka", v: "brand" },
-                  { l: "Drużyna", v: "team" },
-                  { l: "Model", v: "model" },
-                  { l: "Rok", v: "year" },
-                  { l: "Rozmiar", v: "size" },
-                  { l: "Kraj", v: "country" },
-                ].map((item) => (
-                  <div key={item.v} className="border-b border-gray-100 pb-2">
-                    <span className="block text-[10px] font-bold uppercase text-gray-400 mb-1">
-                      {item.l}
-                    </span>
-                    <input
-                      value={(data.aiGenerated as any)[item.v]}
-                      onChange={(e) => updateAi(item.v, e.target.value)}
-                      className="font-bold text-gray-900 bg-transparent w-full outline-none focus:text-blue-600 transition-colors"
-                    />
-                  </div>
-                ))}
+          <div className="group relative pt-2 border-t border-gray-100">
+            <label className="text-[10px] font-bold uppercase text-gray-400 mb-4 block">
+              Description
+            </label>
+            <textarea
+              value={data.aiGenerated.description}
+              onChange={(e) => updateAi("description", e.target.value)}
+              className="w-full min-h-[200px] bg-white rounded-2xl p-6 text-gray-600 leading-relaxed border border-gray-100 focus:border-black focus:ring-1 focus:ring-black outline-none resize-y transition-all shadow-sm"
+            />
+          </div>
+        </div>
 
-                <div className="border-b border-gray-100 pb-2">
-                  <span className="block text-[10px] font-bold uppercase text-gray-400 mb-1">
-                    Stan
-                  </span>
-                  <select
-                    value={data.condition}
-                    onChange={(e) => update("condition", e.target.value)}
-                    className="font-bold text-gray-900 bg-transparent w-full outline-none -ml-1 py-0 cursor-pointer"
-                  >
-                    {CONDITIONS.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Wycena AI */}
-            <div className="bg-blue-50/50 rounded-2xl p-6 flex items-center justify-between border border-blue-100">
+        {/* --- RIGHT COLUMN --- */}
+        <div className="w-full lg:w-5/12 space-y-6 sticky top-8">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl p-8 border border-blue-100 shadow-xl shadow-blue-100/50">
+            <div className="flex items-start justify-between mb-2">
               <div>
-                <span className="text-xs font-bold text-blue-400 uppercase">
-                  Sugerowana Wartość
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
+                  <Sparkles size={12} /> Suggested Valuation
                 </span>
-                <p className="text-blue-900 font-medium text-sm mt-1">
-                  Na podstawie ostatnich sprzedaży tego modelu.
+                <p className="text-blue-900/60 text-xs font-medium leading-relaxed max-w-[200px]">
+                  Based on recent sales of similar items in this condition.
                 </p>
               </div>
-              <div className="text-2xl font-black text-blue-600">
-                {data.aiGenerated.estimatedValue}
-              </div>
+            </div>
+            <div className="text-4xl font-black text-blue-700 tracking-tight mt-4">
+              {data.aiGenerated.estimatedValue || "Calculating..."}
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
 
-  // KROK 10: CENA I PUBLIKACJA
-  if (step === 10) {
-    return (
-      <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700 py-12">
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-black mb-4">Strategia Sprzedaży</h2>
-          <p className="text-gray-500">
-            Decyzja należy do Ciebie. Aukcja czy Kup Teraz?
-          </p>
-        </div>
+          <div className="bg-white border border-gray-200 rounded-3xl shadow-lg shadow-gray-200/50 overflow-hidden">
+            <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+              <CheckCircle2 size={18} className="text-green-500" />
+              <h3 className="font-bold text-gray-900 text-sm uppercase tracking-wide">
+                Item Specifics
+              </h3>
+            </div>
 
-        <div className="bg-white border border-gray-200 rounded-[2.5rem] p-10 shadow-2xl shadow-gray-200/50 relative overflow-hidden">
-          <div className="flex gap-2 mb-10 p-1.5 bg-gray-100 rounded-2xl">
-            <button
-              onClick={() => update("listingType", "auction")}
-              className={`flex-1 py-4 font-bold rounded-xl transition-all shadow-sm ${
-                data.listingType === "auction"
-                  ? "bg-white text-black shadow-md"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              Aukcja (Licytacja)
-            </button>
-            <button
-              onClick={() => update("listingType", "buy_now")}
-              className={`flex-1 py-4 font-bold rounded-xl transition-all shadow-sm ${
-                data.listingType === "buy_now"
-                  ? "bg-white text-black shadow-md"
-                  : "text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              Kup Teraz
-            </button>
-          </div>
-
-          <div className="text-center mb-12">
-            <label className="block text-xs font-bold uppercase text-gray-400 mb-4">
-              {data.listingType === "auction"
-                ? "Cena startowa"
-                : "Cena sprzedaży"}
-            </label>
-            <div className="inline-flex items-center justify-center relative">
-              <span className="text-4xl font-black text-gray-300 absolute left-[-3rem]">
-                PLN
-              </span>
-              <input
-                type="number"
-                placeholder="0"
-                value={data.price}
-                onChange={(e) => update("price", e.target.value)}
-                className="text-7xl font-black text-gray-900 text-center w-64 bg-transparent outline-none border-b-4 border-gray-100 focus:border-black transition-all placeholder:text-gray-200"
+            <div className="divide-y divide-gray-100">
+              <DetailRow
+                icon={<Layers size={16} />}
+                label="Category"
+                value={data.category}
+                readOnly
               />
+              <DetailRow
+                icon={<Tag size={16} />}
+                label="Brand"
+                value={data.aiGenerated.brand}
+                onChange={(val) => updateAi("brand", val)}
+              />
+              <DetailRow
+                icon={<Trophy size={16} />}
+                label="Team / Club"
+                value={data.aiGenerated.team}
+                onChange={(val) => updateAi("team", val)}
+              />
+              <DetailRow
+                icon={<CalendarDays size={16} />}
+                label="Season"
+                value={data.aiGenerated.year}
+                onChange={(val) => updateAi("year", val)}
+              />
+              <DetailRow
+                icon={<Shirt size={16} />}
+                label="Model"
+                value={data.aiGenerated.model}
+                onChange={(val) => updateAi("model", val)}
+              />
+              <DetailRow
+                icon={<Ruler size={16} />}
+                label="Dimensions"
+                value={data.aiGenerated.dimensions}
+                onChange={(val) => updateAi("dimensions", val)}
+                placeholder="Optional"
+              />
+              <div className="grid grid-cols-[1.5fr_2fr] items-center px-6 py-4 hover:bg-gray-50 transition-colors group">
+                <div className="flex items-center gap-3 text-gray-500">
+                  <Activity size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wide">
+                    Condition
+                  </span>
+                </div>
+                <select
+                  value={data.condition}
+                  onChange={(e) => update("condition", e.target.value)}
+                  className="w-full bg-transparent font-bold text-gray-900 text-right outline-none cursor-pointer focus:text-blue-600"
+                >
+                  {CONDITIONS.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
           <button
-            onClick={onSubmit}
-            className="w-full py-5 bg-black text-white rounded-2xl font-bold text-xl hover:bg-gray-800 hover:scale-[1.02] transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-3"
+            onClick={onNext}
+            className="w-full py-4 bg-black text-white rounded-xl font-bold text-lg hover:bg-gray-800 transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-2 group"
           >
-            Opublikuj Ofertę <Sparkles className="text-yellow-400" />
+            Proceed to Pricing{" "}
+            <ArrowRight
+              size={20}
+              className="group-hover:translate-x-1 transition-transform"
+            />
           </button>
-
-          <p className="text-center text-xs text-gray-400 mt-6">
-            Publikując akceptujesz regulamin serwisu Matchdays.
-          </p>
         </div>
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }
+
+const DetailRow = ({
+  icon,
+  label,
+  value,
+  onChange,
+  readOnly = false,
+  placeholder = "-",
+}: any) => (
+  <div className="grid grid-cols-[1.5fr_2fr] items-center px-6 py-4 hover:bg-gray-50 transition-colors group">
+    <div className="flex items-center gap-3 text-gray-500">
+      {icon}
+      <span className="text-xs font-bold uppercase tracking-wide">{label}</span>
+    </div>
+    {readOnly ? (
+      <div className="font-bold text-gray-900 text-right truncate">{value}</div>
+    ) : (
+      <input
+        value={value}
+        onChange={(e) => onChange && onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-transparent font-bold text-gray-900 text-right outline-none focus:text-blue-600 transition-colors placeholder:text-gray-300"
+      />
+    )}
+  </div>
+);

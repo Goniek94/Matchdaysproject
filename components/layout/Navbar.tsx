@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import LoginModal from "./LoginModal";
+import LoginModal from "@/components/auth/LoginModal";
 import { authApi } from "@/lib/api";
 import {
   User,

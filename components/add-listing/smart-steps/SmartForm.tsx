@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowRight, ArrowLeft, Wand2 } from "lucide-react";
 import { SmartFormData, INITIAL_STATE } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
 import SmartFormSummary from "./SmartFormSummary";
@@ -13,7 +13,7 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
 
-  // --- LOGIKA STANU ---
+  // --- LOGIC: STATE ---
   const update = (field: keyof SmartFormData, val: any) =>
     setData((prev) => ({ ...prev, [field]: val }));
   const updatePhoto = (key: string, url: string) =>
@@ -24,17 +24,36 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
       aiGenerated: { ...prev.aiGenerated, [key]: val },
     }));
 
-  // --- LOGIKA AI I PUBLIKACJI ---
+  // --- LOGIC: NAVIGATION ---
+  const handleNext = () => {
+    if (step === 8) {
+      handleAiGeneration();
+    } else {
+      setStep((prev) => prev + 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleBackNavigation = () => {
+    if (step === 1) {
+      onBack();
+    } else {
+      setStep((prev) => prev - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // --- LOGIC: AI & PUBLISH ---
   const handleAiGeneration = () => {
     setIsAiProcessing(true);
-    // Symulacja API
+    // API Simulation
     setTimeout(() => {
       setData((prev) => ({
         ...prev,
         aiGenerated: {
           title: "Authentic FC Barcelona 2014/15 Home Shirt - Messi #10",
           description:
-            "Oryginalna koszulka domowa FC Barcelony z sezonu 2014/2015. Klasyczny model Nike z technologią Dri-Fit. Posiada nadruk Messi 10.",
+            "Original FC Barcelona home shirt from the 2014/2015 season. Classic Nike model featuring Dri-Fit technology. Includes Messi #10 printing.",
           team: "FC Barcelona",
           brand: "Nike",
           model: "Home Stadium",
@@ -54,7 +73,7 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
     setIsPublished(true);
   };
 
-  // --- WIDOKI SPECJALNE ---
+  // --- SPECIAL VIEWS ---
 
   if (isPublished) {
     return (
@@ -79,19 +98,19 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
           <Loader2 className="w-16 h-16 text-black animate-spin relative z-10" />
         </div>
         <h2 className="text-3xl font-black mt-8 mb-2">
-          AI Analizuje Twoje Zdjęcia
+          AI Is Analyzing Your Photos
         </h2>
         <p className="text-gray-500 font-medium">
-          Rozpoznajemy markę, model i szacujemy wartość...
+          Identifying brand, model, and estimating value...
         </p>
       </div>
     );
   }
 
-  // --- GŁÓWNY RENDER ---
+  // --- MAIN RENDER ---
   return (
-    <div className="min-h-screen pb-32">
-      {/* Pasek Postępu (Sticky Top) */}
+    <div className="min-h-screen pb-24">
+      {/* Progress Bar (Sticky Top) */}
       <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 mb-8 py-4 px-4 transition-all">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -101,35 +120,74 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
             />
           </div>
           <span className="text-xs font-bold font-mono text-gray-400">
-            KROK {step}/10
+            STEP {step}/10
           </span>
         </div>
       </div>
 
-      <div className="px-4">
+      <div className="px-4 max-w-4xl mx-auto">
         {step <= 8 ? (
-          <SmartFormSteps
-            step={step}
-            data={data}
-            update={update}
-            updatePhoto={updatePhoto}
-            // Przekazujemy funkcję nawigacji, aby StepCategory mógł automatycznie przejść dalej
-            onNext={() =>
-              step === 8 ? handleAiGeneration() : setStep((s) => s + 1)
-            }
-          />
+          <>
+            {/* Step Content */}
+            <SmartFormSteps
+              step={step}
+              data={data}
+              update={update}
+              updatePhoto={updatePhoto}
+            />
+
+            {/* --- BUTTONS SECTION (STATIC) for Steps 1-8 --- */}
+            <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
+              {/* Back Button */}
+              <button
+                onClick={handleBackNavigation}
+                className="group flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft
+                  size={18}
+                  className="transition-transform group-hover:-translate-x-1"
+                />
+                {step === 1 ? "Cancel" : "Back"}
+              </button>
+
+              {/* Next / AI Button */}
+              <button
+                onClick={handleNext}
+                disabled={isAiProcessing}
+                className={`flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-95 ${
+                  step === 8
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-200"
+                    : "bg-black hover:bg-gray-800"
+                }`}
+              >
+                {step === 8 ? (
+                  <>
+                    Generate with AI <Wand2 size={18} />
+                  </>
+                ) : (
+                  <>
+                    Next <ArrowRight size={18} />
+                  </>
+                )}
+              </button>
+            </div>
+          </>
         ) : (
+          /* Summary View (Step 9 & 10) handles its own buttons */
           <SmartFormSummary
             step={step}
             data={data}
             update={update}
             updateAi={updateAi}
             onSubmit={handlePublish}
+            // PRZEKAZUJEMY FUNKCJĘ PRZEJŚCIA DALEJ (DLA KROKU 9 -> 10)
+            onNext={() => {
+              setStep(10);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
           />
         )}
       </div>
-
-      {/* Dolna Belka Nawigacji została usunięta zgodnie z instrukcją */}
     </div>
   );
 }

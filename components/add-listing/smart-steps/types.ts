@@ -1,64 +1,57 @@
-import {
-  Shirt,
-  Hexagon,
-  Footprints,
-  Trophy,
-  Layers,
-  Disc,
-  LucideIcon,
-} from "lucide-react";
+import { Shirt, Wind, Footprints, LucideIcon } from "lucide-react";
 
-// Siatka 3x2 (6 elementów) - Idealna na jeden ekran
+// Sport categories - each has different verification requirements
 export const CATEGORIES: {
   id: string;
   label: string;
   desc: string;
   icon: LucideIcon;
+  verificationSteps: string[]; // What photos are required for this category
 }[] = [
   {
-    id: "tops",
-    label: "Tops & Kits",
-    desc: "Jerseys, T-shirts",
+    id: "shirts",
+    label: "Shirts & Jerseys",
+    desc: "Football shirts, Basketball jerseys, Match worn",
     icon: Shirt,
+    verificationSteps: [
+      "front",
+      "back",
+      "neckTag",
+      "washTags",
+      "logo",
+      "sponsor",
+    ],
   },
   {
-    id: "outerwear",
-    label: "Outerwear",
-    desc: "Jackets, Hoodies",
-    icon: Layers,
+    id: "jackets",
+    label: "Jackets & Outerwear",
+    desc: "Training jackets, Windbreakers, Team jackets",
+    icon: Wind,
+    verificationSteps: ["front", "back", "neckTag", "washTags", "logo"],
   },
   {
-    id: "bottoms",
-    label: "Bottoms",
-    desc: "Shorts, Pants",
-    icon: Hexagon,
+    id: "hoodies",
+    label: "Hoodies & Sweatshirts",
+    desc: "Team hoodies, Training tops, Crew necks",
+    icon: Wind,
+    verificationSteps: ["front", "back", "neckTag", "washTags", "logo"],
   },
   {
     id: "footwear",
     label: "Footwear",
-    desc: "Cleats, Sneakers",
+    desc: "Football boots, Basketball shoes, Tennis shoes",
     icon: Footprints,
-  },
-  {
-    id: "accessories",
-    label: "Accessories",
-    desc: "Balls, Scarves",
-    icon: Trophy,
-  },
-  {
-    id: "other",
-    label: "Other",
-    desc: "Memorabilia & more",
-    icon: Disc,
+    verificationSteps: ["front", "side", "sole", "insole", "box"],
   },
 ];
 
 export const CONDITIONS = [
   { id: "bnwt", label: "Brand New With Tags (BNWT)" },
   { id: "bnwot", label: "Brand New Without Tags (BNWOT)" },
-  { id: "excellent", label: "Excellent Condition" },
-  { id: "good", label: "Good Condition" },
-  { id: "fair", label: "Fair Condition" },
+  { id: "excellent", label: "Excellent - Like New" },
+  { id: "good", label: "Good - Minor Wear" },
+  { id: "fair", label: "Fair - Visible Wear" },
+  { id: "poor", label: "Poor - Heavy Wear" },
 ];
 
 export interface SmartFormData {
@@ -97,6 +90,7 @@ export interface SmartFormData {
   };
   listingType: "auction" | "buy_now";
   price: string;
+  duration: string; // NOWE POLE
 }
 
 export const INITIAL_STATE: SmartFormData = {
@@ -135,4 +129,5 @@ export const INITIAL_STATE: SmartFormData = {
   },
   listingType: "auction",
   price: "",
+  duration: "7", // Domyślna długość aukcji
 };
