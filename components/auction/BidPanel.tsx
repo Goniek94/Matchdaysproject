@@ -6,12 +6,14 @@ interface BidPanelProps {
   currentBid: number;
   bidCount: number;
   onPlaceBid?: (amount: number) => void;
+  disabled?: boolean;
 }
 
 export default function BidPanel({
   currentBid,
   bidCount,
   onPlaceBid,
+  disabled = false,
 }: BidPanelProps) {
   const [bidAmount, setBidAmount] = useState("");
   const minimumBid = currentBid + 50;
@@ -63,19 +65,22 @@ export default function BidPanel({
         <div className="grid grid-cols-3 gap-2 mb-4">
           <button
             onClick={() => handleQuickBid(currentBid + 50)}
-            className="py-3 bg-white/10 border border-white/20 text-white text-sm font-medium uppercase tracking-wide rounded-[2px] hover:bg-white/20 hover:border-white transition-all"
+            disabled={disabled}
+            className="py-3 bg-white/10 border border-white/20 text-white text-sm font-medium uppercase tracking-wide rounded-[2px] hover:bg-white/20 hover:border-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {(currentBid + 50).toLocaleString("pl-PL")} zł
           </button>
           <button
             onClick={() => handleQuickBid(currentBid + 100)}
-            className="py-3 bg-white/10 border border-white/20 text-white text-sm font-medium uppercase tracking-wide rounded-[2px] hover:bg-white/20 hover:border-white transition-all"
+            disabled={disabled}
+            className="py-3 bg-white/10 border border-white/20 text-white text-sm font-medium uppercase tracking-wide rounded-[2px] hover:bg-white/20 hover:border-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {(currentBid + 100).toLocaleString("pl-PL")} zł
           </button>
           <button
             onClick={() => handleQuickBid(currentBid + 250)}
-            className="py-3 bg-white/10 border border-white/20 text-white text-sm font-medium uppercase tracking-wide rounded-[2px] hover:bg-white/20 hover:border-white transition-all"
+            disabled={disabled}
+            className="py-3 bg-white/10 border border-white/20 text-white text-sm font-medium uppercase tracking-wide rounded-[2px] hover:bg-white/20 hover:border-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {(currentBid + 250).toLocaleString("pl-PL")} zł
           </button>
@@ -84,9 +89,10 @@ export default function BidPanel({
         {/* Place Bid Button */}
         <button
           onClick={handlePlaceBid}
-          className="w-full py-4 bg-white text-black font-medium text-sm uppercase tracking-widest rounded-[2px] hover:bg-gray-200 hover:translate-y-[-2px] hover:shadow-lg active:translate-y-0 transition-all"
+          disabled={disabled}
+          className="w-full py-4 bg-white text-black font-medium text-sm uppercase tracking-widest rounded-[2px] hover:bg-gray-200 hover:translate-y-[-2px] hover:shadow-lg active:translate-y-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
-          Place Bid
+          {disabled ? "Bidding..." : "Place Bid"}
         </button>
       </div>
     </div>

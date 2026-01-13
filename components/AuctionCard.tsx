@@ -203,7 +203,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
 
   return (
     <Link
-      href={`/auctions/${auction.id}`}
+      href={`/auction/${auction.id}`}
       className="group h-full relative block cursor-pointer"
     >
       {/* Ambient glow effect behind card */}

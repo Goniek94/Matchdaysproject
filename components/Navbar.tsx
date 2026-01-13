@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import LoginModal from "./LoginModal";
 import { authApi } from "@/lib/api";
+import { useCart } from "@/lib/CartContext";
 import {
   User,
   LogOut,
@@ -15,9 +16,11 @@ import {
   Trophy,
   ChevronDown,
   PlusCircle,
+  ShoppingCart,
 } from "lucide-react";
 
 export default function Navbar() {
+  const { itemCount } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
@@ -173,6 +176,19 @@ export default function Navbar() {
 
         {/* PRAWA STRONA: Akcje (Powiększone przyciski i ikony) */}
         <div className="flex items-center gap-4 min-w-[200px] justify-end z-20">
+          {/* Shopping Cart Icon - Always visible */}
+          <Link
+            href="/cart"
+            className="relative p-3 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <ShoppingCart size={24} className="text-gray-700" />
+            {itemCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {itemCount}
+              </span>
+            )}
+          </Link>
+
           {!isLoggedIn ? (
             <>
               <button

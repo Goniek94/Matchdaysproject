@@ -7,7 +7,7 @@ import SmartFormSteps from "./SmartFormSteps";
 import SmartFormSummary from "./SmartFormSummary";
 import SuccessView from "./SuccessView";
 
-export default function SmartForm({ onBack }: { onBack: () => void }) {
+export default function SmartForm({ onBack }: { onBack?: () => void } = {}) {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<SmartFormData>(INITIAL_STATE);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
@@ -16,13 +16,6 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
   // --- LOGIC: STATE ---
   const update = (field: keyof SmartFormData, val: any) =>
     setData((prev) => ({ ...prev, [field]: val }));
-  const updatePhoto = (key: string, url: string) =>
-    setData((prev) => ({ ...prev, photos: { ...prev.photos, [key]: url } }));
-  const updateAi = (key: string, val: string) =>
-    setData((prev) => ({
-      ...prev,
-      aiGenerated: { ...prev.aiGenerated, [key]: val },
-    }));
 
   // --- LOGIC: NAVIGATION ---
   const handleNext = () => {
@@ -36,7 +29,7 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
 
   const handleBackNavigation = () => {
     if (step === 1) {
-      onBack();
+      if (onBack) onBack();
     } else {
       setStep((prev) => prev - 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -46,26 +39,10 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
   // --- LOGIC: AI & PUBLISH ---
   const handleAiGeneration = () => {
     setIsAiProcessing(true);
-    // API Simulation
+    // TODO: Implement AI analysis based on selected features
     setTimeout(() => {
-      setData((prev) => ({
-        ...prev,
-        aiGenerated: {
-          title: "Authentic FC Barcelona 2014/15 Home Shirt - Messi #10",
-          description:
-            "Original FC Barcelona home shirt from the 2014/2015 season. Classic Nike model featuring Dri-Fit technology. Includes Messi #10 printing.",
-          team: "FC Barcelona",
-          brand: "Nike",
-          model: "Home Stadium",
-          year: "2014/2015",
-          size: "L",
-          dimensions: "54x72 cm",
-          country: "Thailand",
-          estimatedValue: "350 - 450 PLN",
-        },
-      }));
       setIsAiProcessing(false);
-      setStep(9);
+      setStep(7); // Go to summary
     }, 2500);
   };
 
@@ -79,8 +56,8 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
     return (
       <SuccessView
         status="live"
-        title={data.aiGenerated.title}
-        imageUrl={data.photos.front}
+        title={data.title || "Your Listing"}
+        imageUrl={data.photos[0]?.url || ""}
         onReset={() => {
           setIsPublished(false);
           setStep(1);
@@ -116,24 +93,24 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
           <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-black transition-all duration-500 ease-out"
-              style={{ width: `${(step / 10) * 100}%` }}
+              style={{ width: `${(step / 5) * 100}%` }}
             />
           </div>
           <span className="text-xs font-bold font-mono text-gray-400">
-            STEP {step}/10
+            STEP {step}/5
           </span>
         </div>
       </div>
 
       <div className="px-4 max-w-4xl mx-auto">
-        {step <= 8 ? (
+        {step <= 5 ? (
           <>
             {/* Step Content */}
             <SmartFormSteps
               step={step}
               data={data}
               update={update}
-              updatePhoto={updatePhoto}
+              onNext={handleNext}
             />
 
             {/* --- BUTTONS SECTION (STATIC) for Steps 1-8 --- */}
@@ -173,19 +150,16 @@ export default function SmartForm({ onBack }: { onBack: () => void }) {
             </div>
           </>
         ) : (
-          /* Summary View (Step 9 & 10) handles its own buttons */
-          <SmartFormSummary
-            step={step}
-            data={data}
-            update={update}
-            updateAi={updateAi}
-            onSubmit={handlePublish}
-            // PRZEKAZUJEMY FUNKCJĘ PRZEJŚCIA DALEJ (DLA KROKU 9 -> 10)
-            onNext={() => {
-              setStep(10);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          />
+          /* Summary View - Coming Soon */
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold mb-4">Summary - Coming Soon</h2>
+            <button
+              onClick={handlePublish}
+              className="px-8 py-3 bg-black text-white rounded-xl font-bold"
+            >
+              Publish Listing
+            </button>
+          </div>
         )}
       </div>
     </div>

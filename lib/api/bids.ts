@@ -44,7 +44,7 @@ export const placeBid = async (
 ): Promise<ApiResponse<BidData>> => {
   try {
     const response = await apiClient.post<ApiResponse<BidData>>(
-      `/auctions/${auctionId}/bids`,
+      `/auctions/${auctionId}/bid`,
       { amount }
     );
 
@@ -89,7 +89,7 @@ export const getAuctionBids = async (
 ): Promise<ApiResponse<BidData[]>> => {
   try {
     const response = await apiClient.get<ApiResponse<BidData[]>>(
-      `/auctions/${auctionId}/bids`
+      `/bids/auction/${auctionId}`
     );
 
     return response.data;

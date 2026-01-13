@@ -195,3 +195,42 @@ export const mockAuctions: Auction[] = [
     country: { name: "Argentina", code: "AR" },
   },
 ];
+
+// Mock bid history data
+export const mockBidHistory = [
+  {
+    id: "1",
+    username: "collector_uk",
+    amount: 2450,
+    time: "2 minutes ago",
+    isWinning: true,
+  },
+  {
+    id: "2",
+    username: "vintage_fan",
+    amount: 2400,
+    time: "15 minutes ago",
+    isWinning: false,
+  },
+  {
+    id: "3",
+    username: "jersey_hunter",
+    amount: 2350,
+    time: "1 hour ago",
+    isWinning: false,
+  },
+  {
+    id: "4",
+    username: "football_memorabilia",
+    amount: 2300,
+    time: "3 hours ago",
+    isWinning: false,
+  },
+  {
+    id: "5",
+    username: "red_devil_77",
+    amount: 2250,
+    time: "5 hours ago",
+    isWinning: false,
+  },
+];
