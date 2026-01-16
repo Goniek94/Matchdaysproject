@@ -5,6 +5,9 @@ import StepCategory from "./StepCategory";
 import StepCompletionMode from "./StepCompletionMode";
 import StepPhotosGuidedFull from "./StepPhotosGuidedFull";
 import StepPhotosFootwear from "./StepPhotosFootwear";
+import StepPhotosJackets from "./StepPhotosJackets";
+import StepPhotosPants from "./StepPhotosPants";
+import StepPhotosAccessories from "./StepPhotosAccessories";
 import StepProductDetailsManual from "./StepProductDetailsManual";
 import StepAISummary from "./StepAISummary";
 import StepPricing from "./StepPricing";
@@ -40,6 +43,19 @@ export default function SmartFormSteps({
         // Footwear: 5 parts (Overview, Labels, Sole, Details, Inside)
         return (
           <StepPhotosFootwear data={data} update={update} onNext={onNext} />
+        );
+      } else if (data.category === "jackets") {
+        // Jackets: 5 parts (Overview, Branding, Labels, Construction, Material)
+        return (
+          <StepPhotosJackets data={data} update={update} onNext={onNext} />
+        );
+      } else if (data.category === "pants") {
+        // Pants: 4 parts (Overview, Branding, Labels, Material)
+        return <StepPhotosPants data={data} update={update} onNext={onNext} />;
+      } else if (data.category === "accessories") {
+        // Accessories: 4 simple photos (no sub-steps)
+        return (
+          <StepPhotosAccessories data={data} update={update} onNext={onNext} />
         );
       } else {
         // Shirts: 5 sub-steps (Front, Tags, Back, Details, More)

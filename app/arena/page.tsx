@@ -2,12 +2,10 @@
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Trophy,
   Target, // Typer
-  Gamepad2, // Bingo/Quiz
   Users, // Missing 11
   Globe2, // Mundial
   Flag, // National Leagues
@@ -16,12 +14,10 @@ import {
   ArrowUpRight,
   Flame,
   LayoutGrid,
-  Crown, // <--- NAPRAWIONE: Dodałem brakujący import
+  Crown,
 } from "lucide-react";
 
 export default function ArenaPage() {
-  const [activeTab, setActiveTab] = useState("all");
-
   // --- GŁÓWNY FEATURE: MUNDIAL / BIG TOURNAMENT ---
   const mainEvent = {
     title: "Road to Mundial 2026",
@@ -108,9 +104,8 @@ export default function ArenaPage() {
   ];
 
   return (
-    // Ustawiamy Navbar na theme="dark"
     <main className="bg-[#050505] min-h-screen text-white font-sans selection:bg-red-500 selection:text-white">
-      <Navbar theme="dark" />
+      <Navbar />
 
       {/* --- BACKGROUND EFFECTS --- */}
       <div className="fixed inset-0 z-0 pointer-events-none">

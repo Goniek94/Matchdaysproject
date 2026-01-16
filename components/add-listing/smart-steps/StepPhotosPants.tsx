@@ -11,54 +11,61 @@ interface StepProps {
   onNext?: () => void;
 }
 
-// Photo groups for footwear - 5 PARTS
-const FOOTWEAR_PHOTO_GROUPS = [
+// Photo groups for pants & shorts - 4 PARTS
+const PANTS_PHOTO_GROUPS = [
   {
     id: "overview",
     title: "Overview",
-    description: "Take photos of the complete shoes from all angles",
+    description: "Take photos of the complete pants/shorts",
     photos: [
       {
-        type: "side_left",
-        label: "Side View – Left",
-        desc: "Left shoe from the side",
+        type: "front_full",
+        label: "Full – Front",
+        desc: "Full pants/shorts from front",
         optional: false,
       },
       {
-        type: "side_right",
-        label: "Side View – Right",
-        desc: "Right shoe from the side",
-        optional: false,
-      },
-      {
-        type: "front_both",
-        label: "Front View (Both)",
-        desc: "Both shoes from the front",
-        optional: false,
-      },
-      {
-        type: "back_heel",
-        label: "Back View (Heel)",
-        desc: "Heels of both shoes",
+        type: "back_full",
+        label: "Full – Back",
+        desc: "Full pants/shorts from back",
         optional: false,
       },
     ],
   },
   {
-    id: "labels",
-    title: "Labels & SKU (CRITICAL)",
-    description: "Inner labels - critical for AI verification",
+    id: "branding",
+    title: "Branding & Logo",
+    description: "Brand logos and secondary branding",
     photos: [
       {
-        type: "inner_label_left",
-        label: "Inner Label – Left",
-        desc: "Inner label of left shoe",
+        type: "brand_logo",
+        label: "Brand Logo (Close-up)",
+        desc: "Nike / Adidas / Puma / Other",
         optional: false,
       },
       {
-        type: "inner_label_right",
-        label: "Inner Label – Right",
-        desc: "Inner label of right shoe",
+        type: "secondary_branding",
+        label: "Secondary Branding",
+        desc: "Additional logo (if any)",
+        optional: true,
+      },
+    ],
+  },
+  {
+    id: "labels",
+    title: "Labels (CRITICAL)",
+    description: "Main labels - critical for AI verification",
+    photos: [
+      {
+        type: "main_label",
+        label: "Main Label",
+        desc: "Size + brand",
+        optional: false,
+      },
+      {
+        type: "material_label",
+        label: "Material Label",
+        desc: "Composition + country",
         optional: false,
       },
     ],
@@ -66,111 +73,46 @@ const FOOTWEAR_PHOTO_GROUPS = [
     warning: "❗ Missing labels → MAX SCORE = 70%",
   },
   {
-    id: "sole",
-    title: "Sole & Construction",
-    description: "Bottom and midsole details",
+    id: "material",
+    title: "Material & Details",
+    description: "Fabric structure and construction details",
     photos: [
       {
-        type: "outsole",
-        label: "Outsole (Bottom)",
-        desc: "Bottom of the shoe",
+        type: "material_closeup",
+        label: "Material – Close-up",
+        desc: "Fabric structure",
         optional: false,
       },
       {
-        type: "midsole",
-        label: "Midsole Close-up",
-        desc: "Side midsole view",
+        type: "seams_cuffs",
+        label: "Seams / Cuffs",
+        desc: "Construction details",
         optional: false,
-      },
-    ],
-  },
-  {
-    id: "details",
-    title: "Details & Branding",
-    description: "Logo, tongue, and stitching quality",
-    photos: [
-      {
-        type: "brand_logo",
-        label: "Brand Logo",
-        desc: "Swoosh / Stripes / Logo",
-        optional: false,
-      },
-      {
-        type: "tongue_label",
-        label: "Tongue Label",
-        desc: "Tongue tag",
-        optional: false,
-      },
-      {
-        type: "stitching",
-        label: "Stitching / Glue",
-        desc: "Stitching or glue details",
-        optional: false,
-      },
-    ],
-  },
-  {
-    id: "inside",
-    title: "Inside & Extras",
-    description: "Insoles and optional items",
-    photos: [
-      {
-        type: "insole_top",
-        label: "Insole (Top)",
-        desc: "Insole from top",
-        optional: false,
-      },
-      {
-        type: "insole_bottom",
-        label: "Insole (Bottom)",
-        desc: "Bottom of insole",
-        optional: false,
-      },
-      {
-        type: "box",
-        label: "Box + Label (Optional)",
-        desc: "Box with label",
-        optional: true,
-      },
-      {
-        type: "extras",
-        label: "Extra Laces (Optional)",
-        desc: "Additional laces",
-        optional: true,
       },
     ],
   },
 ];
 
-export default function StepPhotosFootwear({
-  data,
-  update,
-  onNext,
-}: StepProps) {
+export default function StepPhotosPants({ data, update, onNext }: StepProps) {
   const [currentSubStep, setCurrentSubStep] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  const currentGroup = FOOTWEAR_PHOTO_GROUPS[currentSubStep];
-  const totalSubSteps = FOOTWEAR_PHOTO_GROUPS.length;
+  const currentGroup = PANTS_PHOTO_GROUPS[currentSubStep];
+  const totalSubSteps = PANTS_PHOTO_GROUPS.length;
 
-  // Handle file upload
   const handleFileUpload = (files: FileList | null, photoType: string) => {
     if (!files) return;
-
     const file = files[0];
     const reader = new FileReader();
-
     reader.onload = (e) => {
       const newPhoto: Photo = {
         id: `photo-${Date.now()}-${Math.random()}`,
         url: e.target?.result as string,
         typeHint: photoType as any,
       };
-
       const existingIndex = data.photos.findIndex(
         (p) => p.typeHint === photoType
       );
-
       if (existingIndex >= 0) {
         const updatedPhotos = [...data.photos];
         updatedPhotos[existingIndex] = newPhoto;
@@ -179,11 +121,9 @@ export default function StepPhotosFootwear({
         update("photos", [...data.photos, newPhoto]);
       }
     };
-
     reader.readAsDataURL(file);
   };
 
-  // Remove photo
   const removePhoto = (photoType: string) => {
     update(
       "photos",
@@ -191,12 +131,10 @@ export default function StepPhotosFootwear({
     );
   };
 
-  // Get photo for specific type
   const getPhotoByType = (photoType: string) => {
     return data.photos.find((p) => p.typeHint === photoType);
   };
 
-  // Check if current group is complete
   const isGroupComplete = () => {
     const requiredPhotos = currentGroup.photos.filter((p) => !p.optional);
     return requiredPhotos.every((p) => getPhotoByType(p.type));
@@ -218,7 +156,6 @@ export default function StepPhotosFootwear({
     }
   };
 
-  // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -237,7 +174,6 @@ export default function StepPhotosFootwear({
   return (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-100">
-        {/* Sub-step Progress */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -255,9 +191,8 @@ export default function StepPhotosFootwear({
             </div>
           </div>
 
-          {/* Progress dots */}
           <div className="flex gap-2">
-            {FOOTWEAR_PHOTO_GROUPS.map((_, index) => (
+            {PANTS_PHOTO_GROUPS.map((_, index) => (
               <div
                 key={index}
                 className={cn(
@@ -272,7 +207,6 @@ export default function StepPhotosFootwear({
             ))}
           </div>
 
-          {/* Critical warning */}
           {currentGroup.critical && (
             <div className="mt-4 p-3 bg-red-50 border-2 border-red-200 rounded-xl">
               <p className="text-sm font-bold text-red-900">
@@ -282,7 +216,6 @@ export default function StepPhotosFootwear({
           )}
         </div>
 
-        {/* Photo Upload Grid */}
         <div className="grid md:grid-cols-2 gap-4 mb-6">
           {currentGroup.photos.map((photoConfig) => {
             const existingPhoto = getPhotoByType(photoConfig.type);
@@ -300,7 +233,6 @@ export default function StepPhotosFootwear({
                     : "border-gray-200 bg-white hover:border-gray-300"
                 )}
               >
-                {/* Label */}
                 <div className="mb-3">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-bold text-gray-900 text-sm">
@@ -318,7 +250,6 @@ export default function StepPhotosFootwear({
                   <p className="text-xs text-gray-600">{photoConfig.desc}</p>
                 </div>
 
-                {/* Upload Area or Preview */}
                 {existingPhoto ? (
                   <div className="relative aspect-video rounded-xl overflow-hidden group">
                     <img
@@ -364,7 +295,6 @@ export default function StepPhotosFootwear({
           })}
         </div>
 
-        {/* Info Box */}
         <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 mb-6">
           <p className="text-sm text-blue-800">
             <strong>💡 Tip:</strong> Make sure photos are clear and well-lit.
@@ -373,7 +303,6 @@ export default function StepPhotosFootwear({
           </p>
         </div>
 
-        {/* Navigation Buttons */}
         <div className="flex items-center justify-between pt-6 border-t border-gray-100">
           <button
             onClick={handleBackSubStep}
