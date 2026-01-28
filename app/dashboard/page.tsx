@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { authApi } from "@/lib/api";
 import Link from "next/link";
 import {
-  User,
   Settings,
   CreditCard,
   Heart,

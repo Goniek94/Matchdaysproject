@@ -1,9 +1,3 @@
-Oto cały, poprawiony plik.
-Zmiany, które wprowadziłem:
- * Usunąłem linię const router = useRouter();, która powodowała błąd.
- * Usunąłem import useRouter, ponieważ nie jest już potrzebny.
- * Poprawiłem pierwszą linię na małe litery "use client"; (to standardowa dyrektywa Next.js).
-Możesz skopiować całość i wkleić do pliku:
 "use client";
 
 import { useEffect, useState } from "react";
@@ -299,4 +293,3 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     </main>
   );
 }
-
