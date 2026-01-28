@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { mockAuctions } from "@/lib/mockData";
 import Navbar from "@/components/Navbar";
@@ -9,7 +10,7 @@ import { Shield, Truck, CreditCard, Lock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const searchParams = useSearchParams();
   const auctionId = searchParams.get("id");
   const auction =
@@ -329,5 +330,13 @@ export default function CheckoutPage() {
 
       <Footer />
     </main>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="text-center p-10"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div><p className="text-gray-600">Loading checkout...</p></div></div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
