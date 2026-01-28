@@ -55,7 +55,7 @@ export default function SmartFormSteps({
       } else if (data.category === "accessories") {
         // Accessories: 4 simple photos (no sub-steps)
         return (
-          <StepPhotosAccessories data={data} update={update} onNext={onNext} />
+          <StepPhotosAccessories data={data} update={update} />
         );
       } else {
         // Shirts: 5 sub-steps (Front, Tags, Back, Details, More)

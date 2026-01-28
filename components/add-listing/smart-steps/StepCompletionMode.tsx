@@ -1,5 +1,5 @@
 import { SmartFormData } from "./types";
-import { Sparkles, PenTool, Coins, CheckCircle2, Check } from "lucide-react";
+import { Sparkles, PenTool, Coins, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
@@ -28,18 +28,6 @@ export default function StepCompletionMode({
       setTimeout(() => onNext(), 300);
     }
   };
-
-  const toggleAIFeature = (feature: keyof SmartFormData["aiFeatures"]) => {
-    update("aiFeatures", {
-      ...data.aiFeatures,
-      [feature]: !data.aiFeatures[feature],
-    });
-  };
-
-  const canProceed = data.completionMode !== null;
-  const selectedAIFeatures = Object.values(data.aiFeatures).filter(
-    Boolean
-  ).length;
 
   return (
     <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">

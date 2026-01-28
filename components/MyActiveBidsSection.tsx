@@ -65,7 +65,7 @@ export default function MyActiveBidsSection({
                   <p className="text-base font-medium">
                     {bid.status === "winning"
                       ? bid.timeLeft
-                      : bid.currentBid.toLocaleString("pl-PL") + " zł"}
+                      : (bid.currentBid || 0).toLocaleString("pl-PL") + " zł"}
                   </p>
                 </div>
               </div>

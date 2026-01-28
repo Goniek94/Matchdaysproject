@@ -120,7 +120,6 @@ const JACKET_PHOTO_GROUPS = [
 
 export default function StepPhotosJackets({ data, update, onNext }: StepProps) {
   const [currentSubStep, setCurrentSubStep] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
 
   const currentGroup = JACKET_PHOTO_GROUPS[currentSubStep];
   const totalSubSteps = JACKET_PHOTO_GROUPS.length;
@@ -183,16 +182,13 @@ export default function StepPhotosJackets({ data, update, onNext }: StepProps) {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
   };
 
   const handleDragLeave = () => {
-    setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent, photoType: string) => {
     e.preventDefault();
-    setIsDragging(false);
     handleFileUpload(e.dataTransfer.files, photoType);
   };
 

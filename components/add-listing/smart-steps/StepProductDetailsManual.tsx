@@ -1,7 +1,6 @@
 "use client";
 
 import { SmartFormData, BRANDS } from "./types";
-import { cn } from "@/lib/utils";
 
 interface StepProps {
   data: SmartFormData;

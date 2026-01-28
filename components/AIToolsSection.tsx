@@ -209,7 +209,7 @@ export default function UltimateGamificationArenaV4() {
 
         {/* GÓRNE KARTY (HEAVY DROP) */}
         <motion.div
-          variants={gridContainer}
+          variants={gridContainer as any}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
@@ -223,7 +223,7 @@ export default function UltimateGamificationArenaV4() {
             return (
               <motion.div
                 key={game.id}
-                variants={heavyDropVariant}
+                variants={heavyDropVariant as any}
                 onMouseEnter={() => setHoveredCard(game.id)}
                 onMouseLeave={() => setHoveredCard(null)}
                 onClick={() => setFlippedCard(isFlipped ? null : game.id)}

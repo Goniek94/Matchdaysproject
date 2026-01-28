@@ -3,14 +3,12 @@
 import { motion } from "framer-motion";
 import {
   ShieldCheck,
-  Zap,
   Globe2,
   Wallet,
   ScanSearch,
   Users,
   ArrowUpRight,
 } from "lucide-react";
-import Image from "next/image";
 
 export default function AboutUsSection() {
   return (

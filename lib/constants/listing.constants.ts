@@ -9,9 +9,8 @@ import {
   Footprints,
   Package,
   Trophy,
-  type LucideIcon,
 } from "lucide-react";
-import type { Category, PhotoTypeHint } from "@/types/features/listing.types";
+import type { Category } from "@/types/features/listing.types";
 
 // ============================================
 // CATEGORIES

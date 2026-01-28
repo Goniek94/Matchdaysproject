@@ -148,7 +148,6 @@ export default function StepPhotosFootwear({
   onNext,
 }: StepProps) {
   const [currentSubStep, setCurrentSubStep] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
 
   const currentGroup = FOOTWEAR_PHOTO_GROUPS[currentSubStep];
   const totalSubSteps = FOOTWEAR_PHOTO_GROUPS.length;
@@ -221,16 +220,14 @@ export default function StepPhotosFootwear({
   // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
   };
 
   const handleDragLeave = () => {
-    setIsDragging(false);
+    // Drag leave handler
   };
 
   const handleDrop = (e: React.DragEvent, photoType: string) => {
     e.preventDefault();
-    setIsDragging(false);
     handleFileUpload(e.dataTransfer.files, photoType);
   };
 

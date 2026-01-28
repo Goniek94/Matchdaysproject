@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  PenLine,
   Sparkles,
   ArrowRight,
-  Smartphone,
   Keyboard,
 } from "lucide-react";
 

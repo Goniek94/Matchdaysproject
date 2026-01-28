@@ -5,11 +5,9 @@ import { authApi } from "@/lib/api";
 import Link from "next/link";
 import {
   Settings,
-  CreditCard,
   Heart,
   Package,
   TrendingUp,
-  Shield,
   CheckCircle2,
   XCircle,
   Sparkles,

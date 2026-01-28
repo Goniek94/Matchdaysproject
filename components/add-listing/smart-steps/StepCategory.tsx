@@ -1,5 +1,5 @@
 import { CATEGORIES, SmartFormData } from "./types";
-import { CheckCircle2, ArrowRight } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StepProps {
@@ -8,14 +8,12 @@ interface StepProps {
   onNext?: () => void;
 }
 
-export default function StepCategory({ data, update, onNext }: StepProps) {
+export default function StepCategory({ data, update }: StepProps) {
   const handleSelect = (id: string) => {
     const selectedCategory = CATEGORIES.find((cat) => cat.id === id);
     update("category", id);
     update("categorySlug", selectedCategory?.label || id);
   };
-
-  const canProceed = data.category !== "";
 
   return (
     <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">

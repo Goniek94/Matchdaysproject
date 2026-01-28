@@ -169,7 +169,7 @@ export default function Hero() {
         <motion.div
           key={currentSlide}
           custom={direction}
-          variants={slideVariants}
+          variants={slideVariants as any}
           initial="enter"
           animate="center"
           exit="exit"
@@ -191,14 +191,14 @@ export default function Hero() {
       <div className="container-max relative z-20 h-full flex flex-col justify-center px-6 md:px-12 items-center text-center">
         <motion.div
           key={currentSlide}
-          variants={textContainerVariants}
+          variants={textContainerVariants as any}
           initial="hidden"
           animate="show"
           className="max-w-4xl"
         >
           {/* Subtitle / Badge */}
           <motion.div
-            variants={textItemVariants}
+            variants={textItemVariants as any}
             className="flex items-center justify-center gap-3 mb-6"
           >
             <span
@@ -214,7 +214,7 @@ export default function Hero() {
 
           {/* Główny Tytuł */}
           <motion.h1
-            variants={textItemVariants}
+            variants={textItemVariants as any}
             className="text-6xl md:text-8xl lg:text-9xl font-black text-white leading-[0.9] tracking-tight mb-4"
           >
             {slides[currentSlide].title}
@@ -222,7 +222,7 @@ export default function Hero() {
 
           {/* Highlight Text */}
           <motion.div
-            variants={textItemVariants}
+            variants={textItemVariants as any}
             className="overflow-hidden mb-8"
           >
             <h2
@@ -234,14 +234,14 @@ export default function Hero() {
 
           {/* Opis */}
           <motion.p
-            variants={textItemVariants}
+            variants={textItemVariants as any}
             className="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto mb-12 leading-relaxed font-light"
           >
             {slides[currentSlide].description}
           </motion.p>
 
           {/* Przycisk CTA */}
-          <motion.div variants={textItemVariants}>
+          <motion.div variants={textItemVariants as any}>
             <Link
               href={slides[currentSlide].ctaLink}
               className="group relative inline-flex items-center gap-3 px-10 py-5 bg-white text-black font-bold text-xl rounded-full overflow-hidden transition-transform hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"

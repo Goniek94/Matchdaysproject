@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SmartFormData, Photo, getCategoryById, DEFECT_TYPES } from "./types";
+import { SmartFormData, Photo, DEFECT_TYPES } from "./types";
 import {
   Upload,
   X,
@@ -101,7 +101,6 @@ export default function StepPhotosGuidedFull({
   onNext,
 }: StepProps) {
   const [currentSubStep, setCurrentSubStep] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
 
   const currentGroup = SHIRT_PHOTO_GROUPS[currentSubStep];
   const totalSubSteps = SHIRT_PHOTO_GROUPS.length;
@@ -205,16 +204,14 @@ export default function StepPhotosGuidedFull({
   // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
   };
 
   const handleDragLeave = () => {
-    setIsDragging(false);
+    // Drag leave handler
   };
 
   const handleDrop = (e: React.DragEvent, photoType: string) => {
     e.preventDefault();
-    setIsDragging(false);
     handleFileUpload(e.dataTransfer.files, photoType);
   };
 

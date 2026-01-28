@@ -5,8 +5,6 @@ import {
   Edit3,
   CheckCircle2,
   Shirt,
-  Globe,
-  Hash,
   Tag,
   Trophy,
   Layers,
@@ -33,22 +31,30 @@ export default function SmartFormSummary({
   onNext,
 }: SmartFormSummaryProps) {
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  
+  // Cast data to any to access properties that may not be in the type definition
+  const formData = data as any;
 
   useEffect(() => {
-    if (data.photos.front) {
-      setActiveImage(data.photos.front);
+    const frontPhoto = data.photos.find((p: any) => p.typeHint === 'front_far' || p.typeHint === 'front_close');
+    if (frontPhoto?.url) {
+      setActiveImage(frontPhoto.url);
     }
-  }, [data.photos.front]);
+  }, [data.photos]);
+
+  const frontPhoto = data.photos.find((p: any) => p.typeHint === 'front_far' || p.typeHint === 'front_close');
+  const backPhoto = data.photos.find((p: any) => p.typeHint === 'back_far' || p.typeHint === 'back_close');
+  const neckTagPhoto = data.photos.find((p: any) => p.typeHint === 'size_tag' || p.typeHint === 'neck_label');
 
   const allPhotos = [
-    { src: data.photos.front, label: "Front" },
-    { src: data.photos.back, label: "Back" },
-    { src: data.photos.neckTag, label: "Tag" },
-    ...data.galleryPhotos.map((src, i) => ({
+    { src: frontPhoto?.url, label: "Front" },
+    { src: backPhoto?.url, label: "Back" },
+    { src: neckTagPhoto?.url, label: "Tag" },
+    ...(formData.galleryPhotos || []).map((src: string, i: number) => ({
       src,
       label: `Extra ${i + 1}`,
     })),
-  ].filter((item) => item.src !== null);
+  ].filter((item) => item.src !== null && item.src !== undefined);
 
   return (
     <div className="max-w-6xl mx-auto animate-in fade-in duration-700 pb-24">
@@ -70,8 +76,8 @@ export default function SmartFormSummary({
               Listing Title
             </label>
             <textarea
-              value={data.aiGenerated.title}
-              onChange={(e) => updateAi("title", e.target.value)}
+              value={formData.aiGenerated?.title || ''}
+              onChange={(e: any) => updateAi("title", e.target.value)}
               className="w-full text-3xl font-black text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-200 focus:border-black outline-none resize-none overflow-hidden leading-tight transition-all placeholder:text-gray-300"
               rows={2}
               placeholder="e.g. Authentic FC Barcelona Shirt..."
@@ -131,8 +137,8 @@ export default function SmartFormSummary({
               Description
             </label>
             <textarea
-              value={data.aiGenerated.description}
-              onChange={(e) => updateAi("description", e.target.value)}
+              value={formData.aiGenerated?.description || ''}
+              onChange={(e: any) => updateAi("description", e.target.value)}
               className="w-full min-h-[200px] bg-white rounded-2xl p-6 text-gray-600 leading-relaxed border border-gray-100 focus:border-black focus:ring-1 focus:ring-black outline-none resize-y transition-all shadow-sm"
             />
           </div>
@@ -152,7 +158,7 @@ export default function SmartFormSummary({
               </div>
             </div>
             <div className="text-4xl font-black text-blue-700 tracking-tight mt-4">
-              {data.aiGenerated.estimatedValue || "Calculating..."}
+              {formData.aiGenerated?.estimatedValue || "Calculating..."}
             </div>
           </div>
 
@@ -174,32 +180,32 @@ export default function SmartFormSummary({
               <DetailRow
                 icon={<Tag size={16} />}
                 label="Brand"
-                value={data.aiGenerated.brand}
-                onChange={(val) => updateAi("brand", val)}
+                value={formData.aiGenerated?.brand || ''}
+                onChange={(val: any) => updateAi("brand", val)}
               />
               <DetailRow
                 icon={<Trophy size={16} />}
                 label="Team / Club"
-                value={data.aiGenerated.team}
-                onChange={(val) => updateAi("team", val)}
+                value={formData.aiGenerated?.team || ''}
+                onChange={(val: any) => updateAi("team", val)}
               />
               <DetailRow
                 icon={<CalendarDays size={16} />}
                 label="Season"
-                value={data.aiGenerated.year}
-                onChange={(val) => updateAi("year", val)}
+                value={formData.aiGenerated?.year || ''}
+                onChange={(val: any) => updateAi("year", val)}
               />
               <DetailRow
                 icon={<Shirt size={16} />}
                 label="Model"
-                value={data.aiGenerated.model}
-                onChange={(val) => updateAi("model", val)}
+                value={formData.aiGenerated?.model || ''}
+                onChange={(val: any) => updateAi("model", val)}
               />
               <DetailRow
                 icon={<Ruler size={16} />}
                 label="Dimensions"
-                value={data.aiGenerated.dimensions}
-                onChange={(val) => updateAi("dimensions", val)}
+                value={formData.aiGenerated?.dimensions || ''}
+                onChange={(val: any) => updateAi("dimensions", val)}
                 placeholder="Optional"
               />
               <div className="grid grid-cols-[1.5fr_2fr] items-center px-6 py-4 hover:bg-gray-50 transition-colors group">

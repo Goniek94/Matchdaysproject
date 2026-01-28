@@ -95,7 +95,6 @@ const PANTS_PHOTO_GROUPS = [
 
 export default function StepPhotosPants({ data, update, onNext }: StepProps) {
   const [currentSubStep, setCurrentSubStep] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
 
   const currentGroup = PANTS_PHOTO_GROUPS[currentSubStep];
   const totalSubSteps = PANTS_PHOTO_GROUPS.length;
@@ -158,16 +157,13 @@ export default function StepPhotosPants({ data, update, onNext }: StepProps) {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
   };
 
   const handleDragLeave = () => {
-    setIsDragging(false);
   };
 
   const handleDrop = (e: React.DragEvent, photoType: string) => {
     e.preventDefault();
-    setIsDragging(false);
     handleFileUpload(e.dataTransfer.files, photoType);
   };
 
