@@ -222,7 +222,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
           {/* Premium Badge */}
           {badge && badgeConfig && (
             <div
-              className={`absolute top-3 right-3 ${badgeConfig.gradient} text-white px-3 py-1.5 rounded-full text-xs font-black shadow-lg flex items-center gap-1.5 ring-2 ring-white/50 z-20`}
+              className={`absolute top-2 right-2 sm:top-3 sm:right-3 ${badgeConfig.gradient} text-white px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black shadow-lg flex items-center gap-1 sm:gap-1.5 ring-2 ring-white/50 z-20`}
             >
               {badgeConfig.icon}
               <span className="tracking-wider">{badge.text}</span>
@@ -232,13 +232,13 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
           {/* Favorite Button */}
           <button
             onClick={handleFavoriteClick}
-            className={`absolute top-3 left-3 p-2.5 rounded-full shadow-lg ring-2 z-20 transition-all duration-300 transform hover:scale-110 active:scale-95 ${
+            className={`absolute top-2 left-2 sm:top-3 sm:left-3 p-2 sm:p-2.5 rounded-full shadow-lg ring-2 z-20 transition-all duration-300 transform hover:scale-110 active:scale-95 ${
               isFavorite
                 ? "bg-gradient-to-br from-red-500 to-red-600 text-white ring-red-300"
                 : "bg-white/90 backdrop-blur-sm text-slate-400 ring-white/50 hover:text-red-500"
             }`}
           >
-            <JerseyIcon filled={isFavorite} className="w-5 h-5" />
+            <JerseyIcon filled={isFavorite} className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
           {/* Image container */}
@@ -253,7 +253,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
 
             {/* Time Badge */}
             <div
-              className={`absolute bottom-3 left-3 backdrop-blur-md text-xs px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg ${
+              className={`absolute bottom-2 left-2 sm:bottom-3 sm:left-3 backdrop-blur-md text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 shadow-lg ${
                 timeStatus.isUrgent
                   ? "bg-red-600 text-white animate-pulse"
                   : timeStatus.isEndingSoon
@@ -273,21 +273,21 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
         </div>
 
         {/* CONTENT SECTION */}
-        <div className="relative flex flex-col flex-1 p-4">
+        <div className="relative flex flex-col flex-1 p-3 sm:p-4">
           {/* Title & Description */}
           <div className="mb-2">
-            <h3 className="text-lg font-bold text-slate-900 leading-tight group-hover:text-red-600 transition-colors line-clamp-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight group-hover:text-red-600 transition-colors line-clamp-2">
               {auction.title}
             </h3>
             <div className="w-10 h-0.5 bg-gradient-to-r from-amber-400 to-amber-200 rounded-full my-1.5"></div>
-            <p className="text-[13px] text-slate-500 leading-snug line-clamp-2">
+            <p className="text-xs sm:text-[13px] text-slate-500 leading-snug line-clamp-2">
               {shortDesc}
             </p>
           </div>
 
           {/* Price Section */}
           <div
-            className={`rounded-xl p-3 mb-4 border h-[5.5rem] flex flex-col justify-center transition-all duration-300 ${
+            className={`rounded-lg sm:rounded-xl p-2.5 sm:p-3 mb-3 sm:mb-4 border min-h-[4.5rem] sm:h-[5.5rem] flex flex-col justify-center transition-all duration-300 ${
               priceChanged
                 ? "bg-gradient-to-r from-amber-100 to-amber-50 border-amber-300 scale-[1.02]"
                 : "bg-gradient-to-r from-amber-50/80 to-white border-amber-200/50"
@@ -295,45 +295,45 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] text-amber-700 uppercase font-bold tracking-wider mb-0.5">
+                <p className="text-[9px] sm:text-[10px] text-amber-700 uppercase font-bold tracking-wider mb-0.5">
                   {auction.type === "buy_now" ? "Price" : "Current Bid"}
                 </p>
                 <div
-                  className={`flex items-baseline gap-1 transition-all duration-300 ${
+                  className={`flex items-baseline gap-0.5 sm:gap-1 transition-all duration-300 ${
                     priceChanged ? "animate-pulse" : ""
                   }`}
                 >
-                  <span className="text-2xl font-black text-amber-700 tracking-tight">
+                  <span className="text-xl sm:text-2xl font-black text-amber-700 tracking-tight">
                     {currentPrice.toLocaleString()}
                   </span>
-                  <span className="text-sm font-bold text-amber-600">
+                  <span className="text-xs sm:text-sm font-bold text-amber-600">
                     {auction.currency}
                   </span>
                 </div>
               </div>
 
               {/* ZMIANA: Logika Bids vs Likes (Koszulka) */}
-              <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-amber-200/50 shadow-sm">
+              <div className="flex items-center gap-1 sm:gap-1.5 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-amber-200/50 shadow-sm">
                 {auction.type === "buy_now" ? (
                   // Wariant dla Buy Now (Liczba Polubień/Koszulek)
                   <>
                     <JerseyIcon
                       filled={true}
-                      className="w-3.5 h-3.5 text-amber-500"
+                      className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500"
                     />
-                    <span className="text-sm font-bold text-slate-700">
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">
                       {auction.likes || 0}
                     </span>
-                    <span className="text-xs text-slate-400">likes</span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">likes</span>
                   </>
                 ) : (
                   // Wariant dla Aukcji (Oferty/Bids)
                   <>
-                    <Gavel size={14} className="text-amber-500" />
-                    <span className="text-sm font-bold text-slate-700">
+                    <Gavel size={12} className="sm:w-3.5 sm:h-3.5 text-amber-500" />
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">
                       {auction.bids}
                     </span>
-                    <span className="text-xs text-slate-400">bids</span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">bids</span>
                   </>
                 )}
               </div>
@@ -343,10 +343,10 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
           <div className="flex-1"></div>
 
           {/* Seller Info */}
-          <div className="pt-3 border-t border-slate-200/70">
+          <div className="pt-2.5 sm:pt-3 border-t border-slate-200/70">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center overflow-hidden border-2 border-white shadow-md shrink-0">
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center overflow-hidden border-2 border-white shadow-md shrink-0">
                   {auction.seller.avatar ? (
                     <Image
                       src={auction.seller.avatar}
@@ -362,31 +362,31 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                   )}
                 </div>
 
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold text-slate-700 leading-tight">
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-700 leading-tight truncate">
                       {auction.seller.name}
                     </span>
                     {auction.verified && (
                       <Shield
-                        size={12}
-                        className="text-emerald-500 fill-emerald-500"
+                        size={11}
+                        className="sm:w-3 sm:h-3 text-emerald-500 fill-emerald-500 shrink-0"
                       />
                     )}
                   </div>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Star size={12} className="text-amber-400 fill-amber-400" />
-                    <span className="text-xs font-bold text-slate-700">
+                  <div className="flex items-center gap-0.5 sm:gap-1 mt-0.5">
+                    <Star size={10} className="sm:w-3 sm:h-3 text-amber-400 fill-amber-400" />
+                    <span className="text-[10px] sm:text-xs font-bold text-slate-700">
                       {auction.seller.rating.toFixed(1)}
                     </span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-[10px] sm:text-xs text-slate-400">
                       ({auction.seller.reviews})
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-md text-slate-600 shrink-0">
+              <div className="flex items-center gap-1 sm:gap-1.5 bg-slate-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md text-slate-600 shrink-0">
                 <Image
                   src={flagUrl}
                   width={16}
@@ -394,16 +394,16 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                   alt={auction.country.name}
                   className="rounded-sm"
                 />
-                <span className="text-xs font-medium">
+                <span className="text-[10px] sm:text-xs font-medium">
                   {auction.country.code.toUpperCase()}
                 </span>
               </div>
             </div>
 
             {auction.verified && (
-              <div className="mt-2 flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                <Shield size={11} />
-                <span className="text-[10px] font-semibold">
+              <div className="mt-1.5 sm:mt-2 flex items-center gap-1 sm:gap-1.5 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
+                <Shield size={10} className="sm:w-3 sm:h-3" />
+                <span className="text-[9px] sm:text-[10px] font-semibold">
                   Buyer Protection
                 </span>
               </div>
@@ -411,7 +411,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
           </div>
 
           <button
-            className={`mt-4 w-full py-3 bg-gradient-to-r ${frameColors.accent} text-white text-sm font-bold rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transform-gpu`}
+            className={`mt-3 sm:mt-4 w-full py-2.5 sm:py-3 bg-gradient-to-r ${frameColors.accent} text-white text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transform-gpu`}
           >
             {auction.type === "buy_now" ? "Buy Now" : "Place Bid"}
           </button>
