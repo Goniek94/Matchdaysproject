@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
 
 // Lista krajów
@@ -36,6 +34,7 @@ const ALLOWED_COUNTRIES = [
   { code: "ES", name: "Spain" },
   { code: "SE", name: "Sweden" },
   { code: "CH", name: "Switzerland" },
+  { code: "GB", name: "United Kingdom" },
 ];
 
 export default function RegisterPage() {
@@ -57,7 +56,7 @@ export default function RegisterPage() {
   const [isCountryOpen, setIsCountryOpen] = useState(false);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     setFormData({
       ...formData,
@@ -113,10 +112,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="bg-white min-h-screen">
-      <Navbar />
-
-      <section className="pt-32 pb-20 px-8">
+    <div className="bg-white">
+      <section className="pt-12 pb-20 px-8">
         <div className="container-max max-w-2xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-5xl font-bold mb-4">Create Account</h1>
@@ -399,8 +396,6 @@ export default function RegisterPage() {
           </div>
         </div>
       </section>
-
-      <Footer />
-    </main>
+    </div>
   );
 }

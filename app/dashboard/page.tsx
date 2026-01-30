@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { authApi } from "@/lib/api";
+// import { authApi } from "@/lib/api"; // Zakomentowane - API calls
 import Link from "next/link";
 import {
   Settings,
@@ -14,6 +14,8 @@ import {
   Receipt,
   Crown,
   PlusCircle,
+  User,
+  History,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -26,10 +28,17 @@ export default function DashboardPage() {
 
   const loadDashboardData = async () => {
     try {
-      const response = await authApi.checkAuth();
-      if (response.success && response.data) {
-        setUserData(response.data);
-      }
+      // TODO: Uncomment when backend is ready
+      // const response = await authApi.checkAuth();
+      // if (response.success && response.data) {
+      //   setUserData(response.data);
+      // }
+
+      // DEMO MODE: Set mock user data
+      setUserData({
+        username: "Demo User",
+        email: "demo@matchdays.com",
+      });
     } catch (error) {
       console.error("Error loading dashboard:", error);
     } finally {
@@ -138,7 +147,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 pb-16">
+    <div className="min-h-screen bg-gray-50 pt-20 pb-24 lg:pb-16">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* Header */}
         <div className="mb-8">
@@ -378,6 +387,43 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 lg:hidden z-50">
+        <div className="grid grid-cols-4 h-20">
+          <Link
+            href="/dashboard"
+            className="flex flex-col items-center justify-center gap-1 transition-colors text-black bg-gray-50"
+          >
+            <User size={24} strokeWidth={2.5} />
+            <span className="text-xs font-bold uppercase">Dashboard</span>
+          </Link>
+
+          <Link
+            href="/settings"
+            className="flex flex-col items-center justify-center gap-1 transition-colors text-gray-400 hover:text-black"
+          >
+            <Settings size={24} strokeWidth={2.5} />
+            <span className="text-xs font-bold uppercase">Settings</span>
+          </Link>
+
+          <Link
+            href="/favorites"
+            className="flex flex-col items-center justify-center gap-1 transition-colors text-gray-400 hover:text-black"
+          >
+            <Heart size={24} strokeWidth={2.5} />
+            <span className="text-xs font-bold uppercase">Favorites</span>
+          </Link>
+
+          <Link
+            href="/history"
+            className="flex flex-col items-center justify-center gap-1 transition-colors text-gray-400 hover:text-black"
+          >
+            <History size={24} strokeWidth={2.5} />
+            <span className="text-xs font-bold uppercase">History</span>
+          </Link>
         </div>
       </div>
     </div>

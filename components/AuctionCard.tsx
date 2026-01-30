@@ -102,7 +102,7 @@ const getBadgeConfig = (badgeText: string) => {
 
 // Helper function to parse time string and check if ending soon
 const parseTimeRemaining = (
-  timeStr: string
+  timeStr: string,
 ): { isEndingSoon: boolean; isUrgent: boolean } => {
   const hourMatch = timeStr.match(/(\d+)h/);
   const minuteMatch = timeStr.match(/(\d+)m/);
@@ -257,8 +257,8 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                 timeStatus.isUrgent
                   ? "bg-red-600 text-white animate-pulse"
                   : timeStatus.isEndingSoon
-                  ? "bg-red-500/90 text-white"
-                  : "bg-black/60 text-white"
+                    ? "bg-red-500/90 text-white"
+                    : "bg-black/60 text-white"
               }`}
             >
               <Clock
@@ -287,7 +287,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
 
           {/* Price Section */}
           <div
-            className={`rounded-lg sm:rounded-xl p-2.5 sm:p-3 mb-3 sm:mb-4 border min-h-[4.5rem] sm:h-[5.5rem] flex flex-col justify-center transition-all duration-300 ${
+            className={`rounded-lg sm:rounded-xl p-2.5 sm:p-3 mb-3 sm:mb-4 border h-[5.5rem] flex flex-col justify-center transition-all duration-300 ${
               priceChanged
                 ? "bg-gradient-to-r from-amber-100 to-amber-50 border-amber-300 scale-[1.02]"
                 : "bg-gradient-to-r from-amber-50/80 to-white border-amber-200/50"
@@ -330,7 +330,10 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                   </>
                 ) : (
                   <>
-                    <Gavel size={12} className="sm:w-3.5 sm:h-3.5 text-amber-500" />
+                    <Gavel
+                      size={12}
+                      className="sm:w-3.5 sm:h-3.5 text-amber-500"
+                    />
                     <span className="text-xs sm:text-sm font-bold text-slate-700">
                       {auction.bids}
                     </span>
@@ -378,7 +381,10 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-0.5 sm:gap-1 mt-0.5">
-                    <Star size={10} className="sm:w-3 sm:h-3 text-amber-400 fill-amber-400" />
+                    <Star
+                      size={10}
+                      className="sm:w-3 sm:h-3 text-amber-400 fill-amber-400"
+                    />
                     <span className="text-[10px] sm:text-xs font-bold text-slate-700">
                       {auction.seller.rating.toFixed(1)}
                     </span>

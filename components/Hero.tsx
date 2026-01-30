@@ -24,9 +24,23 @@ export default function Hero() {
       ctaLink: "/auctions",
       color: "from-red-600 to-rose-700",
     },
-    // SLAJD 2: AUTENTYCZNOŚĆ
+    // SLAJD 2: AI TOOLS - NOWY!
     {
       id: 2,
+      title: "AI-Powered",
+      subtitle: "Intelligence That Works For You",
+      highlight: "SUPERCHARGED BY AI",
+      description:
+        "Verify authenticity instantly. Generate pro descriptions. Get real-time valuations. Find any jersey with a photo. Our AI has analyzed 5 million shirts to make collecting effortless.",
+      image:
+        "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2500&auto=format&fit=crop",
+      ctaText: "Explore AI Tools",
+      ctaLink: "/aitools",
+      color: "from-purple-600 to-pink-600",
+    },
+    // SLAJD 3: AUTENTYCZNOŚĆ
+    {
+      id: 3,
       title: "Zero Fakes.",
       subtitle: "Guaranteed Authenticity",
       highlight: "VERIFIED BY EXPERTS",
@@ -38,9 +52,9 @@ export default function Hero() {
       ctaLink: "#verification",
       color: "from-blue-600 to-indigo-600",
     },
-    // --- NOWY SLAJD 3: GRYWALIZACJA (PLAY & WIN) ---
+    // --- SLAJD 4: GRYWALIZACJA (PLAY & WIN) ---
     {
-      id: 3,
+      id: 4,
       title: "Play & Win",
       subtitle: "The MatchDays League",
       highlight: "YOUR KNOWLEDGE PAYS OFF",
@@ -53,23 +67,23 @@ export default function Hero() {
       ctaLink: "/games",
       color: "from-emerald-500 to-teal-500",
     },
-    // SLAJD 4: RARE ITEMS
-    {
-      id: 4,
-      title: "The Holy Grails",
-      subtitle: "Match Worn & Rare Finds",
-      highlight: "FOR THE ELITE",
-      description:
-        "Looking for that 1998 Zidane jersey? Or a signed Messi shirt? Discover our curated selection of 'Match Worn' kits that belong in a museum.",
-      image:
-        "https://images.unsplash.com/photo-1511886929837-354d827aae26?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Browse Rare Items",
-      ctaLink: "/category/rare",
-      color: "from-amber-400 to-yellow-600",
-    },
-    // --- NOWY SLAJD 5: EU COVERAGE (UE & WYSYŁKA) ---
+    // SLAJD 5: SUBSKRYPCJE
     {
       id: 5,
+      title: "Level Up",
+      subtitle: "Premium Membership",
+      highlight: "LOWER FEES. MORE TOOLS.",
+      description:
+        "From 15% to just 5% commission. Get AI Credits, better positioning, and exclusive perks. Choose a plan that fits your activity and start saving on every sale.",
+      image:
+        "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2500&auto=format&fit=crop",
+      ctaText: "View Plans",
+      ctaLink: "#pricing",
+      color: "from-indigo-500 to-purple-600",
+    },
+    // --- SLAJD 6: EU COVERAGE (UE & WYSYŁKA) ---
+    {
+      id: 6,
       title: "No Borders",
       subtitle: "Fast EU Shipping",
       highlight: "ZERO CUSTOMS FEES",
@@ -81,20 +95,6 @@ export default function Hero() {
       ctaText: "Shipping Info",
       ctaLink: "/shipping",
       color: "from-indigo-500 to-purple-600",
-    },
-    // SLAJD 6: SPOŁECZNOŚĆ
-    {
-      id: 6,
-      title: "Join the Club",
-      subtitle: "Global Community",
-      highlight: "MORE THAN A MARKETPLACE",
-      description:
-        "MatchDays isn't just a store. It's a locker room for collectors. Share your finds, rate sellers, and discuss transfers. Welcome home.",
-      image:
-        "https://images.unsplash.com/photo-1504159506876-7949e351d6db?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Join Now",
-      ctaLink: "/register",
-      color: "from-pink-600 to-rose-600",
     },
   ];
 
@@ -109,7 +109,7 @@ export default function Hero() {
   const paginate = (newDirection: number) => {
     setDirection(newDirection);
     setCurrentSlide(
-      (prev) => (prev + newDirection + slides.length) % slides.length
+      (prev) => (prev + newDirection + slides.length) % slides.length,
     );
   };
 
@@ -163,7 +163,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative h-[calc(100vh-80px)] w-full overflow-hidden bg-black">
+    <section className="relative h-[70vh] md:h-[75vh] w-full overflow-hidden bg-black">
       {/* 1. WARSTWA TŁA (ZDJĘCIA) */}
       <AnimatePresence initial={false} custom={direction}>
         <motion.div

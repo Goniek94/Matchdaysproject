@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import {
   TrendingUp,
   Package,
@@ -127,10 +125,8 @@ const ActivityChart = () => {
 
 export default function DashboardPage() {
   return (
-    <main className="bg-[#FAFAFA] min-h-screen font-sans">
-      <Navbar />
-
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-24 md:py-32">
+    <div className="bg-[#FAFAFA] font-sans">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-12">
         {/* HEADER: Welcome + Action */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
           <div>
@@ -242,8 +238,8 @@ export default function DashboardPage() {
                                       sale.status === "delivered"
                                         ? "bg-green-100 text-green-700"
                                         : sale.status === "processing"
-                                        ? "bg-amber-100 text-amber-700"
-                                        : "bg-blue-100 text-blue-700"
+                                          ? "bg-amber-100 text-amber-700"
+                                          : "bg-blue-100 text-blue-700"
                                     }`}
                       >
                         {sale.status}
@@ -331,8 +327,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      <Footer />
-    </main>
+    </div>
   );
 }

@@ -16,17 +16,16 @@ import {
   X,
   PlusCircle,
   ChevronDown,
-  Trophy // Import zachowany
 } from "lucide-react";
 
 export default function Navbar() {
   const { itemCount } = useCart();
   const [scrolled, setScrolled] = useState(false);
-  
+
   // Stan logowania (Demo)
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState<any>(null);
-  
+
   // Stany UI
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -65,7 +64,10 @@ export default function Navbar() {
   // Kliknięcie poza dropdownem
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsProfileOpen(false);
       }
     };
@@ -94,13 +96,10 @@ export default function Navbar() {
     <>
       <nav
         className={`fixed top-0 w-full z-50 border-b border-gray-200 transition-all duration-300 ${
-          scrolled
-            ? "py-4 bg-white shadow-sm"
-            : "py-6 bg-white"
+          scrolled ? "py-4 bg-white shadow-sm" : "py-6 bg-white"
         }`}
       >
         <div className="w-full px-8 md:px-16 flex items-center justify-between relative">
-          
           {/* LEWA STRONA: Logo */}
           <div className="flex-shrink-0 z-50">
             <Link
@@ -117,12 +116,11 @@ export default function Navbar() {
             <ul className="flex gap-10 items-center list-none font-bold text-base tracking-wide">
               {navLinks.map((link) => (
                 <li key={link.name}>
-                  {/* ZMIANA: Dodano klasę 'uppercase' tutaj */}
                   <Link
                     href={link.href}
                     className={`nav-link uppercase transition-colors ${
-                      link.highlight 
-                        ? "text-indigo-600 font-extrabold hover:text-indigo-800" 
+                      link.highlight
+                        ? "text-indigo-600 font-extrabold hover:text-indigo-800"
                         : "hover:text-gray-600 text-black"
                     }`}
                   >
@@ -135,7 +133,6 @@ export default function Navbar() {
 
           {/* PRAWA STRONA: Akcje */}
           <div className="flex items-center gap-2 md:gap-4 justify-end z-50">
-            
             {/* Koszyk */}
             <Link
               href="/cart"
@@ -168,7 +165,7 @@ export default function Navbar() {
                     Login
                   </button>
                   <Link
-                     href="/register"
+                    href="/register"
                     className="px-8 py-3 bg-black text-white text-base font-bold rounded-lg hover:bg-gray-900 transition-all hover:shadow-lg whitespace-nowrap uppercase"
                   >
                     Register
@@ -191,7 +188,9 @@ export default function Navbar() {
                     <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center">
                       <User size={20} />
                     </div>
-                    <span className="font-bold text-base uppercase">Profile</span>
+                    <span className="font-bold text-base uppercase">
+                      Profile
+                    </span>
                     <ChevronDown
                       size={20}
                       className={`transition-transform duration-200 ${
@@ -213,12 +212,31 @@ export default function Navbar() {
                       </div>
 
                       <div className="py-2">
-                        <DropdownItem href="/dashboard" icon={<LayoutDashboard size={20} />} text="Dashboard" />
-                        <DropdownItem href="/my-listings" icon={<List size={20} />} text="Your Listings" />
-                        <DropdownItem href="/favorites" icon={<Heart size={20} />} text="Favorites" />
-                        <DropdownItem href="/history" icon={<History size={20} />} text="Transaction History" />
-                        <DropdownItem href="/arena" icon={<Trophy size={20} />} text="Matchdays Arena" className="text-indigo-600 font-bold bg-indigo-50/50" />
-                        <DropdownItem href="/settings" icon={<Settings size={20} />} text="Settings" />
+                        <DropdownItem
+                          href="/dashboard"
+                          icon={<LayoutDashboard size={20} />}
+                          text="Dashboard"
+                        />
+                        <DropdownItem
+                          href="/my-listings"
+                          icon={<List size={20} />}
+                          text="Your Listings"
+                        />
+                        <DropdownItem
+                          href="/favorites"
+                          icon={<Heart size={20} />}
+                          text="Favorites"
+                        />
+                        <DropdownItem
+                          href="/history"
+                          icon={<History size={20} />}
+                          text="Transaction History"
+                        />
+                        <DropdownItem
+                          href="/settings"
+                          icon={<Settings size={20} />}
+                          text="Settings"
+                        />
                       </div>
 
                       <div className="border-t border-gray-100 mt-2 py-2">
@@ -239,15 +257,14 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* --- PEŁNOEKRANOWY PANEL MOBILNY (SOLIDNY) --- */}
+      {/* --- PEŁNOEKRANOWY PANEL MOBILNY --- */}
       <div
         className={`fixed inset-0 z-[100] bg-white lg:hidden transition-transform duration-300 ease-in-out ${
           isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full overflow-y-auto">
-          
-          {/* Header Panelu - Kopia układu Navbara dla spójności */}
+          {/* Header Panelu */}
           <div className="flex items-center justify-between p-8 border-b border-gray-100">
             <span className="text-2xl font-black tracking-widest uppercase text-black">
               Menu
@@ -262,6 +279,7 @@ export default function Navbar() {
 
           {/* Treść Menu */}
           <div className="flex-1 flex flex-col items-center justify-center p-6 gap-8">
+            {/* Linki nawigacyjne */}
             <nav className="flex flex-col gap-6 text-center w-full">
               {navLinks.map((link) => (
                 <Link
@@ -277,10 +295,20 @@ export default function Navbar() {
               ))}
             </nav>
 
-            <div className="w-16 h-1.5 bg-gray-100 rounded-full"></div>
+            {/* SELL ITEM - Zawsze widoczny */}
+            <div className="w-full max-w-sm">
+              <Link
+                href="/add-listing"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-xl font-black rounded-2xl hover:from-green-700 hover:to-emerald-700 transition-all text-center shadow-2xl uppercase flex items-center justify-center gap-3"
+              >
+                <PlusCircle size={28} strokeWidth={3} />
+                SELL ITEM
+              </Link>
+            </div>
 
             {/* Sekcja Użytkownika / Logowania */}
-            <div className="w-full max-w-sm">
+            <div className="w-full max-w-sm mt-4">
               {!isLoggedIn ? (
                 <div className="flex flex-col gap-4">
                   <button
@@ -299,39 +327,21 @@ export default function Navbar() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-4 w-full">
-                  {/* Info o użytkowniku */}
-                  <div className="flex items-center justify-center gap-4 p-4 bg-gray-50 rounded-2xl">
-                    <div className="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center shadow-md">
-                      <User size={24} />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-lg text-gray-900">Demo User</p>
-                      <p className="text-sm text-gray-500">Logged In</p>
-                    </div>
-                  </div>
-
                   <Link
-                    href="/add-listing"
+                    href="/dashboard"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full py-4 bg-indigo-600 text-white text-lg font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-95 transition-transform uppercase"
+                    className="w-full py-4 bg-black text-white text-lg font-bold rounded-2xl hover:bg-gray-900 transition-all text-center shadow-xl uppercase flex items-center justify-center gap-2"
                   >
-                    <PlusCircle size={24} />
-                    SELL ITEM
+                    <LayoutDashboard size={24} />
+                    DASHBOARD
                   </Link>
-
-                  <div className="grid grid-cols-2 gap-3 w-full">
-                    <MobileIconLink href="/dashboard" icon={<LayoutDashboard size={20}/>} label="Dashboard" onClick={() => setIsMobileMenuOpen(false)}/>
-                    <MobileIconLink href="/my-listings" icon={<List size={20}/>} label="Listings" onClick={() => setIsMobileMenuOpen(false)}/>
-                    <MobileIconLink href="/favorites" icon={<Heart size={20}/>} label="Favorites" onClick={() => setIsMobileMenuOpen(false)}/>
-                    <MobileIconLink href="/settings" icon={<Settings size={20}/>} label="Settings" onClick={() => setIsMobileMenuOpen(false)}/>
-                  </div>
 
                   <button
                     onClick={handleLogout}
-                    className="mt-2 w-full py-3 text-red-600 font-bold flex items-center justify-center gap-2 border border-red-100 bg-red-50 rounded-xl hover:bg-red-100 transition-colors uppercase"
+                    className="w-full py-4 text-red-600 font-bold flex items-center justify-center gap-2 border-2 border-red-600 bg-white rounded-2xl hover:bg-red-50 transition-colors uppercase"
                   >
-                    <LogOut size={20} />
-                    Logout
+                    <LogOut size={24} />
+                    LOGOUT
                   </button>
                 </div>
               )}
@@ -344,7 +354,17 @@ export default function Navbar() {
 }
 
 // Helpers
-function DropdownItem({ href, icon, text, className = "" }: { href: string; icon: any; text: string; className?: string }) {
+function DropdownItem({
+  href,
+  icon,
+  text,
+  className = "",
+}: {
+  href: string;
+  icon: any;
+  text: string;
+  className?: string;
+}) {
   return (
     <Link
       href={href}
@@ -352,19 +372,6 @@ function DropdownItem({ href, icon, text, className = "" }: { href: string; icon
     >
       <span className="text-gray-400 group-hover:text-black">{icon}</span>
       {text}
-    </Link>
-  );
-}
-
-function MobileIconLink({ href, icon, label, onClick }: { href: string; icon: any; label: string; onClick: () => void }) {
-  return (
-    <Link 
-      href={href} 
-      onClick={onClick}
-      className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-black/10 hover:shadow-md transition-all active:scale-95"
-    >
-      <span className="text-gray-600">{icon}</span>
-      <span className="text-xs font-bold text-gray-900 uppercase">{label}</span>
     </Link>
   );
 }

@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { motion } from "framer-motion";
 import {
   Trophy,
@@ -104,9 +102,7 @@ export default function ArenaPage() {
   ];
 
   return (
-    <main className="bg-[#050505] min-h-screen text-white font-sans selection:bg-red-500 selection:text-white">
-      <Navbar />
-
+    <div className="bg-[#050505] text-white font-sans selection:bg-red-500 selection:text-white">
       {/* --- BACKGROUND EFFECTS --- */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-900/20 rounded-full blur-[150px]"></div>
@@ -350,8 +346,6 @@ export default function ArenaPage() {
           </div>
         </div>
       </div>
-
-      <Footer />
-    </main>
+    </div>
   );
 }
