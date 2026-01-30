@@ -501,7 +501,7 @@ export default function Navbar() {
                     setIsMobileMenuOpen(false);
                     handleLoginClick();
                   }}
-                  className="w-full px-6 py-3 bg-white text-black border-2 border-black text-base font-bold rounded-lg hover:bg-black hover:text-white transition-all"    
+                  className="w-full px-6 py-3 bg-white text-black border-2 border-black text-base font-bold rounded-lg hover:bg-black hover:text-white transition-all"
                 >
                   Login
                 </button>
