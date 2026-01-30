@@ -13,12 +13,6 @@ import InfoCards from "@/components/auction/InfoCards";
 import Footer from "@/components/Footer";
 import Link from "next/link";
 
-// --- API IMPORTS (ZACHOWANE - ZAKOMENTOWANE DLA DEMO) ---
-// Odkomentuj te linie, gdy backend będzie gotowy i będziesz przełączać tryb na produkcyjny
-// import { getAuctionById } from "@/lib/api/auctions";
-// import { placeBid, getAuctionBids } from "@/lib/api/bids";
-// import { isAuthenticated } from "@/lib/api/config";
-
 // --- MOCK DATA (DEMO) ---
 import { mockAuctions, mockBidHistory } from "@/lib/mockData";
 
@@ -82,27 +76,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       // KONIEC TRYBU DEMO
       // ============================================================
 
-
-      /* // ============================================================
-      // TRYB PRODUKCYJNY (ZAKOMENTOWANY - DO UŻYCIA Z BACKENDEM)
-      // ============================================================
-      
-      // Load auction details
-      const auctionResponse = await getAuctionById(id);
-
-      if (!auctionResponse.success) {
-        setError(auctionResponse.message || "Failed to load auction");
-        return;
-      }
-
-      setAuction(auctionResponse.data);
-
-      // Load bids
-      await loadBidsFromApi(id);
-      
-      // ============================================================
-      */
-
     } catch (err: any) {
       console.error("Error loading auction:", err);
       setError(err.message || "Failed to load auction");
@@ -111,39 +84,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     }
   };
 
-  /*
-  // Funkcja do pobierania bidów z API (ZACHOWANA - ZAKOMENTOWANA)
-  const loadBidsFromApi = async (id: string) => {
-    try {
-      const bidsResponse = await getAuctionBids(id);
-
-      if (bidsResponse.success && bidsResponse.data) {
-        const transformedBids = bidsResponse.data.map(
-          (bid: any, index: number) => ({
-            id: bid.id,
-            username: bid.bidder?.username || bid.user?.username || "Anonymous",
-            amount: Number(bid.amount),
-            time: new Date(bid.createdAt).toLocaleString("pl-PL"),
-            isWinning: index === 0,
-          })
-        );
-        setBids(transformedBids);
-      }
-    } catch (err) {
-      console.error("Error loading bids:", err);
-    }
-  };
-  */
-
   const handlePlaceBid = async (amount: number) => {
-    // Check if user is authenticated (Pominięte w DEMO)
-    /*
-    if (!isAuthenticated()) {
-      alert("Please log in to place a bid");
-      return;
-    }
-    */
-
     try {
       setBidding(true);
       setError(null);
@@ -153,7 +94,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       // ============================================================
       
       await new Promise(r => setTimeout(r, 1000)); // Symulacja
-      alert(`🎉 DEMO: Twój bid (${amount} zł) przyjęty!`);
+      alert(`🎉 DEMO: Twój bid (${amount} €) przyjęty!`);
       
       // Aktualizacja lokalna
       const newBid = {
@@ -171,22 +112,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       }));
 
       // ============================================================
-
-      /*
-      // ============================================================
-      // TRYB PRODUKCYJNY (ZAKOMENTOWANY)
-      // ============================================================
-      
-      const response = await placeBid(params.id, amount);
-
-      if (response.success) {
-        alert("Bid placed successfully! 🎉");
-        await loadAuctionData(params.id);
-      } else {
-        alert(response.message || "Failed to place bid");
-      }
-      // ============================================================
-      */
 
     } catch (err: any) {
       console.error("Error placing bid:", err);
@@ -360,7 +285,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                 /* Buy Now Panel for Fixed Price Listings */
                 <BuyNowPanel
                   price={Number(auction.buyNowPrice || auction.currentBid)}
-                  currency="PLN"
+                  currency="EUR" // ZMIENIONE NA EUR/€
                   auctionId={auction.id}
                   title={auction.title}
                   image={auction.images?.[0] || ""}

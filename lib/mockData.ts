@@ -11,8 +11,8 @@ export interface Auction {
   image: string;
   verified: boolean;
   rare: boolean;
-  type: "auction" | "buy_now"; // Typ oferty (Licytacja / Kup Teraz)
-  itemType: "shirt" | "shoes" | "pants" | "accessory"; // <--- NOWE TYPY PRODUKTÓW
+  type: "auction" | "buy_now";
+  itemType: "shirt" | "shoes" | "pants" | "accessory";
   seller: {
     name: string;
     avatar?: string;
@@ -31,14 +31,12 @@ export const mockAuctions: Auction[] = [
   {
     id: "1",
     title: "Manchester United Home 2008",
-    description:
-      "Final Moscow 2008. Ronaldo #7. Match detail on chest. Mint condition.",
-    price: 2450,
-    currency: "zł",
+    description: "Final Moscow 2008. Ronaldo #7. Match detail on chest. Mint condition.",
+    price: 550, // Zmienione na realną cenę w EUR
+    currency: "€",
     bids: 45,
     endTime: "2d 4h",
-    image:
-      "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&q=80",
     verified: true,
     rare: true,
     type: "auction",
@@ -51,18 +49,16 @@ export const mockAuctions: Auction[] = [
   {
     id: "2",
     title: "Adidas Predator Mania 2002",
-    description:
-      "Original 2002 World Cup edition. SG studs. Iconic boots worn by Beckham and Zidane.",
-    price: 3500,
-    currency: "zł",
+    description: "Original 2002 World Cup edition. SG studs. Iconic boots worn by Beckham and Zidane.",
+    price: 850,
+    currency: "€",
     bids: 0,
     endTime: "1d 12h",
-    image:
-      "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=800&q=80",
     verified: true,
     rare: true,
     type: "buy_now",
-    itemType: "shoes", // <--- BUTY
+    itemType: "shoes",
     seller: { name: "BootsCollector", rating: 4.9, reviews: 150 },
     country: { name: "Germany", code: "DE" },
   },
@@ -71,38 +67,34 @@ export const mockAuctions: Auction[] = [
   {
     id: "3",
     title: "Brazil 2002 World Cup Tracksuit",
-    description:
-      "Full vintage tracksuit (Jacket + Pants). Nike authentic player issue used during travel.",
-    price: 890,
-    currency: "zł",
+    description: "Full vintage tracksuit (Jacket + Pants). Nike authentic player issue used during travel.",
+    price: 220,
+    currency: "€",
     bids: 67,
     endTime: "3d 1h",
-    image:
-      "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=800&q=80",
     verified: true,
     rare: true,
     type: "auction",
-    itemType: "pants", // <--- DRESY
+    itemType: "pants",
     seller: { name: "SelecaoStore", rating: 5.0, reviews: 890 },
     country: { name: "Brazil", code: "BR" },
   },
 
-  // --- AKCESORIA (Accessories - Szaliki, Piłki) ---
+  // --- AKCESORIA (Accessories) ---
   {
     id: "4",
     title: "Arsenal 'Double' Scarf 1998",
-    description:
-      "Commemorative scarf from the historic 1997/98 double winning season.",
-    price: 150,
-    currency: "zł",
+    description: "Commemorative scarf from the historic 1997/98 double winning season.",
+    price: 45,
+    currency: "€",
     bids: 12,
     endTime: "45m 12s",
-    image:
-      "https://images.unsplash.com/photo-1577212017184-80cc0da11395?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1577212017184-80cc0da11395?w=800&q=80",
     verified: true,
     rare: false,
     type: "auction",
-    itemType: "accessory", // <--- SZALIK
+    itemType: "accessory",
     seller: { name: "Gunner_Fan", rating: 4.7, reviews: 42 },
     country: { name: "UK", code: "GB" },
   },
@@ -112,12 +104,11 @@ export const mockAuctions: Auction[] = [
     id: "5",
     title: "Juventus 1997 Centenary",
     description: "Pink away shirt. Zidane era. Sony Minidisc sponsor.",
-    price: 850,
-    currency: "zł",
+    price: 350,
+    currency: "€",
     bids: 0,
     endTime: "1h 20m",
-    image:
-      "https://images.unsplash.com/photo-1511886929837-354d827aae26?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1511886929837-354d827aae26?w=800&q=80",
     verified: true,
     rare: false,
     type: "buy_now",
@@ -128,14 +119,12 @@ export const mockAuctions: Auction[] = [
   {
     id: "6",
     title: "Ajax Amsterdam Away 1995",
-    description:
-      "Patrick Kluivert scored the winner in this kit. Umbro masterpiece.",
-    price: 1450,
-    currency: "zł",
+    description: "Patrick Kluivert scored the winner in this kit. Umbro masterpiece.",
+    price: 420,
+    currency: "€",
     bids: 19,
     endTime: "2h 05m",
-    image:
-      "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=800&q=80",
     verified: true,
     rare: true,
     type: "auction",
@@ -147,12 +136,11 @@ export const mockAuctions: Auction[] = [
     id: "7",
     title: "Napoli 1989 Maradona",
     description: "Mars sponsor. Holy grail of Italian football.",
-    price: 5600,
-    currency: "zł",
+    price: 1500,
+    currency: "€",
     bids: 112,
     endTime: "5d",
-    image:
-      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&q=80",
     verified: true,
     rare: true,
     type: "auction",
@@ -164,12 +152,11 @@ export const mockAuctions: Auction[] = [
     id: "8",
     title: "France 1998 Home",
     description: "Zidane scored two headers in this. Adidas made in France.",
-    price: 2100,
-    currency: "zł",
+    price: 600,
+    currency: "€",
     bids: 0,
     endTime: "3d",
-    image:
-      "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&q=80",
     verified: true,
     rare: true,
     type: "buy_now",
@@ -181,12 +168,11 @@ export const mockAuctions: Auction[] = [
     id: "9",
     title: "Boca Juniors 1981",
     description: "Maradona again. The stars instead of the crest.",
-    price: 3400,
-    currency: "zł",
+    price: 890,
+    currency: "€",
     bids: 55,
     endTime: "6d",
-    image:
-      "https://images.unsplash.com/photo-1516475429286-465d815a0df7?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1516475429286-465d815a0df7?w=800&q=80",
     verified: true,
     rare: true,
     type: "auction",
@@ -201,35 +187,35 @@ export const mockBidHistory = [
   {
     id: "1",
     username: "collector_uk",
-    amount: 2450,
+    amount: 550,
     time: "2 minutes ago",
     isWinning: true,
   },
   {
     id: "2",
     username: "vintage_fan",
-    amount: 2400,
+    amount: 520,
     time: "15 minutes ago",
     isWinning: false,
   },
   {
     id: "3",
     username: "jersey_hunter",
-    amount: 2350,
+    amount: 500,
     time: "1 hour ago",
     isWinning: false,
   },
   {
     id: "4",
     username: "football_memorabilia",
-    amount: 2300,
+    amount: 480,
     time: "3 hours ago",
     isWinning: false,
   },
   {
     id: "5",
     username: "red_devil_77",
-    amount: 2250,
+    amount: 450,
     time: "5 hours ago",
     isWinning: false,
   },
