@@ -138,7 +138,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   }, [auction.price]);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Zapobiega przejściu do szczegółów przy kliknięciu serduszka
     e.stopPropagation();
     setIsFavorite(!isFavorite);
   };
@@ -201,6 +201,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   const frameColors = getFrameColors();
 
   return (
+    // CAŁA KARTA JEST LINKIEM
     <Link
       href={`/auction/${auction.id}`}
       className="group h-full relative block cursor-pointer"
@@ -305,13 +306,14 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                   <span className="text-xl sm:text-2xl font-black text-amber-700 tracking-tight">
                     {currentPrice.toLocaleString()}
                   </span>
+                  {/* DEMO FIX: Hardcoded Euro */}
                   <span className="text-xs sm:text-sm font-bold text-amber-600">
-                    {auction.currency}
+                    €
                   </span>
                 </div>
               </div>
 
-              {/* Bids vs Likes (Koszulka) */}
+              {/* Bids vs Likes */}
               <div className="flex items-center gap-1 sm:gap-1.5 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-amber-200/50 shadow-sm">
                 {auction.type === "buy_now" ? (
                   <>
@@ -322,7 +324,9 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                     <span className="text-xs sm:text-sm font-bold text-slate-700">
                       {auction.likes || 0}
                     </span>
-                    <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">likes</span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">
+                      likes
+                    </span>
                   </>
                 ) : (
                   <>
@@ -330,7 +334,9 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                     <span className="text-xs sm:text-sm font-bold text-slate-700">
                       {auction.bids}
                     </span>
-                    <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">bids</span>
+                    <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">
+                      bids
+                    </span>
                   </>
                 )}
               </div>
@@ -407,7 +413,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
             )}
           </div>
 
-          {/* Zamiana button na div, aby nie blokowało Linka */}
+          {/* Ten przycisk jest teraz tylko wizualny, kliknięcie propaguje się do Linka wyżej */}
           <div
             className={`mt-3 sm:mt-4 w-full py-2.5 sm:py-3 bg-gradient-to-r ${frameColors.accent} text-white text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transform-gpu flex items-center justify-center`}
           >
