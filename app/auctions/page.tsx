@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Navbar from "@/components/Navbar";
+// USUNIĘTO: import Navbar from "@/components/Navbar";
 import AuctionCard from "@/components/AuctionCard";
-import Footer from "@/components/Footer";
+// USUNIĘTO: import Footer from "@/components/Footer";
 import { mockAuctions } from "@/lib/mockData";
 import {
   Search,
@@ -480,11 +480,12 @@ export default function AuctionsPage(): JSX.Element {
   }, [searchQuery, selectedCategory, sortBy, selectedProductType]);
 
   return (
-    <main className="bg-white min-h-screen flex flex-col font-sans">
-      <Navbar />
+    // ZMIANA: <main> na <div>, bo layout.tsx ma już <main>
+    <div className="bg-white min-h-screen flex flex-col font-sans">
+      {/* USUNIĘTO: <Navbar /> - jest już w layout.tsx */}
 
-      {/* HEADER MINI */}
-      <div className="pt-24 pb-6 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
+      {/* HEADER MINI - zredukowałem pt-24 na pt-6, bo layout.tsx dodaje ~80px paddingu */}
+      <div className="pt-6 pb-6 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
         <div className="container-max text-center" />
       </div>
 
@@ -864,7 +865,7 @@ export default function AuctionsPage(): JSX.Element {
         </div>
       </div>
 
-      <Footer />
-    </main>
+      {/* USUNIĘTO: <Footer /> - jest już w layout.tsx */}
+    </div>
   );
 }

@@ -12,9 +12,15 @@ import ProductDetails from "@/components/auction/ProductDetails";
 import InfoCards from "@/components/auction/InfoCards";
 import Footer from "@/components/Footer";
 import Link from "next/link";
-import { getAuctionById } from "@/lib/api/auctions";
-import { placeBid, getAuctionBids } from "@/lib/api/bids";
-import { isAuthenticated } from "@/lib/api/config";
+
+// --- API IMPORTS (ZACHOWANE - ZAKOMENTOWANE DLA DEMO) ---
+// Odkomentuj te linie, gdy backend będzie gotowy i będziesz przełączać tryb na produkcyjny
+// import { getAuctionById } from "@/lib/api/auctions";
+// import { placeBid, getAuctionBids } from "@/lib/api/bids";
+// import { isAuthenticated } from "@/lib/api/config";
+
+// --- MOCK DATA (DEMO) ---
+import { mockAuctions, mockBidHistory } from "@/lib/mockData";
 
 interface AuctionDetailPageProps {
   params: {
@@ -23,7 +29,6 @@ interface AuctionDetailPageProps {
 }
 
 export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
-  // Usunięto nieużywany router, który powodował błąd builda
   const [auction, setAuction] = useState<any>(null);
   const [bids, setBids] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,16 +37,58 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
 
   // Load auction data
   useEffect(() => {
-    loadAuctionData();
+    // Weryfikacja params
+    if (params?.id) {
+      loadAuctionData(params.id);
+    }
   }, [params.id]);
 
-  const loadAuctionData = async () => {
+  const loadAuctionData = async (id: string) => {
     try {
       setLoading(true);
       setError(null);
 
+      // ============================================================
+      // TRYB DEMO (AKTYWNY)
+      // ============================================================
+      
+      // 1. Szukamy w mockach
+      const foundAuction = mockAuctions.find((a) => a.id === id);
+
+      if (!foundAuction) {
+        setError("Auction not found (Demo)");
+        setLoading(false);
+        return;
+      }
+
+      // Symulacja ładowania
+      await new Promise(r => setTimeout(r, 500));
+
+      // Mapowanie danych z Mocka na strukturę komponentu
+      setAuction({
+        ...foundAuction,
+        currentBid: foundAuction.price, // Mock ma 'price', komponent chce 'currentBid'
+        bidCount: foundAuction.bids,    // Mock ma 'bids' (number), komponent chce 'bidCount'
+        listingType: foundAuction.type, // Mock ma 'type', komponent chce 'listingType'
+        images: foundAuction.images || (foundAuction.image ? [foundAuction.image] : []),
+        status: "active", // Wymuszamy active dla demo
+        endTime: calculateDemoEndTime(foundAuction.endTime) // Konwersja "2d" na datę
+      });
+
+      // Ładowanie fake bidów
+      setBids(mockBidHistory);
+
+      // ============================================================
+      // KONIEC TRYBU DEMO
+      // ============================================================
+
+
+      /* // ============================================================
+      // TRYB PRODUKCYJNY (ZAKOMENTOWANY - DO UŻYCIA Z BACKENDEM)
+      // ============================================================
+      
       // Load auction details
-      const auctionResponse = await getAuctionById(params.id);
+      const auctionResponse = await getAuctionById(id);
 
       if (!auctionResponse.success) {
         setError(auctionResponse.message || "Failed to load auction");
@@ -51,7 +98,11 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       setAuction(auctionResponse.data);
 
       // Load bids
-      await loadBids();
+      await loadBidsFromApi(id);
+      
+      // ============================================================
+      */
+
     } catch (err: any) {
       console.error("Error loading auction:", err);
       setError(err.message || "Failed to load auction");
@@ -60,19 +111,20 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     }
   };
 
-  const loadBids = async () => {
+  /*
+  // Funkcja do pobierania bidów z API (ZACHOWANA - ZAKOMENTOWANA)
+  const loadBidsFromApi = async (id: string) => {
     try {
-      const bidsResponse = await getAuctionBids(params.id);
+      const bidsResponse = await getAuctionBids(id);
 
       if (bidsResponse.success && bidsResponse.data) {
-        // Transform API bids to component format
         const transformedBids = bidsResponse.data.map(
           (bid: any, index: number) => ({
             id: bid.id,
             username: bid.bidder?.username || bid.user?.username || "Anonymous",
             amount: Number(bid.amount),
             time: new Date(bid.createdAt).toLocaleString("pl-PL"),
-            isWinning: index === 0, // First bid is the highest/winning
+            isWinning: index === 0,
           })
         );
         setBids(transformedBids);
@@ -81,36 +133,83 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       console.error("Error loading bids:", err);
     }
   };
+  */
 
   const handlePlaceBid = async (amount: number) => {
-    // Check if user is authenticated
+    // Check if user is authenticated (Pominięte w DEMO)
+    /*
     if (!isAuthenticated()) {
       alert("Please log in to place a bid");
       return;
     }
+    */
 
     try {
       setBidding(true);
       setError(null);
 
+      // ============================================================
+      // TRYB DEMO
+      // ============================================================
+      
+      await new Promise(r => setTimeout(r, 1000)); // Symulacja
+      alert(`🎉 DEMO: Twój bid (${amount} zł) przyjęty!`);
+      
+      // Aktualizacja lokalna
+      const newBid = {
+        id: Date.now().toString(),
+        username: "You (Demo)",
+        amount: amount,
+        time: "Just now",
+        isWinning: true
+      };
+      setBids(prev => [newBid, ...prev.map(b => ({...b, isWinning: false}))]);
+      setAuction((prev: any) => ({
+        ...prev,
+        currentBid: amount,
+        bidCount: (prev.bidCount || 0) + 1
+      }));
+
+      // ============================================================
+
+      /*
+      // ============================================================
+      // TRYB PRODUKCYJNY (ZAKOMENTOWANY)
+      // ============================================================
+      
       const response = await placeBid(params.id, amount);
 
       if (response.success) {
         alert("Bid placed successfully! 🎉");
-
-        // Reload auction and bids
-        await loadAuctionData();
+        await loadAuctionData(params.id);
       } else {
         alert(response.message || "Failed to place bid");
       }
+      // ============================================================
+      */
+
     } catch (err: any) {
       console.error("Error placing bid:", err);
-      const errorMessage =
-        err.response?.data?.message || err.message || "Failed to place bid";
+      const errorMessage = err.response?.data?.message || err.message || "Failed to place bid";
       alert(errorMessage);
     } finally {
       setBidding(false);
     }
+  };
+
+  // Helper do konwersji czasu z mocków ("2d 4h") na Timestamp dla Timera
+  const calculateDemoEndTime = (endTimeString: string | undefined) => {
+    if (!endTimeString) return new Date(Date.now() + 86400000).toISOString(); // Default 24h
+    
+    // Jeśli to już data ISO
+    if (endTimeString.includes("-") && endTimeString.includes(":")) return endTimeString;
+
+    const now = Date.now();
+    if (endTimeString.includes("d")) {
+      const days = parseInt(endTimeString) || 1;
+      return new Date(now + days * 86400000).toISOString();
+    }
+    return new Date(now + 86400000).toISOString();
   };
 
   // Loading state
@@ -191,7 +290,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
             </Link>
             <span>/</span>
             <Link href="#" className="hover:text-black transition-colors">
-              {auction.category}
+              {auction.category || auction.itemType || "Category"}
             </Link>
             <span>/</span>
             <span className="text-black">{auction.title}</span>
