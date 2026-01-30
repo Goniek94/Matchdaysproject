@@ -11,7 +11,6 @@ import {
   Award,
   Clock,
   Gavel,
-  // Eye usunięte, nie jest już potrzebne
 } from "lucide-react";
 
 // Custom Jersey/Shirt icon for favorites
@@ -43,7 +42,7 @@ interface Auction {
   description: string;
   image: string;
   bids: number;
-  likes?: number; // Zmiana: Teraz mamy likes zamiast views
+  likes?: number;
   endTime: string;
   verified: boolean;
   rare: boolean;
@@ -312,10 +311,9 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                 </div>
               </div>
 
-              {/* ZMIANA: Logika Bids vs Likes (Koszulka) */}
+              {/* Bids vs Likes (Koszulka) */}
               <div className="flex items-center gap-1 sm:gap-1.5 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-amber-200/50 shadow-sm">
                 {auction.type === "buy_now" ? (
-                  // Wariant dla Buy Now (Liczba Polubień/Koszulek)
                   <>
                     <JerseyIcon
                       filled={true}
@@ -327,7 +325,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                     <span className="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">likes</span>
                   </>
                 ) : (
-                  // Wariant dla Aukcji (Oferty/Bids)
                   <>
                     <Gavel size={12} className="sm:w-3.5 sm:h-3.5 text-amber-500" />
                     <span className="text-xs sm:text-sm font-bold text-slate-700">
@@ -410,11 +407,12 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
             )}
           </div>
 
-          <button
-            className={`mt-3 sm:mt-4 w-full py-2.5 sm:py-3 bg-gradient-to-r ${frameColors.accent} text-white text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transform-gpu`}
+          {/* Zamiana button na div, aby nie blokowało Linka */}
+          <div
+            className={`mt-3 sm:mt-4 w-full py-2.5 sm:py-3 bg-gradient-to-r ${frameColors.accent} text-white text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transform-gpu flex items-center justify-center`}
           >
             {auction.type === "buy_now" ? "Buy Now" : "Place Bid"}
-          </button>
+          </div>
         </div>
       </div>
     </Link>

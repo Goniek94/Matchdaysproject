@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   PlusCircle,
-  ChevronDown
+  ChevronDown,
+  Trophy // <--- DODAŁEM BRAKUJĄCY IMPORT TUTAJ
 } from "lucide-react";
 
 export default function Navbar() {
