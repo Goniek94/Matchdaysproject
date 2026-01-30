@@ -117,9 +117,10 @@ export default function Navbar() {
             <ul className="flex gap-10 items-center list-none font-bold text-base tracking-wide">
               {navLinks.map((link) => (
                 <li key={link.name}>
+                  {/* ZMIANA: Dodano klasę 'uppercase' tutaj */}
                   <Link
                     href={link.href}
-                    className={`nav-link transition-colors ${
+                    className={`nav-link uppercase transition-colors ${
                       link.highlight 
                         ? "text-indigo-600 font-extrabold hover:text-indigo-800" 
                         : "hover:text-gray-600 text-black"
@@ -162,13 +163,13 @@ export default function Navbar() {
                 <>
                   <button
                     onClick={handleDemoLogin}
-                    className="px-8 py-3 bg-white text-black border-2 border-black text-base font-bold rounded-lg hover:bg-black hover:text-white transition-all whitespace-nowrap"
+                    className="px-8 py-3 bg-white text-black border-2 border-black text-base font-bold rounded-lg hover:bg-black hover:text-white transition-all whitespace-nowrap uppercase"
                   >
                     Login
                   </button>
                   <Link
                      href="/register"
-                    className="px-8 py-3 bg-black text-white text-base font-bold rounded-lg hover:bg-gray-900 transition-all hover:shadow-lg whitespace-nowrap"
+                    className="px-8 py-3 bg-black text-white text-base font-bold rounded-lg hover:bg-gray-900 transition-all hover:shadow-lg whitespace-nowrap uppercase"
                   >
                     Register
                   </Link>
@@ -177,7 +178,7 @@ export default function Navbar() {
                 <div className="flex items-center gap-6" ref={dropdownRef}>
                   <Link
                     href="/add-listing"
-                    className="hidden md:flex items-center gap-2.5 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all shadow-md hover:shadow-lg font-bold text-base whitespace-nowrap"
+                    className="hidden md:flex items-center gap-2.5 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all shadow-md hover:shadow-lg font-bold text-base whitespace-nowrap uppercase"
                   >
                     <PlusCircle size={20} />
                     <span>Sell Item</span>
@@ -190,7 +191,7 @@ export default function Navbar() {
                     <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center">
                       <User size={20} />
                     </div>
-                    <span className="font-bold text-base">Profile</span>
+                    <span className="font-bold text-base uppercase">Profile</span>
                     <ChevronDown
                       size={20}
                       className={`transition-transform duration-200 ${
@@ -239,7 +240,6 @@ export default function Navbar() {
       </nav>
 
       {/* --- PEŁNOEKRANOWY PANEL MOBILNY (SOLIDNY) --- */}
-      {/* Używamy position: fixed, z-index: 100 (nad navbarem), bg-white (brak przezroczystości) */}
       <div
         className={`fixed inset-0 z-[100] bg-white lg:hidden transition-transform duration-300 ease-in-out ${
           isMobileMenuOpen ? "translate-x-0" : "translate-x-full"
@@ -285,14 +285,14 @@ export default function Navbar() {
                 <div className="flex flex-col gap-4">
                   <button
                     onClick={handleDemoLogin}
-                    className="w-full py-4 border-2 border-black text-black text-lg font-bold rounded-2xl hover:bg-gray-50 transition-all"
+                    className="w-full py-4 border-2 border-black text-black text-lg font-bold rounded-2xl hover:bg-gray-50 transition-all uppercase"
                   >
                     LOGIN (DEMO)
                   </button>
                   <Link
                     href="/register"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full py-4 bg-black text-white text-lg font-bold rounded-2xl hover:bg-gray-900 transition-all text-center shadow-xl"
+                    className="w-full py-4 bg-black text-white text-lg font-bold rounded-2xl hover:bg-gray-900 transition-all text-center shadow-xl uppercase"
                   >
                     REGISTER
                   </Link>
@@ -313,7 +313,7 @@ export default function Navbar() {
                   <Link
                     href="/add-listing"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="w-full py-4 bg-indigo-600 text-white text-lg font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-95 transition-transform"
+                    className="w-full py-4 bg-indigo-600 text-white text-lg font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 active:scale-95 transition-transform uppercase"
                   >
                     <PlusCircle size={24} />
                     SELL ITEM
@@ -328,7 +328,7 @@ export default function Navbar() {
 
                   <button
                     onClick={handleLogout}
-                    className="mt-2 w-full py-3 text-red-600 font-bold flex items-center justify-center gap-2 border border-red-100 bg-red-50 rounded-xl hover:bg-red-100 transition-colors"
+                    className="mt-2 w-full py-3 text-red-600 font-bold flex items-center justify-center gap-2 border border-red-100 bg-red-50 rounded-xl hover:bg-red-100 transition-colors uppercase"
                   >
                     <LogOut size={20} />
                     Logout
@@ -364,7 +364,7 @@ function MobileIconLink({ href, icon, label, onClick }: { href: string; icon: an
       className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-black/10 hover:shadow-md transition-all active:scale-95"
     >
       <span className="text-gray-600">{icon}</span>
-      <span className="text-xs font-bold text-gray-900">{label}</span>
+      <span className="text-xs font-bold text-gray-900 uppercase">{label}</span>
     </Link>
   );
 }

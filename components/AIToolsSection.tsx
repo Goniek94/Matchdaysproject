@@ -2,164 +2,201 @@
 
 import Link from "next/link";
 import {
-  ScanLine,
-  Sparkles,
+  ScanFace,
   BarChart3,
-  Search,
+  Fingerprint,
+  Wand2,
   ArrowUpRight,
   Zap,
-  ShieldCheck,
-  BrainCircuit,
-  Camera,
-  Coins
+  Cpu,
+  ChevronRight
 } from "lucide-react";
 
 export default function AIToolsPage() {
   return (
-    <div className="bg-white min-h-screen text-slate-900 pb-20">
+    <div className="relative min-h-screen bg-[#030712] text-white selection:bg-indigo-500/30 overflow-hidden">
       
-      {/* HEADER SECTION */}
-      <section className="pt-12 pb-16 px-6 md:px-12 max-w-[1440px] mx-auto text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <BrainCircuit size={16} className="text-indigo-600" />
-          MatchDays Intelligence
-        </div>
-        <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-100">
-          Technology organizing the <br className="hidden md:block" />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-            Sports Collectibles Market.
-          </span>
-        </h1>
-        <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
-          We use AI not as a gadget, but as a real tool to support verification, valuation, and listing.
-        </p>
-      </section>
+      {/* --- BACKGROUND AMBIENT EFFECTS --- */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[20%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px] animate-blob mix-blend-screen" />
+        <div className="absolute bottom-[-20%] right-[10%] w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[100px] animate-blob animation-delay-2000 mix-blend-screen" />
+        <div className="absolute top-[40%] left-[-10%] w-[400px] h-[400px] bg-blue-600/10 rounded-full blur-[100px] animate-blob animation-delay-4000 mix-blend-screen" />
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_100%)]" />
+      </div>
 
-      {/* BENTO GRID SECTION */}
-      <section className="px-4 md:px-12 max-w-[1440px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-[minmax(180px,auto)]">
+      <main className="relative z-10 pt-24 pb-24 px-6 md:px-12 max-w-[1440px] mx-auto">
+        
+        {/* --- HEADER --- */}
+        <div className="text-center max-w-4xl mx-auto mb-20">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-[11px] font-bold uppercase tracking-[0.2em] mb-8 backdrop-blur-xl shadow-[0_0_20px_-5px_rgba(99,102,241,0.4)] animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <Cpu size={14} className="animate-pulse" />
+            MatchDays Neural Engine 2.0
+          </div>
           
-          {/* CARD 1: SMART LISTING (Największy - Główny Feature) */}
-          <div className="group md:col-span-2 md:row-span-2 relative overflow-hidden rounded-[2.5rem] bg-slate-950 p-8 md:p-12 text-white transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/20 hover:scale-[1.01]">
-            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-600/20 blur-[100px] rounded-full group-hover:bg-indigo-600/30 transition-colors duration-500"></div>
+          <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.9] text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-slate-500 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-100">
+            AI Built for <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-indigo-400 animate-gradient bg-[length:200%_auto]">
+              Collectors.
+            </span>
+          </h1>
+          
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
+            Discover a toolkit that changes the game. From automatic valuation to authenticity verification — everything powered by our advanced neural networks.
+          </p>
+        </div>
+
+        {/* --- BENTO GRID V2 --- */}
+        <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-6 auto-rows-[minmax(100px,auto)]">
+
+          {/* 1. SMART LISTING (Flagship - Largest Card) */}
+          <div className="group md:col-span-6 lg:col-span-8 row-span-2 relative rounded-[2.5rem] bg-gradient-to-br from-[#0f172a] to-[#020617] border border-white/10 p-8 md:p-12 overflow-hidden hover:border-indigo-500/50 transition-all duration-500 hover:shadow-[0_0_50px_-12px_rgba(79,70,229,0.3)]">
+            {/* Scanner Effect */}
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-[scan_2s_ease-in-out_infinite]" />
             
-            <div className="relative z-10 flex flex-col h-full justify-between">
+            <div className="relative z-10 flex flex-col justify-between h-full min-h-[400px]">
               <div>
-                <div className="flex items-center justify-between mb-8">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-                    <Sparkles size={28} className="text-indigo-300" />
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.3)]">
+                    <ScanFace size={32} />
                   </div>
-                  <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
-                    Core Feature
+                  <span className="px-3 py-1 rounded-lg bg-indigo-950 border border-indigo-800 text-indigo-300 text-[10px] font-bold uppercase tracking-widest">
+                    Flagship Feature
                   </span>
                 </div>
-                
-                <h3 className="text-4xl font-bold mb-4 leading-tight">
-                  Smart Listing AI
-                </h3>
-                <p className="text-slate-400 text-lg max-w-md leading-relaxed">
-                  An intelligent form that analyzes photos, recognizes logos and details, detects inconsistencies, and auto-completes data.
+                <h3 className="text-4xl md:text-5xl font-black mb-4 tracking-tight">Smart Listing AI</h3>
+                <p className="text-slate-400 text-lg max-w-lg leading-relaxed">
+                  Upload photos, and we'll do the rest. Our AI recognizes the club, season, player, and details in a split second, filling out the form for you.
                 </p>
               </div>
 
-              <div className="mt-8">
-                <div className="flex flex-wrap gap-2 mb-8">
-                  <span className="px-3 py-1 bg-white/10 rounded-lg text-xs font-medium">Auto-Recognition</span>
-                  <span className="px-3 py-1 bg-white/10 rounded-lg text-xs font-medium">Data Consistency</span>
+              {/* Interactive UI Element */}
+              <div className="mt-8 p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm flex items-center justify-between group-hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-4">
+                   <div className="flex -space-x-2">
+                      <div className="w-8 h-8 rounded-full bg-slate-700 border-2 border-[#0f172a] flex items-center justify-center text-[10px]">📸</div>
+                      <div className="w-8 h-8 rounded-full bg-slate-700 border-2 border-[#0f172a] flex items-center justify-center text-[10px]">🏷️</div>
+                      <div className="w-8 h-8 rounded-full bg-slate-700 border-2 border-[#0f172a] flex items-center justify-center text-[10px]">📝</div>
+                   </div>
+                   <div className="text-sm font-medium text-slate-300">
+                      <span className="text-indigo-400 font-bold">3x Faster</span> than manual
+                   </div>
                 </div>
-
-                <Link 
-                  href="/add-listing" 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-bold hover:bg-indigo-50 transition-colors group-hover:gap-3"
-                >
-                  Create Smart Listing
-                  <ArrowUpRight size={18} />
+                <Link href="/add-listing" className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center hover:bg-indigo-500 hover:scale-110 transition-all shadow-lg shadow-indigo-500/40">
+                  <ArrowUpRight size={20} />
                 </Link>
               </div>
             </div>
+            
+            {/* Graphic Background */}
+            <div className="absolute right-[-50px] top-[20%] w-[300px] h-[300px] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay pointer-events-none"></div>
+            <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-indigo-600/20 blur-[80px] rounded-full group-hover:bg-indigo-600/30 transition-all duration-700"></div>
           </div>
 
-          {/* CARD 2: MARKET VALUE (Pionowy) */}
-          <div className="group md:col-span-1 md:row-span-2 relative overflow-hidden rounded-[2.5rem] bg-slate-50 border border-slate-200 p-8 transition-all duration-500 hover:border-green-200 hover:shadow-xl hover:shadow-green-100 hover:bg-white hover:scale-[1.01]">
-             <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-green-100 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-            <div className="relative z-10 flex flex-col h-full">
-              <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center mb-6 text-green-600 group-hover:scale-110 transition-transform duration-300">
+          {/* 2. MARKET VALUE (Vertical Card) */}
+          <div className="group md:col-span-6 lg:col-span-4 row-span-2 relative rounded-[2.5rem] bg-[#0f172a] border border-white/10 p-8 overflow-hidden hover:border-emerald-500/50 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_10px_40px_-10px_rgba(16,185,129,0.2)]">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full group-hover:opacity-100 transition-opacity" />
+            
+            <div className="relative z-10 h-full flex flex-col">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-6 border border-emerald-500/20 group-hover:scale-110 transition-transform duration-300">
                 <BarChart3 size={24} />
               </div>
               
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">AI Market Value</h3>
-              <p className="text-slate-500 mb-6 flex-1 leading-relaxed">
-                Analysis of historical transactions and trends to suggest real price ranges and avoid undervaluing.
+              <h3 className="text-2xl font-black mb-3 text-white">Market Value</h3>
+              <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+                We analyze thousands of auctions to provide you with a real price range. Don't sell below value.
               </p>
 
-              <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm mb-4 group-hover:border-green-100 transition-colors">
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>Suggested Price</span>
-                  <span className="text-green-600 font-bold">High Demand</span>
+              {/* Fake Chart UI */}
+              <div className="mt-auto bg-black/40 rounded-2xl p-5 border border-white/5 backdrop-blur-md">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-xs text-emerald-500 font-bold uppercase tracking-wider">Est. Price</span>
+                  <span className="text-2xl font-black text-white">€145<span className="text-slate-500 text-lg">.00</span></span>
                 </div>
-                <div className="text-xl font-black text-slate-900">€145 - €180</div>
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 w-[75%] shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                </div>
+                <div className="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
+                  <span>LOW: €120</span>
+                  <span>HIGH: €180</span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* CARD 3: VERIFIED CHECK (Kwadrat) */}
-          <div className="group md:col-span-1 md:row-span-1 relative overflow-hidden rounded-[2.5rem] bg-slate-50 border border-slate-200 p-8 transition-all duration-500 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100 hover:bg-white hover:scale-[1.01]">
-            <div className="relative z-10">
-              <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center mb-6 text-blue-600 group-hover:scale-110 transition-transform duration-300">
-                <ShieldCheck size={24} />
-              </div>
-              
-              <h3 className="text-xl font-bold text-slate-900 mb-2">AI Verified Check</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                Hybrid model (AI + Human) analyzing patterns to certify authenticity.
-              </p>
-            </div>
+          {/* 3. VERIFIED CHECK (Small Square) */}
+          <div className="group md:col-span-3 lg:col-span-4 relative rounded-[2.5rem] bg-[#0f172a] border border-white/10 p-8 overflow-hidden hover:border-blue-500/50 transition-all duration-500 hover:shadow-[0_0_30px_-5px_rgba(59,130,246,0.3)]">
+             <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-blue-500/20 blur-[60px] rounded-full group-hover:scale-150 transition-transform duration-700" />
+             
+             <div className="relative z-10">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                    <Fingerprint size={20} />
+                  </div>
+                  <div className="px-2 py-1 bg-blue-900/50 rounded text-[9px] font-bold text-blue-300 border border-blue-800">BETA</div>
+                </div>
+                <h3 className="text-xl font-bold mb-2">AI Authenticity</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Hybrid model analyzing fabric weaves and tags to support verifiers.
+                </p>
+             </div>
           </div>
 
-          {/* CARD 4: VISUALIZATION (Kwadrat) */}
-          <div className="group md:col-span-1 md:row-span-1 relative overflow-hidden rounded-[2.5rem] bg-slate-50 border border-slate-200 p-8 transition-all duration-500 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-100 hover:bg-white hover:scale-[1.01]">
-            <div className="relative z-10">
-              <div className="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center mb-6 text-orange-600 group-hover:scale-110 transition-transform duration-300">
-                <Camera size={24} />
-              </div>
-              
-              <h3 className="text-xl font-bold text-slate-900 mb-2">AI Visualization</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                Present your item on a model or in a catalog style with AI generation.
-              </p>
-            </div>
+          {/* 4. VISUALIZATION STUDIO (Small Square) */}
+          <div className="group md:col-span-3 lg:col-span-4 relative rounded-[2.5rem] bg-[#0f172a] border border-white/10 p-8 overflow-hidden hover:border-purple-500/50 transition-all duration-500 hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.3)]">
+             <div className="absolute -right-10 -top-10 w-40 h-40 bg-purple-500/20 blur-[60px] rounded-full group-hover:scale-150 transition-transform duration-700" />
+             
+             <div className="relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center border border-purple-500/20 mb-4">
+                  <Wand2 size={20} />
+                </div>
+                <h3 className="text-xl font-bold mb-2">AI Studio</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Generate professional product photos. Background removal and retouching in 1 click.
+                </p>
+             </div>
           </div>
 
-           {/* CARD 5: AI CREDITS (Szeroki pasek na dole) */}
-           <div className="group md:col-span-2 relative overflow-hidden rounded-[2.5rem] bg-indigo-600 p-8 flex flex-col md:flex-row items-center justify-between text-white transition-all duration-500 hover:bg-indigo-700 hover:scale-[1.01] hover:shadow-xl hover:shadow-indigo-500/30">
-              <div className="flex items-center gap-4 mb-4 md:mb-0">
-                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
-                    <Coins size={24} className="text-white" />
-                 </div>
-                 <div>
-                    <h3 className="text-lg font-bold">Simple Model: AI Credits</h3>
-                    <p className="text-indigo-200 text-sm">Pay only for what you use. 1 Tool = 1 Credit.</p>
-                 </div>
-              </div>
-              <div className="px-5 py-2 bg-white text-indigo-600 rounded-full font-bold text-sm">
-                Available in Plans
-              </div>
-           </div>
-
-           {/* CARD 6: TRUST (Mały) */}
-           <div className="group md:col-span-2 relative overflow-hidden rounded-[2.5rem] bg-gray-100 border border-gray-200 p-8 flex flex-col justify-center transition-all duration-500 hover:bg-white hover:border-gray-300 hover:shadow-lg hover:scale-[1.01]">
-              <div className="flex items-center gap-3 mb-2">
-                 <Zap size={20} className="text-gray-400 group-hover:text-yellow-500 transition-colors" />
-                 <h3 className="font-bold text-slate-900">Foundation of Trust</h3>
-              </div>
-              <p className="text-sm text-slate-500">
-                 AI doesn't replace people. It acts as a layer supporting safety, quality, and market scale.
-              </p>
-           </div>
+          {/* 5. CREDITS & PLAN (Wide Bottom Bar) */}
+          <div className="group md:col-span-6 lg:col-span-4 relative rounded-[2.5rem] bg-gradient-to-r from-amber-500/10 to-orange-600/10 border border-amber-500/20 p-8 overflow-hidden hover:border-amber-500/50 transition-all duration-500">
+             <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
+             
+             <div className="relative z-10 flex flex-col justify-center h-full">
+                <div className="flex items-center gap-3 mb-3">
+                   <Zap size={20} className="text-amber-400 fill-amber-400 animate-pulse" />
+                   <h3 className="text-lg font-bold text-amber-100">AI Credits</h3>
+                </div>
+                <p className="text-amber-200/60 text-xs mb-4">
+                  Available in Premium and Elite plans. Pay only for what you use.
+                </p>
+                <Link href="/pricing" className="inline-flex items-center text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors gap-1 group-hover:gap-2">
+                  View Plans <ChevronRight size={14} />
+                </Link>
+             </div>
+          </div>
 
         </div>
-      </section>
+
+        {/* --- BOTTOM CTA --- */}
+        <div className="mt-20 text-center">
+          <p className="text-slate-500 text-sm mb-6 uppercase tracking-widest font-bold">Start using the technology of tomorrow</p>
+          <div className="flex justify-center gap-4">
+             <Link 
+               href="/register" 
+               className="px-8 py-4 bg-white text-black rounded-xl font-black text-sm uppercase tracking-widest hover:bg-slate-200 hover:scale-105 transition-all shadow-[0_0_30px_-5px_rgba(255,255,255,0.3)]"
+             >
+               Create Free Account
+             </Link>
+             <Link 
+               href="/about" 
+               className="px-8 py-4 bg-transparent border border-white/20 text-white rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-white/5 hover:border-white/40 transition-all"
+             >
+               How it works?
+             </Link>
+          </div>
+        </div>
+
+      </main>
     </div>
   );
 }
