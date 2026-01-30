@@ -1,11 +1,8 @@
 "use client";
 
-import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import PricingSection from "@/components/PricingSection";
 import AuctionCard from "@/components/AuctionCard";
-import AIToolsSection from "@/components/AIToolsSection";
-import Footer from "@/components/Footer";
 import { mockAuctions } from "@/lib/mockData";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -92,28 +89,25 @@ function SectionHeader({
 }
 
 export default function HomePage() {
-  // Dzielimy aukcje na 3 grupy po 3 sztuki
   const hotAuctions = mockAuctions.slice(0, 3);
   const endingAuctions = mockAuctions.slice(3, 6);
   const rareAuctions = mockAuctions.slice(6, 9);
 
   return (
-    <main className="bg-white">
-      <Navbar />
-
+    <div className="bg-white">
       {/* Hero Section */}
       <Hero />
 
-      {/* --- MARKETPLACE SECTION (3 RZĘDY) --- */}
+      {/* --- MARKETPLACE SECTION (3 ROWS) --- */}
       <section className="relative py-20 px-4 overflow-hidden bg-gradient-to-b from-white via-gray-50 to-white">
-        {/* Tło (Blobs) */}
+        {/* Background Blobs */}
         <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <div className="absolute top-40 left-0 w-96 h-96 bg-red-100/40 rounded-full blur-3xl mix-blend-multiply"></div>
           <div className="absolute bottom-40 right-0 w-96 h-96 bg-blue-100/40 rounded-full blur-3xl mix-blend-multiply"></div>
         </div>
 
         <div className="w-full max-w-7xl mx-auto relative z-10 space-y-20">
-          {/* 1. RZĄD: HOT OFFERS */}
+          {/* 1. HOT OFFERS */}
           <div>
             <SectionHeader
               emoji="🔥"
@@ -146,7 +140,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 2. RZĄD: ENDING SOON */}
+          {/* 2. ENDING SOON */}
           <div>
             <SectionHeader
               emoji="⏳"
@@ -179,7 +173,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 3. RZĄD: HIDDEN GEMS */}
+          {/* 3. HIDDEN GEMS */}
           <div>
             <SectionHeader
               emoji="💎"
@@ -212,7 +206,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Wielki przycisk na dole */}
+          {/* Large CTA Button */}
           <div className="text-center pt-8">
             <Link
               href="/auctions"
@@ -224,14 +218,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AI Tools Section */}
-      <AIToolsSection />
-
       {/* Pricing Section */}
       <PricingSection />
-
-      {/* Footer */}
-      <Footer />
-    </main>
+    </div>
   );
 }

@@ -1,193 +1,155 @@
 "use client";
 
-import { motion } from "framer-motion";
+import Link from "next/link";
 import {
-  ShieldCheck,
-  ScanEye,
-  TrendingUp,
-  Wand2,
-  Lock,
-  FileBadge,
+  ScanLine,
   Sparkles,
-  ArrowRight,
+  BarChart3,
+  Search,
+  ArrowUpRight,
+  Zap,
+  ShieldCheck,
+  BrainCircuit,
 } from "lucide-react";
 
-export default function AIToolsSection() {
-  const aiFeatures = [
-    {
-      icon: ShieldCheck,
-      title: "AI Authenticity Verification",
-      description:
-        "Core system analyzing photos (logos, stitching, patterns) to assess authenticity probability using Computer Vision.",
-      gradient: "from-emerald-500 to-green-600",
-      iconBg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-      span: "md:col-span-2 md:row-span-2",
-    },
-    {
-      icon: ScanEye,
-      title: "Condition Scoring",
-      description:
-        "Automated physical state assessment (1-10 scale) detecting defects like fading or fabric damage.",
-      gradient: "from-blue-500 to-indigo-600",
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-600",
-      span: "md:col-span-1",
-    },
-    {
-      icon: TrendingUp,
-      title: "Smart Valuation",
-      description:
-        "Data-driven price recommendations based on historical sales, rarity, and current market trends.",
-      gradient: "from-purple-500 to-violet-600",
-      iconBg: "bg-purple-50",
-      iconColor: "text-purple-600",
-      span: "md:col-span-1",
-    },
-    {
-      icon: Wand2,
-      title: "Auto-Descriptions",
-      description:
-        "Instant generation of SEO-friendly titles and standardized descriptions using LLMs.",
-      gradient: "from-amber-500 to-orange-600",
-      iconBg: "bg-amber-50",
-      iconColor: "text-amber-600",
-      span: "md:col-span-1",
-    },
-    {
-      icon: Lock,
-      title: "Fraud Detection",
-      description:
-        "Real-time analysis of pricing anomalies and account relationships to flag suspicious activity.",
-      gradient: "from-red-500 to-rose-600",
-      iconBg: "bg-red-50",
-      iconColor: "text-red-600",
-      span: "md:col-span-1",
-    },
-    {
-      icon: FileBadge,
-      title: "Digital Certification",
-      description:
-        "Unique digital assets tracking the item's history, expert decisions, and provenance.",
-      gradient: "from-cyan-500 to-blue-600",
-      iconBg: "bg-cyan-50",
-      iconColor: "text-cyan-600",
-      span: "md:col-span-2",
-    },
-  ];
-
+export default function AIToolsPage() {
   return (
-    <section
-      id="ai-tools"
-      className="relative py-12 sm:py-16 md:py-24 px-4 sm:px-6 md:px-8 bg-gradient-to-b from-white via-gray-50 to-white overflow-hidden"
-    >
-      {/* Background Pattern */}
-      <div
-        className="absolute inset-0 z-0 opacity-[0.02]"
-        style={{
-          backgroundImage: `linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)`,
-          backgroundSize: "50px 50px",
-        }}
-      />
+    <div className="bg-white min-h-screen text-slate-900 pb-20">
+      {/* HEADER SECTION */}
+      <section className="pt-12 pb-16 px-6 md:px-12 max-w-[1440px] mx-auto text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <BrainCircuit size={16} className="text-indigo-600" />
+          MatchDays Intelligence
+        </div>
+        <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6 animate-in fade-in slide-in-from-bottom-5 duration-700 delay-100">
+          Tools built for <br className="hidden md:block" />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+            Smart Collectors.
+          </span>
+        </h1>
+        <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
+          Supercharge your trading with AI. Verify authenticity, valuate items, and list in seconds.
+        </p>
+      </section>
 
-      <div className="container-max relative z-10">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-8 sm:mb-12 md:mb-16"
-        >
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 mb-4 sm:mb-6">
-            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600" />
-            <span className="text-xs sm:text-sm font-bold text-indigo-600 uppercase tracking-wider">
-              MatchDays AI Core
-            </span>
+      {/* BENTO GRID SECTION */}
+      <section className="px-4 md:px-12 max-w-[1440px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(300px,auto)]">
+          
+          {/* CARD 1: SMART LISTING (Największy - Główny Feature) */}
+          <div className="group md:col-span-2 relative overflow-hidden rounded-[2rem] bg-slate-950 p-8 md:p-12 text-white transition-all duration-500 hover:shadow-2xl hover:shadow-indigo-500/20 hover:scale-[1.01]">
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-600/20 blur-[100px] rounded-full group-hover:bg-indigo-600/30 transition-colors duration-500"></div>
+            
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                    <Sparkles size={28} className="text-indigo-300" />
+                  </div>
+                  <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+                    Most Popular
+                  </span>
+                </div>
+                
+                <h3 className="text-4xl font-bold mb-4 leading-tight">
+                  Smart Listing Generator
+                </h3>
+                <p className="text-slate-400 text-lg max-w-md">
+                  Upload one photo. Our AI identifies the kit, season, and player, then writes a pro description for you.
+                </p>
+              </div>
+
+              <div className="mt-8">
+                <Link 
+                  href="/add-listing" 
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-bold hover:bg-indigo-50 transition-colors group-hover:gap-3"
+                >
+                  Try it now
+                  <ArrowUpRight size={18} />
+                </Link>
+              </div>
+            </div>
           </div>
 
-          {/* Title */}
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-black tracking-tight leading-tight mb-4 sm:mb-6">
-            Powered by{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
-              Artificial Intelligence
-            </span>
-          </h2>
+          {/* CARD 2: LEGIT CHECK (Pionowy - Bezpieczeństwo) */}
+          <div className="group relative overflow-hidden rounded-[2rem] bg-slate-50 border border-slate-200 p-8 transition-all duration-500 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100 hover:bg-white hover:scale-[1.01]">
+            <div className="absolute -right-10 -top-10 w-40 h-40 bg-blue-100 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-6 text-blue-600 group-hover:scale-110 transition-transform duration-300">
+                <ShieldCheck size={24} />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Legit Check</h3>
+              <p className="text-slate-500 mb-8 flex-1">
+                AI analysis of crests, tags, and stitching patterns to detect fakes with 99.8% accuracy.
+              </p>
 
-          {/* Subtitle */}
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4">
-            Our advanced AI systems work 24/7 to ensure authenticity, fair
-            pricing, and a seamless experience for buyers and sellers.
-          </p>
-        </motion.div>
-
-        {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 md:gap-6 auto-rows-[minmax(200px,auto)]">
-          {aiFeatures.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className={`group relative ${feature.span} bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-6 sm:p-8 hover:border-gray-300 hover:shadow-xl transition-all duration-300 overflow-hidden`}
-              >
-                {/* Gradient Overlay on Hover */}
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}
-                />
-
-                {/* Content */}
-                <div className="relative z-10 h-full flex flex-col">
-                  {/* Icon */}
-                  <div
-                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl ${feature.iconBg} flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <Icon className={`w-6 h-6 sm:w-7 sm:h-7 ${feature.iconColor}`} />
-                  </div>
-
-                  {/* Title */}
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 leading-tight">
-                    {feature.title}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-xs sm:text-sm md:text-base text-gray-600 leading-relaxed flex-1">
-                    {feature.description}
-                  </p>
-
-                  {/* Learn More Link */}
-                  <div className="mt-4 sm:mt-6 flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-400 group-hover:text-gray-900 transition-colors">
-                    <span>Learn more</span>
-                    <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
-                  </div>
+              <div className="flex items-center gap-2 text-sm font-bold text-blue-600">
+                <div className="h-1 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full w-[99%] bg-blue-600 rounded-full"></div>
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                <span>99.8%</span>
+              </div>
+            </div>
+          </div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mt-12 sm:mt-16 md:mt-20"
-        >
-          <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-            Want to see our AI in action?
-          </p>
-          <a
-            href="/add-listing"
-            className="inline-flex items-center gap-2 sm:gap-3 px-6 sm:px-8 md:px-10 py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-sm sm:text-base rounded-full hover:shadow-2xl hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105"
-          >
-            <span>Try Smart Upload</span>
-            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
-          </a>
-        </motion.div>
-      </div>
-    </section>
+          {/* CARD 3: PRICE ORACLE (Pionowy - Dane) */}
+          <div className="group relative overflow-hidden rounded-[2rem] bg-slate-50 border border-slate-200 p-8 transition-all duration-500 hover:border-green-200 hover:shadow-xl hover:shadow-green-100 hover:bg-white hover:scale-[1.01]">
+             <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-green-100 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+            <div className="relative z-10 flex flex-col h-full">
+              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mb-6 text-green-600 group-hover:scale-110 transition-transform duration-300">
+                <BarChart3 size={24} />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Price Oracle</h3>
+              <p className="text-slate-500 mb-6 flex-1">
+                Real-time valuation based on historical sales from eBay, Vinted, and StockX.
+              </p>
+
+              <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                <div className="flex justify-between text-xs text-slate-400 mb-1">
+                  <span>Est. Value</span>
+                  <span className="text-green-600 font-bold">+12%</span>
+                </div>
+                <div className="text-xl font-black text-slate-900">€145 - €180</div>
+              </div>
+            </div>
+          </div>
+
+          {/* CARD 4: VISUAL FINDER (Poziomy - Szeroki) */}
+          <div className="group md:col-span-2 relative overflow-hidden rounded-[2rem] bg-slate-50 border border-slate-200 p-8 md:p-10 flex flex-col md:flex-row items-start md:items-center gap-8 transition-all duration-500 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-100 hover:bg-white hover:scale-[1.01]">
+            <div className="flex-1 z-10">
+              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-6 text-orange-600 group-hover:scale-110 transition-transform duration-300">
+                <Search size={24} />
+              </div>
+              <h3 className="text-3xl font-bold text-slate-900 mb-3">Visual Finder</h3>
+              <p className="text-slate-500 text-lg mb-6">
+                Saw a kit on TV? Upload a screenshot. We'll find exactly where you can buy it on MatchDays.
+              </p>
+              <button className="text-orange-600 font-bold text-sm uppercase tracking-wider hover:text-orange-700 flex items-center gap-2 group/btn">
+                Start Visual Search 
+                <ArrowUpRight size={16} className="transition-transform group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1"/>
+              </button>
+            </div>
+
+            {/* Wizualizacja 'skanowania' */}
+            <div className="relative w-full md:w-64 h-48 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-center overflow-hidden">
+               <ScanLine size={48} className="text-slate-200 absolute" />
+               <div className="absolute inset-0 bg-gradient-to-b from-orange-500/0 via-orange-500/10 to-orange-500/0 translate-y-[-100%] group-hover:translate-y-[100%] transition-transform duration-[1.5s] ease-in-out"></div>
+            </div>
+          </div>
+
+           {/* CARD 5: STATS / CTA (Mały kwadrat) */}
+           <div className="group relative overflow-hidden rounded-[2rem] bg-indigo-600 p-8 flex flex-col justify-center items-center text-center text-white transition-all duration-500 hover:bg-indigo-700 hover:scale-[1.01] hover:shadow-xl hover:shadow-indigo-500/30">
+              <Zap size={32} className="mb-4 text-indigo-200 animate-pulse" />
+              <div className="text-4xl font-black mb-1">5M+</div>
+              <div className="text-indigo-100 text-sm font-medium">Shirts Analyzed</div>
+           </div>
+
+        </div>
+      </section>
+    </div>
   );
 }
