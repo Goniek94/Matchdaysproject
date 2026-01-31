@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   Crown,
 } from "lucide-react";
+import Link from "next/link";
 
 export default function ArenaPage() {
   // --- GŁÓWNY FEATURE: MUNDIAL / BIG TOURNAMENT ---
@@ -32,6 +33,22 @@ export default function ArenaPage() {
   const games = [
     {
       id: 1,
+      title: "Tiki-Taka-Toe",
+      subtitle: "Daily & Online",
+      description:
+        "Football tic-tac-toe! Match players to teams and countries. Play daily puzzles or challenge others online.",
+      prize: "Mystery Box",
+      image:
+        "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?q=80&w=800&auto=format&fit=crop",
+      icon: LayoutGrid,
+      color: "text-purple-400",
+      border: "border-purple-500/30",
+      gradient: "from-purple-500/20 to-transparent",
+      action: "Play Now",
+      link: "/arena/games/tiki-taka-toe",
+    },
+    {
+      id: 2,
       title: "Missing 11",
       subtitle: "Daily Challenge",
       description:
@@ -44,9 +61,10 @@ export default function ArenaPage() {
       border: "border-blue-500/30",
       gradient: "from-blue-500/20 to-transparent",
       action: "Start Guessing",
+      link: "/arena/games/missing-xi",
     },
     {
-      id: 2,
+      id: 3,
       title: "Football Bingo",
       subtitle: "Live Matchday",
       description:
@@ -59,9 +77,10 @@ export default function ArenaPage() {
       border: "border-green-500/30",
       gradient: "from-green-500/20 to-transparent",
       action: "Get Ticket",
+      link: "/arena/games/football-bingo",
     },
     {
-      id: 3,
+      id: 4,
       title: "The Typer",
       subtitle: "Weekly Predictor",
       description:
@@ -74,9 +93,10 @@ export default function ArenaPage() {
       border: "border-yellow-500/30",
       gradient: "from-yellow-500/20 to-transparent",
       action: "Place Picks",
+      link: "/arena/games/the-typer",
     },
     {
-      id: 4,
+      id: 5,
       title: "National Leagues",
       subtitle: "Ranked Ladder",
       description:
@@ -89,6 +109,7 @@ export default function ArenaPage() {
       border: "border-purple-500/30",
       gradient: "from-purple-500/20 to-transparent",
       action: "Join League",
+      link: "/arena/games/national-leagues",
     },
   ];
 
@@ -246,9 +267,12 @@ export default function ArenaPage() {
                             {game.prize}
                           </span>
                         </div>
-                        <button className="text-xs font-bold uppercase text-white flex items-center gap-2 group-hover:gap-3 transition-all">
+                        <Link
+                          href={game.link}
+                          className="text-xs font-bold uppercase text-white flex items-center gap-2 group-hover:gap-3 transition-all"
+                        >
                           {game.action} <ChevronRight size={14} />
-                        </button>
+                        </Link>
                       </div>
                     </div>
                   </motion.div>
