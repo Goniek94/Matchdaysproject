@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, ArrowRight, ArrowLeft, Wand2 } from "lucide-react";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { SmartFormData, INITIAL_STATE } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
 import SmartFormSummary from "./SmartFormSummary";
@@ -11,21 +11,14 @@ import { createSportsListing } from "@/lib/api/listings.api";
 export default function SmartForm({ onBack }: { onBack?: () => void } = {}) {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<SmartFormData>(INITIAL_STATE);
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
 
-  // --- LOGIC: STATE ---
   const update = (field: keyof SmartFormData, val: any) =>
     setData((prev) => ({ ...prev, [field]: val }));
 
-  // --- LOGIC: NAVIGATION ---
   const handleNext = () => {
-    if (step === 8) {
-      handleAiGeneration();
-    } else {
-      setStep((prev) => prev + 1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    setStep((prev) => prev + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleBackNavigation = () => {
@@ -37,40 +30,20 @@ export default function SmartForm({ onBack }: { onBack?: () => void } = {}) {
     }
   };
 
-  // --- LOGIC: AI & PUBLISH ---
-  const handleAiGeneration = () => {
-    setIsAiProcessing(true);
-    // TODO: Implement AI analysis based on selected features
-    setTimeout(() => {
-      setIsAiProcessing(false);
-      setStep(7); // Go to summary
-    }, 2500);
-  };
-
   const handlePublish = async () => {
     try {
-      console.log("Publishing listing with data:", data);
-
-      // Call API to create listing
       const result = await createSportsListing(data);
-
       if (result.success) {
-        console.log("Listing created successfully:", result.data);
         setIsPublished(true);
       } else {
-        console.error("Failed to create listing:", result.error);
         alert(`Failed to create listing: ${result.error || result.message}`);
       }
     } catch (error) {
-      console.error("Error publishing listing:", error);
-      alert(
-        "An error occurred while publishing the listing. Please try again."
-      );
+      alert("An error occurred while publishing. Please try again.");
     }
   };
 
   // --- SPECIAL VIEWS ---
-
   if (isPublished) {
     return (
       <SuccessView
@@ -86,27 +59,26 @@ export default function SmartForm({ onBack }: { onBack?: () => void } = {}) {
     );
   }
 
-  if (isAiProcessing) {
+  // --- STEP 6: FINAL SUMMARY + PUBLISH ---
+  if (step === 6) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-in fade-in">
-        <div className="relative">
-          <div className="absolute inset-0 bg-yellow-400 blur-xl opacity-20 animate-pulse"></div>
-          <Loader2 className="w-16 h-16 text-black animate-spin relative z-10" />
-        </div>
-        <h2 className="text-3xl font-black mt-8 mb-2">
-          AI Is Analyzing Your Photos
-        </h2>
-        <p className="text-gray-500 font-medium">
-          Identifying brand, model, and estimating value...
-        </p>
+      <div className="min-h-screen pb-24 pt-24 px-4 max-w-4xl mx-auto">
+        <SmartFormSummary
+          data={data}
+          onPublish={handlePublish}
+          onBack={handleBackNavigation}
+        />
       </div>
     );
   }
 
-  // --- MAIN RENDER ---
+  // --- MAIN RENDER (steps 1-5) ---
+  const isStep4AI = step === 4 && data.completionMode === "AI";
+  const isPhotoStep = step === 3;
+
   return (
     <div className="min-h-screen pb-24 pt-24">
-      {/* Progress Bar (Sticky Top) */}
+      {/* Progress Bar */}
       <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 mb-8 py-4 px-4 transition-all">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -122,63 +94,57 @@ export default function SmartForm({ onBack }: { onBack?: () => void } = {}) {
       </div>
 
       <div className="px-4 max-w-4xl mx-auto">
-        {step <= 5 ? (
-          <>
-            {/* Step Content */}
-            <SmartFormSteps
-              step={step}
-              data={data}
-              update={update}
-              onNext={handleNext}
-            />
+        <SmartFormSteps
+          step={step}
+          data={data}
+          update={update}
+          onNext={handleNext}
+          onBack={handleBackNavigation}
+        />
 
-            {/* --- BUTTONS SECTION (STATIC) - Hidden for step 3 (photos) --- */}
-            {step !== 3 && (
-              <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
-                {/* Back Button */}
-                <button
-                  onClick={handleBackNavigation}
-                  className="group flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                >
-                  <ArrowLeft
-                    size={18}
-                    className="transition-transform group-hover:-translate-x-1"
-                  />
-                  {step === 1 ? "Cancel" : "Back"}
-                </button>
-
-                {/* Next / AI Button */}
-                <button
-                  onClick={handleNext}
-                  disabled={isAiProcessing}
-                  className={`flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-95 ${
-                    step === 8
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-200"
-                      : "bg-black hover:bg-gray-800"
-                  }`}
-                >
-                  {step === 8 ? (
-                    <>
-                      Generate with AI <Wand2 size={18} />
-                    </>
-                  ) : (
-                    <>
-                      Next <ArrowRight size={18} />
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          /* Summary View - Coming Soon */
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">Summary - Coming Soon</h2>
+        {/* Buttons — hidden for step 3 (photos have their own Next)
+            and for step 4 AI (StepAISummary manages its own flow) */}
+        {!isPhotoStep && !isStep4AI && (
+          <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
             <button
-              onClick={handlePublish}
-              className="px-8 py-3 bg-black text-white rounded-xl font-bold"
+              onClick={handleBackNavigation}
+              className="group flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
             >
-              Publish Listing
+              <ArrowLeft
+                size={18}
+                className="transition-transform group-hover:-translate-x-1"
+              />
+              {step === 1 ? "Cancel" : "Back"}
+            </button>
+
+            <button
+              onClick={handleNext}
+              className="flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white bg-black hover:bg-gray-800 shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-95"
+            >
+              Next <ArrowRight size={18} />
+            </button>
+          </div>
+        )}
+
+        {/* Step 4 AI — Back + Continue buttons after analysis */}
+        {isStep4AI && (
+          <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
+            <button
+              onClick={handleBackNavigation}
+              className="group flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft
+                size={18}
+                className="transition-transform group-hover:-translate-x-1"
+              />
+              Back
+            </button>
+
+            <button
+              onClick={handleNext}
+              className="flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95"
+            >
+              Continue <ArrowRight size={18} />
             </button>
           </div>
         )}

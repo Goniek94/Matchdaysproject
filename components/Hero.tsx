@@ -109,7 +109,7 @@ export default function Hero() {
   const paginate = (newDirection: number) => {
     setDirection(newDirection);
     setCurrentSlide(
-      (prev) => (prev + newDirection + slides.length) % slides.length
+      (prev) => (prev + newDirection + slides.length) % slides.length,
     );
   };
 
@@ -126,9 +126,9 @@ export default function Hero() {
       opacity: 1,
       scale: 1,
       transition: {
-        x: { type: "spring", stiffness: 300, damping: 30 },
+        x: { type: "spring" as const, stiffness: 300, damping: 30 },
         opacity: { duration: 0.5 },
-        scale: { duration: 8, ease: "linear" }, // Ken Burns Effect
+        scale: { duration: 8, ease: "linear" as const }, // Ken Burns Effect
       },
     },
     exit: (direction: number) => ({
@@ -136,7 +136,7 @@ export default function Hero() {
       x: direction < 0 ? 1000 : -1000,
       opacity: 0,
       transition: {
-        x: { type: "spring", stiffness: 300, damping: 30 },
+        x: { type: "spring" as const, stiffness: 300, damping: 30 },
         opacity: { duration: 0.5 },
       },
     }),
@@ -158,7 +158,7 @@ export default function Hero() {
     show: {
       y: 0,
       opacity: 1,
-      transition: { type: "spring", stiffness: 100, damping: 10 },
+      transition: { type: "spring" as const, stiffness: 100, damping: 10 },
     },
   };
 

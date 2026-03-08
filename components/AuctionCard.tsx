@@ -123,20 +123,23 @@ const parseTimeRemaining = (
 
 export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
-  const [currentPrice, setCurrentPrice] = useState(auction.price);
+  // Handle both price and currentBid from backend
+  const initialPrice = auction.price || (auction as any).currentBid || 0;
+  const [currentPrice, setCurrentPrice] = useState(initialPrice);
   const [priceChanged, setPriceChanged] = useState(false);
-  const prevPriceRef = useRef(auction.price);
+  const prevPriceRef = useRef(initialPrice);
 
   // Detect price changes (simulating live updates)
   useEffect(() => {
-    if (auction.price !== prevPriceRef.current) {
-      setCurrentPrice(auction.price);
+    const newPrice = auction.price || (auction as any).currentBid || 0;
+    if (newPrice !== prevPriceRef.current) {
+      setCurrentPrice(newPrice);
       setPriceChanged(true);
-      prevPriceRef.current = auction.price;
+      prevPriceRef.current = newPrice;
       const timer = setTimeout(() => setPriceChanged(false), 1000);
       return () => clearTimeout(timer);
     }
-  }, [auction.price]);
+  }, [auction.price, (auction as any).currentBid]);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -150,7 +153,9 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   };
 
   const shortDesc = truncateText(auction.description, 100);
-  const flagUrl = `https://flagcdn.com/w20/${auction.country.code.toLowerCase()}.png`;
+  const flagUrl = auction.country?.code
+    ? `https://flagcdn.com/w20/${auction.country.code.toLowerCase()}.png`
+    : `https://flagcdn.com/w20/pl.png`; // Default to Poland
   const badgeConfig = badge ? getBadgeConfig(badge.text) : null;
   const timeStatus = parseTimeRemaining(auction.endTime);
 
@@ -391,11 +396,11 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                   src={flagUrl}
                   width={16}
                   height={12}
-                  alt={auction.country.name}
+                  alt={auction.country?.name || "Poland"}
                   className="rounded-sm"
                 />
                 <span className="text-xs font-medium">
-                  {auction.country.code.toUpperCase()}
+                  {auction.country?.code?.toUpperCase() || "PL"}
                 </span>
               </div>
             </div>

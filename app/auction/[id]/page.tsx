@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ImageGallery from "@/components/auction/ImageGallery";
 import CountdownTimer from "@/components/auction/CountdownTimer";
@@ -24,14 +23,12 @@ interface AuctionDetailPageProps {
 }
 
 export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
-  const router = useRouter();
   const [auction, setAuction] = useState<any>(null);
   const [bids, setBids] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [bidding, setBidding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load auction data
   useEffect(() => {
     loadAuctionData();
   }, [params.id]);
@@ -41,7 +38,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       setLoading(true);
       setError(null);
 
-      // Load auction details
       const auctionResponse = await getAuctionById(params.id);
 
       if (!auctionResponse.success) {
@@ -50,8 +46,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       }
 
       setAuction(auctionResponse.data);
-
-      // Load bids
       await loadBids();
     } catch (err: any) {
       console.error("Error loading auction:", err);
@@ -66,15 +60,14 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       const bidsResponse = await getAuctionBids(params.id);
 
       if (bidsResponse.success && bidsResponse.data) {
-        // Transform API bids to component format
         const transformedBids = bidsResponse.data.map(
           (bid: any, index: number) => ({
             id: bid.id,
             username: bid.bidder?.username || bid.user?.username || "Anonymous",
             amount: Number(bid.amount),
             time: new Date(bid.createdAt).toLocaleString("pl-PL"),
-            isWinning: index === 0, // First bid is the highest/winning
-          })
+            isWinning: index === 0,
+          }),
         );
         setBids(transformedBids);
       }
@@ -84,7 +77,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
   };
 
   const handlePlaceBid = async (amount: number) => {
-    // Check if user is authenticated
     if (!isAuthenticated()) {
       alert("Please log in to place a bid");
       return;
@@ -98,8 +90,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
 
       if (response.success) {
         alert("Bid placed successfully! 🎉");
-
-        // Reload auction and bids
         await loadAuctionData();
       } else {
         alert(response.message || "Failed to place bid");
@@ -114,7 +104,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <main className="bg-white min-h-screen">
@@ -134,7 +123,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     );
   }
 
-  // Error state
   if (error || !auction) {
     return (
       <main className="bg-white min-h-screen">
@@ -162,12 +150,10 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     );
   }
 
-  // Calculate time remaining
   const endTime = new Date(auction.endTime).getTime();
   const now = Date.now();
   const secondsRemaining = Math.max(0, Math.floor((endTime - now) / 1000));
 
-  // Product details
   const productDetails = [
     { label: "Size", value: auction.size || "N/A" },
     { label: "Condition", value: auction.condition || "N/A" },
@@ -185,7 +171,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
 
       <div className="pt-24 px-8">
         <div className="container-max">
-          {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-gray-600 mb-8">
             <Link href="/" className="hover:text-black transition-colors">
               Auctions
@@ -198,9 +183,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
             <span className="text-black">{auction.title}</span>
           </div>
 
-          {/* Main Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
-            {/* Left: Image Gallery */}
             <div>
               <ImageGallery
                 images={auction.images || []}
@@ -210,15 +193,12 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
               />
             </div>
 
-            {/* Right: Auction Details */}
             <div>
-              {/* Title & Subtitle */}
               <h1 className="text-4xl font-light mb-2 tracking-tight">
                 {auction.title}
               </h1>
               <p className="text-gray-600 mb-8">{auction.description}</p>
 
-              {/* Listing Type Badge */}
               <div className="mb-6">
                 <span
                   className={`inline-block px-4 py-2 text-xs uppercase tracking-widest font-medium rounded-[2px] ${
@@ -238,28 +218,22 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                 )}
               </div>
 
-              {/* Countdown Timer - Only for active auctions */}
               {auction.status === "active" &&
                 auction.listingType === "auction" && (
                   <CountdownTimer initialSeconds={secondsRemaining} />
                 )}
 
-              {/* Conditional Panel - Auction or Buy Now */}
               {auction.listingType === "auction" ? (
                 <>
-                  {/* Bid Panel for Auctions */}
                   <BidPanel
                     currentBid={Number(auction.currentBid)}
                     bidCount={auction.bidCount}
                     onPlaceBid={handlePlaceBid}
                     disabled={bidding || auction.status !== "active"}
                   />
-
-                  {/* Bid History - Only for auctions */}
                   <BidHistory bids={bids} />
                 </>
               ) : (
-                /* Buy Now Panel for Fixed Price Listings */
                 <BuyNowPanel
                   price={Number(auction.buyNowPrice || auction.currentBid)}
                   currency="PLN"
@@ -273,23 +247,17 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                 />
               )}
 
-              {/* Seller Info */}
               {auction.seller && <SellerInfo seller={auction.seller} />}
-
-              {/* Product Details */}
               <ProductDetails
                 description={auction.description}
                 details={productDetails}
               />
-
-              {/* Info Cards */}
               <InfoCards />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer */}
       <Footer />
     </main>
   );

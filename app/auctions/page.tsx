@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import AuctionCard from "@/components/AuctionCard";
 import Footer from "@/components/Footer";
 import { mockAuctions } from "@/lib/mockData";
+import { getSportsListings } from "@/lib/api/listings.api";
+import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import {
   Search,
   ChevronDown,
@@ -430,6 +432,8 @@ export default function AuctionsPage(): JSX.Element {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("recommended");
   const [selectedProductType, setSelectedProductType] = useState("all");
+  const [auctions, setAuctions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [expandedRegions, setExpandedRegions] = useState<
     Record<string, boolean>
@@ -449,9 +453,42 @@ export default function AuctionsPage(): JSX.Element {
   const toggleCountry = (id: string) =>
     setExpandedCountries((prev) => ({ ...prev, [id]: !prev[id] }));
 
+  // Fetch auctions from API
+  useEffect(() => {
+    async function fetchAuctions() {
+      try {
+        setIsLoading(true);
+        const result = await getSportsListings({
+          page: 1,
+          limit: 50, // More items for /auctions page
+        });
+
+        if (result.success && result.data) {
+          console.log(
+            "✅ Pobrano aukcje z API dla /auctions:",
+            result.data.length
+          );
+          const adaptedAuctions = adaptAuctionsForDisplay(result.data);
+          setAuctions(adaptedAuctions);
+        } else {
+          console.warn("⚠️ Brak aukcji z API, używam mock data");
+          setAuctions(mockAuctions);
+        }
+      } catch (err) {
+        console.error("❌ Błąd pobierania aukcji:", err);
+        setAuctions(mockAuctions);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAuctions();
+  }, []);
+
   // --- LOGIKA FILTROWANIA ---
   const filteredAuctions = useMemo(() => {
-    let result = [...mockAuctions];
+    const sourceAuctions = auctions.length > 0 ? auctions : mockAuctions;
+    let result = [...sourceAuctions];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();

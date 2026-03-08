@@ -55,12 +55,18 @@ export type {
   UserPreferencesData,
 } from "./users";
 
+// ✅ DODANE: Export AI service
+export * as aiApi from "./ai";
+export type { AIAnalysisResult, PhotoDto, AnalyzeListingDto } from "./ai";
+
 // Default export with all services
 const api = {
   auth: require("./auth"),
   auctions: require("./auctions"),
   bids: require("./bids"),
   users: require("./users"),
+  // ✅ DODANE: AI w default export
+  ai: require("./ai"),
   client: require("./client").default,
   config: {
     API_URL: require("./config").API_URL,

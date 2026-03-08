@@ -1,5 +1,5 @@
 import { CATEGORIES, SmartFormData } from "./types";
-import { CheckCircle2, ArrowRight } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface StepProps {
@@ -8,7 +8,7 @@ interface StepProps {
   onNext?: () => void;
 }
 
-export default function StepCategory({ data, update, onNext }: StepProps) {
+export default function StepCategory({ data, update }: StepProps) {
   const handleSelect = (id: string) => {
     const selectedCategory = CATEGORIES.find((cat) => cat.id === id);
     update("category", id);
@@ -44,7 +44,7 @@ export default function StepCategory({ data, update, onNext }: StepProps) {
                   "group relative flex flex-col items-center justify-center p-4 h-32 md:h-40 w-full text-center transition-all duration-300 ease-out rounded-2xl border-2 outline-none",
                   isSelected
                     ? "border-black bg-gray-50 shadow-xl scale-[1.02]"
-                    : "border-gray-100 bg-white hover:border-gray-300 hover:shadow-lg hover:-translate-y-1"
+                    : "border-gray-100 bg-white hover:border-gray-300 hover:shadow-lg hover:-translate-y-1",
                 )}
               >
                 {/* Ikona */}
@@ -53,7 +53,7 @@ export default function StepCategory({ data, update, onNext }: StepProps) {
                     "p-3 rounded-xl transition-colors duration-300 mb-2",
                     isSelected
                       ? "bg-black text-white"
-                      : "bg-gray-50 text-black group-hover:bg-gray-100"
+                      : "bg-gray-50 text-black group-hover:bg-gray-100",
                   )}
                 >
                   <cat.icon size={28} strokeWidth={1.5} />

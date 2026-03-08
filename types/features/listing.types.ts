@@ -19,6 +19,7 @@ export type PhotoTypeHint =
   | "size_tag"
   | "country_tag"
   | "serial_code"
+  | "combined_tag" // single photo covering size + country + serial on one label
   | "player_name"
   | "player_number"
   | "seams"
@@ -67,35 +68,31 @@ export interface Category {
 // AI ANALYSIS TYPES
 // ============================================
 
+/**
+ * AI analysis result returned from the backend (/ai/analyze endpoint).
+ * This is the flat structure returned by Gemini Vision via NestJS.
+ * @see lib/api/ai.ts for the API function
+ */
 export interface AIAnalysisResult {
-  recognition: {
-    productType: string;
-    brand: string;
-    model: string;
-    season: string;
-    year: string;
-    club: string;
-    productionCountry: string;
-    barcodeOrSku: string;
-  };
-  generatedContent: {
-    title: string;
-    description: string;
-    bulletPoints: string[];
-  };
-  pricing: {
-    marketMin: number;
-    marketMax: number;
-    suggestedPrice: number;
-  };
-  authenticity: {
-    score: number;
-    verdict: "very_high" | "high" | "medium" | "low";
-    reasons: string[];
-  };
-  assets: {
-    generatedModelImageUrl?: string;
-  };
+  title: string;
+  description: string;
+  brand: string;
+  team: string;
+  season: string;
+  model: string;
+  size: string;
+  condition: string;
+  countryOfProduction: string;
+  serialCode: string;
+  playerName?: string;
+  playerNumber?: string;
+  priceMin: number;
+  priceSuggested: number;
+  priceMax: number;
+  authenticityScore: number;
+  authenticityLabel: string;
+  authenticityNotes: string;
+  verificationRoute: "auto_publish" | "manual_review" | "expert_required";
 }
 
 // ============================================
@@ -145,6 +142,10 @@ export interface SmartFormData {
       description: string;
       photoId: string | null;
     }>;
+    // Tag options - user can indicate all tag info is on one photo
+    tagsCombined: boolean;
+    // Player print options - user can indicate no player name/number on shirt
+    noPlayerPrint: boolean;
   };
 
   // AI Analysis Data
@@ -197,6 +198,8 @@ export const INITIAL_FORM_STATE: SmartFormData = {
     tagCondition: "intact",
     hasDefects: false,
     defects: [],
+    tagsCombined: false,
+    noPlayerPrint: false,
   },
   aiData: null,
   verificationStatus: "NOT_AI_VERIFIED",

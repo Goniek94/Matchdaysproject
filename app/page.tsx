@@ -7,6 +7,8 @@ import AuctionCard from "@/components/AuctionCard";
 import AIToolsSection from "@/components/AIToolsSection";
 import Footer from "@/components/Footer";
 import { mockAuctions } from "@/lib/mockData";
+import { getSportsListings } from "@/lib/api/listings.api";
+import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
@@ -92,10 +94,48 @@ function SectionHeader({
 }
 
 export default function HomePage() {
+  const [auctions, setAuctions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch auctions from API
+  useEffect(() => {
+    async function fetchAuctions() {
+      try {
+        setIsLoading(true);
+        const result = await getSportsListings({
+          page: 1,
+          limit: 12,
+          // status: "active", // Uncomment if backend supports status filter
+        });
+
+        if (result.success && result.data) {
+          console.log("✅ Pobrano aukcje z API:", result.data.length);
+          // Adapt backend data to frontend format
+          const adaptedAuctions = adaptAuctionsForDisplay(result.data);
+          setAuctions(adaptedAuctions);
+        } else {
+          console.warn("⚠️ Brak aukcji z API, używam mock data");
+          setAuctions(mockAuctions);
+        }
+      } catch (err) {
+        console.error("❌ Błąd pobierania aukcji:", err);
+        setError("Nie udało się pobrać aukcji");
+        // Fallback to mock data
+        setAuctions(mockAuctions);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAuctions();
+  }, []);
+
   // Dzielimy aukcje na 3 grupy po 3 sztuki
-  const hotAuctions = mockAuctions.slice(0, 3);
-  const endingAuctions = mockAuctions.slice(3, 6);
-  const rareAuctions = mockAuctions.slice(6, 9);
+  const displayAuctions = auctions.length > 0 ? auctions : mockAuctions;
+  const hotAuctions = displayAuctions.slice(0, 3);
+  const endingAuctions = displayAuctions.slice(3, 6);
+  const rareAuctions = displayAuctions.slice(6, 9);
 
   return (
     <main className="bg-white">

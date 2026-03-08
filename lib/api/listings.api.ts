@@ -33,6 +33,92 @@ const createHeaders = (): HeadersInit => {
 };
 
 /**
+ * Map SmartFormData to backend CreateAuctionDto format
+ */
+const mapFormDataToAuctionDto = (data: SmartFormData) => {
+  // Calculate auction times
+  const now = new Date();
+  const startTime = now.toISOString();
+
+  // Parse duration (e.g., "7d" -> 7 days)
+  const durationMatch = data.duration.match(/(\d+)([dhm])/);
+  let endTime = new Date(now);
+
+  if (durationMatch) {
+    const value = parseInt(durationMatch[1]);
+    const unit = durationMatch[2];
+
+    switch (unit) {
+      case "d":
+        endTime.setDate(endTime.getDate() + value);
+        break;
+      case "h":
+        endTime.setHours(endTime.getHours() + value);
+        break;
+      case "m":
+        endTime.setMinutes(endTime.getMinutes() + value);
+        break;
+    }
+  } else {
+    // Default to 7 days
+    endTime.setDate(endTime.getDate() + 7);
+  }
+
+  // Map listing type
+  const listingType =
+    data.listingType === "buy_now"
+      ? "buy_now"
+      : data.price && data.startPrice
+      ? "auction_buy_now"
+      : "auction";
+
+  return {
+    // Basic info
+    title: data.title || `${data.brand} ${data.model} ${data.club}`.trim(),
+    description: data.description || "No description provided",
+
+    // Category & Type
+    category: data.category || "Other",
+    itemType: data.categorySlug || "shirt",
+    listingType,
+
+    // Details
+    team: data.club || "Unknown",
+    season: data.season || "Unknown",
+    size: data.size || "M",
+    condition: data.condition || "excellent",
+    manufacturer: data.brand || undefined,
+    playerName: undefined, // Can be extracted from verification if needed
+    playerNumber: undefined,
+
+    // Images - extract URLs from Photo objects
+    images: data.photos.map((photo) => photo.url),
+
+    // Pricing
+    startingBid: parseFloat(data.startPrice) || parseFloat(data.price) || 10,
+    bidIncrement: parseFloat(data.bidStep) || 5,
+    buyNowPrice:
+      data.listingType === "buy_now" || data.price
+        ? parseFloat(data.price) || undefined
+        : undefined,
+
+    // Timing
+    startTime,
+    endTime: endTime.toISOString(),
+
+    // Shipping (defaults)
+    shippingCost: 0,
+    shippingTime: "3-5 business days",
+    shippingFrom: "Poland", // Default, can be made configurable
+
+    // Flags
+    verified: data.verificationStatus === "AI_VERIFIED_HIGH",
+    rare: data.verification.isVintage || data.verification.hasAutograph,
+    featured: false,
+  };
+};
+
+/**
  * Create a new sports listing
  */
 export const createSportsListing = async (
@@ -46,10 +132,15 @@ export const createSportsListing = async (
   try {
     console.log("Creating sports listing with data:", data);
 
-    const response = await fetch(`${API_URL}/sports-listings`, {
+    // Map form data to auction DTO
+    const auctionData = mapFormDataToAuctionDto(data);
+    console.log("Mapped to auction DTO:", auctionData);
+
+    // Send to /auctions endpoint (NestJS backend)
+    const response = await fetch(`${API_URL}/auctions`, {
       method: "POST",
       headers: createHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(auctionData),
     });
 
     const result = await response.json();
@@ -105,12 +196,14 @@ export const getSportsListings = async (params?: {
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          queryParams.append(key, value.toString());
+          // Map 'club' to 'team' for backend
+          const backendKey = key === "club" ? "team" : key;
+          queryParams.append(backendKey, value.toString());
         }
       });
     }
 
-    const url = `${API_URL}/sports-listings?${queryParams.toString()}`;
+    const url = `${API_URL}/auctions?${queryParams.toString()}`;
     const response = await fetch(url, {
       method: "GET",
       headers: createHeaders(),
@@ -122,10 +215,16 @@ export const getSportsListings = async (params?: {
       throw new Error(result.message || "Failed to fetch listings");
     }
 
+    // Backend returns { success, data: { auctions, total, page, totalPages } }
     return {
       success: true,
-      data: result.data,
-      pagination: result.pagination,
+      data: result.data?.auctions || result.data,
+      pagination: {
+        currentPage: result.data?.page || 1,
+        totalPages: result.data?.totalPages || 1,
+        totalItems: result.data?.total || 0,
+        itemsPerPage: params?.limit || 20,
+      },
     };
   } catch (error) {
     console.error("Error fetching sports listings:", error);
@@ -147,7 +246,7 @@ export const getSportsListingById = async (
   error?: string;
 }> => {
   try {
-    const response = await fetch(`${API_URL}/sports-listings/${id}`, {
+    const response = await fetch(`${API_URL}/auctions/${id}`, {
       method: "GET",
       headers: createHeaders(),
     });
@@ -184,10 +283,15 @@ export const updateSportsListing = async (
   error?: string;
 }> => {
   try {
-    const response = await fetch(`${API_URL}/sports-listings/${id}`, {
+    // Map form data to auction DTO if needed
+    const updateData = data.photos
+      ? mapFormDataToAuctionDto(data as SmartFormData)
+      : data;
+
+    const response = await fetch(`${API_URL}/auctions/${id}`, {
       method: "PUT",
       headers: createHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(updateData),
     });
 
     const result = await response.json();
@@ -222,7 +326,7 @@ export const deleteSportsListing = async (
   error?: string;
 }> => {
   try {
-    const response = await fetch(`${API_URL}/sports-listings/${id}`, {
+    const response = await fetch(`${API_URL}/auctions/${id}`, {
       method: "DELETE",
       headers: createHeaders(),
     });
@@ -263,10 +367,10 @@ export const placeBid = async (
   error?: string;
 }> => {
   try {
-    const response = await fetch(`${API_URL}/sports-listings/${id}/bid`, {
+    const response = await fetch(`${API_URL}/auctions/${id}/bid`, {
       method: "POST",
       headers: createHeaders(),
-      body: JSON.stringify({ bidAmount }),
+      body: JSON.stringify({ amount: bidAmount }), // Backend expects 'amount' not 'bidAmount'
     });
 
     const result = await response.json();

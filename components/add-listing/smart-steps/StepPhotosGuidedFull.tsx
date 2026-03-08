@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { SmartFormData, Photo, getCategoryById, DEFECT_TYPES } from "./types";
+import { useMemo, useState } from "react";
+import { SmartFormData, Photo, DEFECT_TYPES } from "./types";
+import { getPhotoGroupsForCategory } from "@/lib/constants/listing.constants";
+import { getCategoryById } from "@/lib/utils/listing.utils";
 import {
   Upload,
   X,
@@ -9,6 +11,8 @@ import {
   ArrowRight,
   ArrowLeft,
   Plus,
+  AlertTriangle,
+  BookmarkPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -16,95 +20,31 @@ interface StepProps {
   data: SmartFormData;
   update: (field: keyof SmartFormData, val: any) => void;
   onNext?: () => void;
+  onBack?: () => void;
 }
-
-// Photo groups for shirts
-const SHIRT_PHOTO_GROUPS = [
-  {
-    id: "front",
-    title: "Front Photos",
-    description: "Take photos of the front of the shirt",
-    photos: [
-      {
-        type: "front_far",
-        label: "Front (Far)",
-        desc: "Full shirt from distance",
-      },
-      { type: "front_close", label: "Front (Close)", desc: "Close-up details" },
-      { type: "club_logo", label: "Club Logo", desc: "Team badge close-up" },
-      { type: "sponsor", label: "Sponsor", desc: "Sponsor logo" },
-      { type: "brand", label: "Brand", desc: "Nike/Adidas logo" },
-      { type: "seams", label: "Seams", desc: "Stitching quality" },
-    ],
-  },
-  {
-    id: "tags",
-    title: "Tags & Labels",
-    description: "Take photos of all tags (optional if missing)",
-    photos: [
-      { type: "size_tag", label: "Size Tag", desc: "Size label (optional)" },
-      {
-        type: "country_tag",
-        label: "Country Tag",
-        desc: "Made in... (optional)",
-      },
-      {
-        type: "serial_code",
-        label: "Serial Code",
-        desc: "Product code (optional)",
-      },
-    ],
-    hasQuestions: true,
-  },
-  {
-    id: "back",
-    title: "Back Photos",
-    description: "Take photos of the back of the shirt",
-    photos: [
-      { type: "back_far", label: "Back (Far)", desc: "Full back view" },
-      {
-        type: "back_close",
-        label: "Back (Close)",
-        desc: "Back details (optional)",
-      },
-      {
-        type: "player_number",
-        label: "Player Number",
-        desc: "Number close-up (if present)",
-      },
-      {
-        type: "player_name",
-        label: "Player Name",
-        desc: "Name close-up (if present)",
-      },
-    ],
-  },
-  {
-    id: "details",
-    title: "Additional Details",
-    description: "Tell us more about the shirt",
-    photos: [],
-    hasForm: true,
-  },
-  {
-    id: "extra",
-    title: "More Photos",
-    description: "Add more photos if you want (optional)",
-    photos: [],
-    isExtra: true,
-  },
-];
 
 export default function StepPhotosGuidedFull({
   data,
   update,
   onNext,
+  onBack,
 }: StepProps) {
   const [currentSubStep, setCurrentSubStep] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
 
-  const currentGroup = SHIRT_PHOTO_GROUPS[currentSubStep];
-  const totalSubSteps = SHIRT_PHOTO_GROUPS.length;
+  // Dynamic photo groups based on selected category
+  const photoGroups = useMemo(
+    () => getPhotoGroupsForCategory(data.category),
+    [data.category],
+  );
+  const categoryInfo = useMemo(
+    () => getCategoryById(data.category),
+    [data.category],
+  );
+
+  const currentGroup = photoGroups[currentSubStep];
+  const totalSubSteps = photoGroups.length;
 
   // Handle file upload
   const handleFileUpload = (files: FileList | null, photoType: string) => {
@@ -121,7 +61,7 @@ export default function StepPhotosGuidedFull({
       };
 
       const existingIndex = data.photos.findIndex(
-        (p) => p.typeHint === photoType
+        (p) => p.typeHint === photoType,
       );
 
       if (existingIndex >= 0) {
@@ -140,7 +80,7 @@ export default function StepPhotosGuidedFull({
   const removePhoto = (photoType: string) => {
     update(
       "photos",
-      data.photos.filter((p) => p.typeHint !== photoType)
+      data.photos.filter((p) => p.typeHint !== photoType),
     );
   };
 
@@ -151,12 +91,34 @@ export default function StepPhotosGuidedFull({
 
   // Check if current group is complete
   const isGroupComplete = () => {
-    if (currentGroup.hasForm || currentGroup.isExtra) return true; // Forms and extra are always optional
+    if (currentGroup.hasDetailsForm || currentGroup.isExtra) return true;
+
+    // Tags step: combined mode requires one combined_tag photo, separate mode is all optional
+    if (currentGroup.id === "tags") {
+      if (data.verification.tagsCombined) {
+        return !!getPhotoByType("combined_tag");
+      }
+      return true; // all tag photos are optional in separate mode
+    }
+
+    // Back step: if noPlayerPrint is set, player_name and player_number are not required
+    if (currentGroup.id === "back") {
+      const requiredPhotos = currentGroup.photos.filter((p) => {
+        if (!p.type || p.desc.includes("optional")) return false;
+        if (
+          data.verification.noPlayerPrint &&
+          (p.type === "player_name" || p.type === "player_number")
+        )
+          return false;
+        return true;
+      });
+      return requiredPhotos.every((p) => p.type && getPhotoByType(p.type));
+    }
 
     const requiredPhotos = currentGroup.photos.filter(
-      (p) => !p.desc.includes("optional")
+      (p) => p.type && !p.desc.includes("optional"),
     );
-    return requiredPhotos.every((p) => getPhotoByType(p.type));
+    return requiredPhotos.every((p) => p.type && getPhotoByType(p.type));
   };
 
   // Update verification field
@@ -241,7 +203,7 @@ export default function StepPhotosGuidedFull({
 
           {/* Progress dots */}
           <div className="flex gap-2">
-            {SHIRT_PHOTO_GROUPS.map((_, index) => (
+            {photoGroups.map((_: any, index: number) => (
               <div
                 key={index}
                 className={cn(
@@ -249,8 +211,8 @@ export default function StepPhotosGuidedFull({
                   index < currentSubStep
                     ? "bg-green-500"
                     : index === currentSubStep
-                    ? "bg-blue-600"
-                    : "bg-gray-200"
+                      ? "bg-blue-600"
+                      : "bg-gray-200",
                 )}
               />
             ))}
@@ -258,81 +220,202 @@ export default function StepPhotosGuidedFull({
         </div>
 
         {/* CONTENT - Conditional rendering based on step type */}
-        {currentGroup.hasQuestions ? (
+        {currentGroup.hasTagQuestions ? (
           /* TAGS STEP WITH QUESTIONS */
           <div className="space-y-6">
-            {/* Photo Upload Grid - 3 columns */}
-            <div className="grid md:grid-cols-3 gap-4">
-              {currentGroup.photos.map((photoConfig) => {
-                const existingPhoto = getPhotoByType(photoConfig.type);
-                return (
-                  <div
-                    key={photoConfig.type}
-                    className={cn(
-                      "relative p-4 rounded-2xl border-2 transition-all",
-                      existingPhoto
-                        ? "border-green-500 bg-green-50"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    )}
-                  >
-                    <div className="mb-3">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-bold text-gray-900 text-sm">
-                          {photoConfig.label}
-                        </h3>
-                        {existingPhoto && (
-                          <CheckCircle2 size={16} className="text-green-600" />
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {photoConfig.desc}
-                      </p>
-                    </div>
-
-                    {existingPhoto ? (
-                      <div className="relative aspect-video rounded-xl overflow-hidden group">
-                        <img
-                          src={existingPhoto.url}
-                          alt={photoConfig.label}
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          onClick={() => removePhoto(photoConfig.type)}
-                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, photoConfig.type)}
-                        className="relative aspect-video rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-all hover:border-gray-400 hover:bg-gray-50"
-                      >
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            handleFileUpload(e.target.files, photoConfig.type)
-                          }
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <div className="text-center">
-                          <Upload
-                            size={24}
-                            className="mx-auto mb-1 text-gray-400"
-                          />
-                          <p className="text-xs font-medium text-gray-600">
-                            Click or drop
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+            {/* Combined tag toggle - show before photo grid */}
+            <div
+              className={cn(
+                "flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all",
+                data.verification.tagsCombined
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 bg-gray-50 hover:border-gray-300",
+              )}
+              onClick={() =>
+                updateVerification(
+                  "tagsCombined",
+                  !data.verification.tagsCombined,
+                )
+              }
+            >
+              <div
+                className={cn(
+                  "mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all",
+                  data.verification.tagsCombined
+                    ? "bg-blue-600 border-blue-600"
+                    : "border-gray-400",
+                )}
+              >
+                {data.verification.tagsCombined && (
+                  <CheckCircle2 size={14} className="text-white" />
+                )}
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">
+                  All tag info is on one label
+                </p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  e.g. Puma/Adidas/Nike often combine size, country and serial
+                  code on a single tag — upload just one photo instead of three
+                </p>
+              </div>
             </div>
+
+            {/* Photo Upload - combined or separate */}
+            {data.verification.tagsCombined ? (
+              /* Single combined tag photo */
+              <div className="max-w-sm mx-auto">
+                {(() => {
+                  const existingPhoto = getPhotoByType("combined_tag");
+                  return (
+                    <div
+                      className={cn(
+                        "relative p-4 rounded-2xl border-2 transition-all",
+                        existingPhoto
+                          ? "border-green-500 bg-green-50"
+                          : "border-blue-300 bg-blue-50 hover:border-blue-400",
+                      )}
+                    >
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-gray-900 text-sm">
+                            Combined Tag Photo
+                          </h3>
+                          {existingPhoto && (
+                            <CheckCircle2
+                              size={16}
+                              className="text-green-600"
+                            />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          One photo showing size, country & serial code
+                        </p>
+                      </div>
+                      {existingPhoto ? (
+                        <div className="relative aspect-video rounded-xl overflow-hidden group">
+                          <img
+                            src={existingPhoto.url}
+                            alt="Combined tag"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removePhoto("combined_tag");
+                            }}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, "combined_tag")}
+                          className="relative aspect-video rounded-xl border-2 border-dashed border-blue-300 flex items-center justify-center cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-100"
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) =>
+                              handleFileUpload(e.target.files, "combined_tag")
+                            }
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <div className="text-center">
+                            <Upload
+                              size={24}
+                              className="mx-auto mb-1 text-blue-400"
+                            />
+                            <p className="text-xs font-medium text-blue-600">
+                              Click or drop
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              /* Separate tag photos - 3 columns */
+              <div className="grid md:grid-cols-3 gap-4">
+                {currentGroup.photos.map((photoConfig) => {
+                  const typeKey = photoConfig.type ?? photoConfig.label;
+                  const existingPhoto = getPhotoByType(typeKey);
+                  return (
+                    <div
+                      key={typeKey}
+                      className={cn(
+                        "relative p-4 rounded-2xl border-2 transition-all",
+                        existingPhoto
+                          ? "border-green-500 bg-green-50"
+                          : "border-gray-200 bg-white hover:border-gray-300",
+                      )}
+                    >
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-gray-900 text-sm">
+                            {photoConfig.label}
+                          </h3>
+                          {existingPhoto && (
+                            <CheckCircle2
+                              size={16}
+                              className="text-green-600"
+                            />
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {photoConfig.desc}
+                        </p>
+                      </div>
+                      {existingPhoto ? (
+                        <div className="relative aspect-video rounded-xl overflow-hidden group">
+                          <img
+                            src={existingPhoto.url}
+                            alt={photoConfig.label}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            onClick={() => removePhoto(typeKey)}
+                            className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, typeKey)}
+                          className="relative aspect-video rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-all hover:border-gray-400 hover:bg-gray-50"
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) =>
+                              handleFileUpload(e.target.files, typeKey)
+                            }
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <div className="text-center">
+                            <Upload
+                              size={24}
+                              className="mx-auto mb-1 text-gray-400"
+                            />
+                            <p className="text-xs font-medium text-gray-600">
+                              Click or drop
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Questions */}
             <div className="space-y-4 pt-4 border-t border-gray-200">
@@ -354,12 +437,12 @@ export default function StepPhotosGuidedFull({
                   onClick={() =>
                     updateVerification(
                       "isVintage",
-                      !data.verification.isVintage
+                      !data.verification.isVintage,
                     )
                   }
                   className={cn(
                     "relative inline-flex h-8 w-14 items-center rounded-full transition-colors",
-                    data.verification.isVintage ? "bg-black" : "bg-gray-200"
+                    data.verification.isVintage ? "bg-black" : "bg-gray-200",
                   )}
                 >
                   <span
@@ -367,7 +450,7 @@ export default function StepPhotosGuidedFull({
                       "inline-block h-6 w-6 transform rounded-full bg-white transition-transform",
                       data.verification.isVintage
                         ? "translate-x-7"
-                        : "translate-x-1"
+                        : "translate-x-1",
                     )}
                   />
                 </button>
@@ -392,7 +475,7 @@ export default function StepPhotosGuidedFull({
                         "p-3 rounded-xl border-2 text-center transition-all",
                         data.verification.tagCondition === option.value
                           ? "border-black bg-white shadow-md"
-                          : "border-gray-200 hover:border-gray-300"
+                          : "border-gray-200 hover:border-gray-300",
                       )}
                     >
                       <div className="text-xl mb-1">{option.emoji}</div>
@@ -403,13 +486,13 @@ export default function StepPhotosGuidedFull({
               </div>
             </div>
           </div>
-        ) : currentGroup.hasForm ? (
+        ) : currentGroup.hasDetailsForm ? (
           /* DETAILS STEP WITH FORM */
           <div className="space-y-6">
             {/* History */}
             <div>
               <label className="block font-bold text-gray-900 mb-2">
-                Tell us about this shirt's history (Optional)
+                Tell us about this item&apos;s history (Optional)
               </label>
               <textarea
                 value={data.description}
@@ -461,7 +544,7 @@ export default function StepPhotosGuidedFull({
                   }}
                   className={cn(
                     "relative inline-flex h-8 w-14 items-center rounded-full transition-colors",
-                    data.verification.hasDefects ? "bg-red-500" : "bg-gray-200"
+                    data.verification.hasDefects ? "bg-red-500" : "bg-gray-200",
                   )}
                 >
                   <span
@@ -469,7 +552,7 @@ export default function StepPhotosGuidedFull({
                       "inline-block h-6 w-6 transform rounded-full bg-white transition-transform",
                       data.verification.hasDefects
                         ? "translate-x-7"
-                        : "translate-x-1"
+                        : "translate-x-1",
                     )}
                   />
                 </button>
@@ -551,87 +634,143 @@ export default function StepPhotosGuidedFull({
             </div>
           </div>
         ) : (
-          /* REGULAR PHOTO UPLOAD GRID */
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
-            {currentGroup.photos.map((photoConfig) => {
-              const existingPhoto = getPhotoByType(photoConfig.type);
-              const isOptional = photoConfig.desc.includes("optional");
-
-              return (
+          /* REGULAR PHOTO UPLOAD GRID (with optional player options for back step) */
+          <div className="space-y-4 mb-6">
+            {/* No player print toggle - only shown on back step */}
+            {currentGroup.hasPlayerOptions && (
+              <div
+                className={cn(
+                  "flex items-start gap-4 p-4 rounded-2xl border-2 cursor-pointer transition-all",
+                  data.verification.noPlayerPrint
+                    ? "border-orange-400 bg-orange-50"
+                    : "border-gray-200 bg-gray-50 hover:border-gray-300",
+                )}
+                onClick={() =>
+                  updateVerification(
+                    "noPlayerPrint",
+                    !data.verification.noPlayerPrint,
+                  )
+                }
+              >
                 <div
-                  key={photoConfig.type}
                   className={cn(
-                    "relative p-4 rounded-2xl border-2 transition-all",
-                    existingPhoto
-                      ? "border-green-500 bg-green-50"
-                      : "border-gray-200 bg-white hover:border-gray-300"
+                    "mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all",
+                    data.verification.noPlayerPrint
+                      ? "bg-orange-500 border-orange-500"
+                      : "border-gray-400",
                   )}
                 >
-                  <div className="mb-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-gray-900">
-                        {photoConfig.label}
-                        {isOptional && (
-                          <span className="ml-2 text-xs text-gray-500">
-                            (Optional)
-                          </span>
-                        )}
-                      </h3>
-                      {existingPhoto && (
-                        <CheckCircle2 size={20} className="text-green-600" />
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500">{photoConfig.desc}</p>
-                  </div>
-
-                  {existingPhoto ? (
-                    <div className="relative aspect-video rounded-xl overflow-hidden group">
-                      <img
-                        src={existingPhoto.url}
-                        alt={photoConfig.label}
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={() => removePhoto(photoConfig.type)}
-                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, photoConfig.type)}
-                      className="relative aspect-video rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-all hover:border-gray-400 hover:bg-gray-50"
-                    >
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handleFileUpload(e.target.files, photoConfig.type)
-                        }
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <div className="text-center">
-                        <Upload
-                          size={32}
-                          className="mx-auto mb-2 text-gray-400"
-                        />
-                        <p className="text-sm font-medium text-gray-600">
-                          Click or drop photo
-                        </p>
-                      </div>
-                    </div>
+                  {data.verification.noPlayerPrint && (
+                    <CheckCircle2 size={14} className="text-white" />
                   )}
                 </div>
-              );
-            })}
+                <div>
+                  <p className="font-bold text-gray-900">
+                    No player name or number on this shirt
+                  </p>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    Plain/blank shirt — skip player name & number photos
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {currentGroup.photos.map((photoConfig) => {
+                const typeKey = photoConfig.type ?? photoConfig.label;
+                const isPlayerPhoto =
+                  photoConfig.type === "player_name" ||
+                  photoConfig.type === "player_number";
+                const isHidden =
+                  currentGroup.hasPlayerOptions &&
+                  data.verification.noPlayerPrint &&
+                  isPlayerPhoto;
+
+                if (isHidden) return null;
+
+                const existingPhoto = getPhotoByType(typeKey);
+                const isOptional =
+                  photoConfig.desc.includes("optional") ||
+                  (currentGroup.hasPlayerOptions && isPlayerPhoto);
+
+                return (
+                  <div
+                    key={typeKey}
+                    className={cn(
+                      "relative p-4 rounded-2xl border-2 transition-all",
+                      existingPhoto
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-200 bg-white hover:border-gray-300",
+                    )}
+                  >
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-gray-900">
+                          {photoConfig.label}
+                          {isOptional && (
+                            <span className="ml-2 text-xs text-gray-500">
+                              (Optional)
+                            </span>
+                          )}
+                        </h3>
+                        {existingPhoto && (
+                          <CheckCircle2 size={20} className="text-green-600" />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {photoConfig.desc}
+                      </p>
+                    </div>
+
+                    {existingPhoto ? (
+                      <div className="relative aspect-video rounded-xl overflow-hidden group">
+                        <img
+                          src={existingPhoto.url}
+                          alt={photoConfig.label}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={() => removePhoto(typeKey)}
+                          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, typeKey)}
+                        className="relative aspect-video rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer transition-all hover:border-gray-400 hover:bg-gray-50"
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleFileUpload(e.target.files, typeKey)
+                          }
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div className="text-center">
+                          <Upload
+                            size={32}
+                            className="mx-auto mb-2 text-gray-400"
+                          />
+                          <p className="text-sm font-medium text-gray-600">
+                            Click or drop photo
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
         {/* Info Box */}
-        {!currentGroup.hasForm && !currentGroup.isExtra && (
+        {!currentGroup.hasDetailsForm && !currentGroup.isExtra && (
           <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 mb-6">
             <p className="text-sm text-blue-800">
               <strong>💡 Tip:</strong> Make sure photos are clear and well-lit.
@@ -642,14 +781,12 @@ export default function StepPhotosGuidedFull({
         {/* Navigation Buttons */}
         <div className="flex items-center justify-between pt-6 border-t border-gray-100">
           <button
-            onClick={handleBackSubStep}
-            disabled={currentSubStep === 0}
-            className={cn(
-              "flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-colors",
+            onClick={
               currentSubStep === 0
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-700 hover:bg-gray-100"
-            )}
+                ? () => setShowExitModal(true)
+                : handleBackSubStep
+            }
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-colors text-gray-700 hover:bg-gray-100"
           >
             <ArrowLeft size={18} />
             Back
@@ -662,7 +799,7 @@ export default function StepPhotosGuidedFull({
               "flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-white transition-all",
               isGroupComplete()
                 ? "bg-black hover:bg-gray-800 hover:scale-[1.02]"
-                : "bg-gray-300 cursor-not-allowed"
+                : "bg-gray-300 cursor-not-allowed",
             )}
           >
             {currentSubStep < totalSubSteps - 1 ? "Next Part" : "Complete"}
@@ -670,6 +807,72 @@ export default function StepPhotosGuidedFull({
           </button>
         </div>
       </div>
+
+      {/* Exit Warning Modal */}
+      {showExitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowExitModal(false)}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+            {/* Icon */}
+            <div className="flex justify-center mb-5">
+              <div className="p-4 bg-amber-100 rounded-2xl">
+                <AlertTriangle size={32} className="text-amber-600" />
+              </div>
+            </div>
+
+            {/* Text */}
+            <h3 className="text-2xl font-black text-gray-900 text-center mb-2">
+              Leave this step?
+            </h3>
+            <p className="text-gray-500 text-center mb-8 leading-relaxed">
+              Your uploaded photos and progress on this step{" "}
+              <strong className="text-gray-800">are not saved</strong>. If you
+              go back, you'll lose everything you've added here.
+            </p>
+
+            {/* Actions */}
+            <div className="space-y-3">
+              {/* Save as Draft */}
+              <button
+                onClick={() => {
+                  // TODO: implement save as draft API call
+                  alert("Draft saving coming soon!");
+                  setShowExitModal(false);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3.5 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all"
+              >
+                <BookmarkPlus size={18} />
+                Save as Draft
+              </button>
+
+              {/* Leave anyway */}
+              <button
+                onClick={() => {
+                  setShowExitModal(false);
+                  if (onBack) onBack();
+                }}
+                className="w-full px-6 py-3.5 border-2 border-red-200 text-red-600 rounded-xl font-bold hover:bg-red-50 transition-all"
+              >
+                Leave anyway — discard photos
+              </button>
+
+              {/* Continue editing */}
+              <button
+                onClick={() => setShowExitModal(false)}
+                className="w-full px-6 py-3 text-gray-500 rounded-xl font-medium hover:bg-gray-50 transition-all text-sm"
+              >
+                Continue editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
