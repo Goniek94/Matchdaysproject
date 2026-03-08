@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 interface StepProps {
   data: SmartFormData;
   update: (field: keyof SmartFormData, val: any) => void;
-  onNext?: () => void;
 }
 
 // Simple photo list for accessories - NO sub-steps, just 4 photos
@@ -41,7 +40,6 @@ const ACCESSORY_PHOTOS = [
 export default function StepPhotosAccessories({
   data,
   update,
-  onNext,
 }: StepProps) {
   const handleFileUpload = (files: FileList | null, photoType: string) => {
     if (!files) return;
@@ -77,10 +75,6 @@ export default function StepPhotosAccessories({
   const getPhotoByType = (photoType: string) => {
     return data.photos.find((p) => p.typeHint === photoType);
   };
-
-  const canProceed = ACCESSORY_PHOTOS.filter((p) => !p.optional).every((p) =>
-    getPhotoByType(p.type)
-  );
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">

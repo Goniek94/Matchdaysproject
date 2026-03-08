@@ -15,8 +15,6 @@ export default function StepCategory({ data, update }: StepProps) {
     update("categorySlug", selectedCategory?.label || id);
   };
 
-  const canProceed = data.category !== "";
-
   return (
     <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Main Container with Shadow */}

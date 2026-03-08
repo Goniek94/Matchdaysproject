@@ -1,15 +1,14 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { mockAuctions } from "@/lib/mockData";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Image from "next/image";
 import { Shield, Truck, CreditCard, Lock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const searchParams = useSearchParams();
   const auctionId = searchParams.get("id");
   const auction =
@@ -30,7 +29,7 @@ export default function CheckoutPage() {
   const totalPrice = auction.price + shippingCost;
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     setFormData({
       ...formData,
@@ -45,10 +44,8 @@ export default function CheckoutPage() {
   };
 
   return (
-    <main className="bg-gray-50 min-h-screen">
-      <Navbar />
-
-      <div className="pt-24 pb-16 px-4 sm:px-8">
+    <div className="bg-gray-50">
+      <div className="pt-4 pb-16 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Back Button */}
           <Link
@@ -326,8 +323,23 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <Footer />
-    </main>
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="text-center p-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading checkout...</p>
+          </div>
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
   );
 }

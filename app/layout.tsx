@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+// Import from the main components directory
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { CartProvider } from "@/lib/CartContext";
 
 export const metadata: Metadata = {
@@ -20,7 +21,10 @@ export default function RootLayout({
       <body>
         <CartProvider>
           <Navbar />
-          <main>{children}</main>
+          {/* Added padding-top to prevent fixed navbar from covering content */}
+          <main className="min-h-screen pt-[80px] md:pt-[100px]">
+            {children}
+          </main>
           <Footer />
         </CartProvider>
       </body>

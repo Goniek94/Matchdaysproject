@@ -1,9 +1,14 @@
 "use client";
 
+<<<<<<< HEAD
 import { useMemo, useState } from "react";
 import { SmartFormData, Photo, DEFECT_TYPES } from "./types";
 import { getPhotoGroupsForCategory } from "@/lib/constants/listing.constants";
 import { getCategoryById } from "@/lib/utils/listing.utils";
+=======
+import { useState } from "react";
+import { SmartFormData, Photo, DEFECT_TYPES } from "./types";
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
 import {
   Upload,
   X,
@@ -30,8 +35,11 @@ export default function StepPhotosGuidedFull({
   onBack,
 }: StepProps) {
   const [currentSubStep, setCurrentSubStep] = useState(0);
+<<<<<<< HEAD
   const [isDragging, setIsDragging] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
+=======
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
 
   // Dynamic photo groups based on selected category
   const photoGroups = useMemo(
@@ -167,16 +175,14 @@ export default function StepPhotosGuidedFull({
   // Drag and drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(true);
   };
 
   const handleDragLeave = () => {
-    setIsDragging(false);
+    // Drag leave handler
   };
 
   const handleDrop = (e: React.DragEvent, photoType: string) => {
     e.preventDefault();
-    setIsDragging(false);
     handleFileUpload(e.dataTransfer.files, photoType);
   };
 

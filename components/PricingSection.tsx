@@ -1,304 +1,234 @@
-"use client"; // Ważne: musimy dodać to na górze, bo używamy useState
+"use client";
 
-import Link from "next/link";
+import { Check, Zap, Star, ShieldCheck, Crown } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function PricingSection() {
-  // Domyślnie zaznaczamy plan "Premium Pro" (index 2), bo jest "Most Popular"
-  const [selectedPlan, setSelectedPlan] = useState(2);
+  const [isAnnual, setIsAnnual] = useState(false);
 
   const plans = [
     {
-      name: "Free Account",
-      price: "€0",
-      period: "month",
-      badge: "🟢",
-      description: "For casual buyers only",
+      name: "FREE",
+      icon: <Zap className="text-slate-400" size={24} />,
+      price: 0,
+      description: "For occasional users",
       features: [
-        { text: "Bidding on Selected Items", included: true },
-        { text: "Access to Games (Ad-supported)", included: true },
-        { text: "Selling & Listing Items", included: false },
-        { text: "Access to Exclusive Auctions", included: false },
-        { text: "AI Tools & Verification", included: false },
-        { text: "No Commission (Buyer only)", included: true },
+        { text: "Buying and selling on the platform", included: true },
+        { text: "Access to auctions (verified)", included: true },
+        { text: "Unlimited listing duration", included: true },
+        { text: "Option to purchase AI Credits", included: true },
+        { text: "15% Sales Commission", included: true, highlight: true },
       ],
-      ctaText: "Start Buying",
-      ctaLink: "/register",
+      cta: "Start for Free",
+      ctaHref: "/register",
       popular: false,
-      style: "gray",
+      theme: "slate",
+      styles: {
+        card: "border-slate-200 hover:border-slate-400 bg-slate-50/50",
+        button:
+          "bg-white text-slate-900 border-2 border-slate-200 hover:bg-slate-100",
+        iconBg: "bg-slate-100",
+        highlight: "text-slate-600",
+      },
     },
     {
-      name: "Premium",
-      price: "€11.99", // ok. 50 zł
-      period: "month",
-      badge: "🔵",
-      description: "Unlock selling & full access",
+      name: "PREMIUM",
+      icon: <Star className="text-indigo-500" size={24} />,
+      price: 13.99,
+      description: "For active sellers and collectors",
       features: [
-        { text: "Selling Unlocked (10% Fee)", included: true },
-        { text: "Access to All Auctions", included: true },
-        { text: "Basic AI Tools (5 Credits/mo)", included: true },
-        { text: "Buyer Protection", included: true },
-        { text: "Loyalty Points (1x)", included: true },
-        { text: "Pro AI Suite (30 Credits)", included: false },
-        { text: "Auto Listing Generation", included: false },
+        { text: "7% Sales Commission", included: true, highlight: true },
+        { text: "Access to MatchDays Arena", included: true },
+        { text: "AI Credits package included", included: true },
+        { text: "Create listings with AI", included: true },
+        { text: "Subscriber-only offers", included: true },
       ],
-      ctaText: "Get Premium",
-      ctaLink: "/register?plan=premium",
-      popular: false,
-      style: "blue",
-    },
-    {
-      name: "Premium Pro",
-      price: "€21.99", // ok. 90 zł
-      period: "month",
-      badge: "🟣",
-      description: "More power & AI capabilities",
-      features: [
-        { text: "Low Commission: 7%", included: true },
-        { text: "Pro AI Suite (30 Credits/mo)", included: true },
-        { text: "Auto Listing Generation", included: true },
-        { text: "Photo Identification AI", included: true },
-        { text: "Priority Support", included: true },
-        { text: "Unlimited AI Access", included: false },
-        { text: "VIP Phone Support", included: false },
-      ],
-      ctaText: "Go Premium Pro",
-      ctaLink: "/register?plan=premium-pro",
+      cta: "Choose Premium",
+      ctaHref: "/checkout?plan=premium",
       popular: true,
-      style: "purple",
+      theme: "indigo",
+      styles: {
+        card: "border-indigo-200 shadow-indigo-100 shadow-2xl scale-105 z-10 bg-gradient-to-b from-white to-indigo-50/30",
+        button:
+          "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200",
+        iconBg: "bg-indigo-100",
+        highlight: "text-indigo-600",
+      },
     },
     {
-      name: "Elite",
-      price: "€33.99", // ok. 140 zł
-      period: "month",
-      badge: "👑",
-      description: "For professional sellers & power users",
+      name: "PREMIUM PRO",
+      icon: <ShieldCheck className="text-purple-500" size={24} />,
+      price: 17.99,
+      description: "For regular sellers",
       features: [
-        { text: "Lowest Commission: 5%", included: true },
-        { text: "Unlimited AI Verification", included: true },
-        { text: "Unlimited Listing Generation", included: true },
-        { text: "VIP Support (24/7 Phone)", included: true },
-        { text: "5x Free Shipping Tokens", included: true },
-        { text: "Verified PRO Seller Badge", included: true },
-        { text: "Early Access to Drops", included: true },
+        { text: "All PREMIUM features", included: true },
+        { text: "7% Sales Commission", included: true, highlight: true },
+        { text: "Larger AI Credits package", included: true },
+        { text: "Better listing positioning", included: true },
+        { text: "No Buyer Protection Fee", included: true },
       ],
-      ctaText: "Join Elite",
-      ctaLink: "/register?plan=elite",
+      cta: "Choose PRO",
+      ctaHref: "/checkout?plan=pro",
       popular: false,
-      style: "gold",
+      theme: "purple",
+      styles: {
+        card: "border-purple-200 hover:border-purple-400 bg-gradient-to-b from-white to-purple-50/30",
+        button:
+          "bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200",
+        iconBg: "bg-purple-100",
+        highlight: "text-purple-600",
+      },
+    },
+    {
+      name: "ELITE",
+      icon: <Crown className="text-amber-500" size={24} />,
+      price: 39.99,
+      description: "For power users & pros",
+      features: [
+        { text: "5% Sales Commission", included: true, highlight: true },
+        { text: "Largest AI Credits package", included: true },
+        { text: "Best listing positioning", included: true },
+        { text: "Priority support", included: true },
+        { text: "Invitations to events", included: true },
+      ],
+      cta: "Join the Elite",
+      ctaHref: "/checkout?plan=elite",
+      popular: false,
+      theme: "gold",
+      styles: {
+        card: "border-amber-200 hover:border-amber-400 bg-gradient-to-b from-white to-amber-50/30",
+        button:
+          "bg-black text-white hover:bg-gray-800 shadow-xl shadow-amber-100",
+        iconBg: "bg-amber-100",
+        highlight: "text-amber-600",
+      },
     },
   ];
 
   return (
-    <section className="py-24 px-4 bg-gray-50">
-      <div className="container-max max-w-[1400px] mx-auto">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-black mb-6 text-gray-900">
-            Choose Your Level
+    <section
+      className="py-24 px-6 md:px-12 bg-slate-100 relative overflow-hidden"
+      id="pricing"
+    >
+      {/* Decorative background blobs using existing animations */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+
+      <div className="max-w-[1440px] mx-auto relative z-10">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <h2 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight italic">
+            Change the rules of the game
           </h2>
-          <p className="text-xl text-gray-500 max-w-2xl mx-auto">
-            Unlock professional AI tools, save on fees, and join the elite
-            community.
+          <p className="text-xl text-slate-600 mb-10">
+            Choose a level tailored to your activity on MatchDays.
           </p>
+
+          {/* Billing Toggle */}
+          <div
+            className="inline-flex items-center p-1.5 bg-slate-200/50 backdrop-blur-sm rounded-2xl cursor-pointer"
+            onClick={() => setIsAnnual(!isAnnual)}
+          >
+            <div
+              className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${!isAnnual ? "bg-white shadow-lg text-black" : "text-slate-500"}`}
+            >
+              Monthly
+            </div>
+            <div
+              className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${isAnnual ? "bg-white shadow-lg text-black" : "text-slate-500"}`}
+            >
+              Yearly{" "}
+              <span className="bg-green-100 text-green-600 text-[10px] px-2 py-0.5 rounded-full">
+                -20%
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
-          {plans.map((plan, index) => {
-            const isElite = plan.style === "gold";
-            const isPurple = plan.style === "purple";
-            const isBlue = plan.style === "blue";
-            const isPopular = plan.popular;
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
+          {plans.map((plan) => (
+            <div
+              key={plan.name}
+              className={`group relative flex flex-col p-8 rounded-[2.5rem] border-2 transition-all duration-500 hover:-translate-y-4 ${plan.styles.card}`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-1.5 rounded-full text-[10px] font-black tracking-widest shadow-xl">
+                  MOST POPULAR
+                </div>
+              )}
 
-            // Sprawdzamy, czy ta karta jest aktualnie wybrana przez użytkownika
-            const isSelected = selectedPlan === index;
-
-            // Bazowe style
-            let cardClasses = "bg-white text-gray-900 border-gray-200";
-
-            // Style specyficzne dla planów (kolory)
-            if (isElite) {
-              cardClasses =
-                "bg-gradient-to-b from-gray-900 to-black text-white border-yellow-500/30";
-            } else if (isPurple) {
-              cardClasses = "bg-white text-gray-900 border-purple-200";
-            } else if (isBlue) {
-              cardClasses = "bg-white text-gray-900 border-blue-100";
-            }
-
-            // Style dla stanu WYBRANEGO (Active/Selected) vs Niewybranego
-            // Jeśli karta jest wybrana -> powiększamy ją (scale-105), dajemy duży cień i ring
-            if (isSelected) {
-              cardClasses += " scale-105 shadow-2xl z-20 ring-4 ring-offset-2";
-
-              // Kolor obramowania (ring) zależy od planu
-              if (isElite)
-                cardClasses += " ring-yellow-500/50 shadow-yellow-500/20";
-              else if (isPurple)
-                cardClasses += " ring-purple-500/50 shadow-purple-500/30";
-              else if (isBlue)
-                cardClasses += " ring-blue-500/50 shadow-blue-500/20";
-              else cardClasses += " ring-gray-400/50";
-            } else {
-              // Jeśli NIE jest wybrana -> lekko zmniejszamy lub zostawiamy standard, mniejszy cień
-              cardClasses +=
-                " scale-100 shadow-lg hover:shadow-xl hover:scale-[1.02] z-0 opacity-90 hover:opacity-100";
-            }
-
-            return (
-              <div
-                key={index}
-                onClick={() => setSelectedPlan(index)} // Kliknięcie wybiera kartę
-                className={`
-                  relative rounded-3xl transition-all duration-300 flex flex-col h-full border cursor-pointer
-                  ${cardClasses}
-                `}
-              >
-                {/* Popular Badge */}
-                {isPopular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-full text-center">
-                    <span className="bg-purple-600 text-white px-6 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider shadow-lg">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                {/* Best Value Badge */}
-                {isElite && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-full text-center">
-                    <span className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-6 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider shadow-lg shadow-yellow-500/20">
-                      Best Value
-                    </span>
-                  </div>
-                )}
-
-                <div className="p-6 flex-1 flex flex-col">
-                  {/* Icon & Name */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-3xl">{plan.badge}</span>
-                    <h3
-                      className={`text-xl font-bold ${
-                        isElite ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {plan.name}
-                    </h3>
-                  </div>
-
-                  {/* Price */}
-                  <div className="mb-4">
-                    <span
-                      className={`text-4xl font-black tracking-tight ${
-                        isElite ? "text-white" : "text-gray-900"
-                      }`}
-                    >
-                      {plan.price}
-                    </span>
-                    <span
-                      className={`text-sm font-medium ml-1 ${
-                        isElite ? "text-gray-400" : "text-gray-500"
-                      }`}
-                    >
-                      / month
-                    </span>
-                  </div>
-
-                  <p
-                    className={`text-sm font-medium mb-6 pb-6 border-b ${
-                      isElite
-                        ? "text-gray-400 border-gray-800"
-                        : "text-gray-500 border-gray-100"
-                    }`}
-                  >
+              <div className="flex items-center gap-4 mb-6">
+                <div
+                  className={`p-3 rounded-2xl ${plan.styles.iconBg} transition-transform duration-500 group-hover:rotate-12`}
+                >
+                  {plan.icon}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
+                    {plan.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-medium">
                     {plan.description}
                   </p>
-
-                  {/* Features */}
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <div
-                          className={`
-                          flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5
-                          ${
-                            feature.included
-                              ? isElite
-                                ? "bg-yellow-500 text-black"
-                                : isPurple
-                                ? "bg-purple-600 text-white"
-                                : isBlue
-                                ? "bg-blue-500 text-white"
-                                : "bg-green-500 text-white"
-                              : "bg-gray-100 text-gray-400"
-                          }
-                        `}
-                        >
-                          {feature.included ? "✓" : "✕"}
-                        </div>
-                        <span
-                          className={`text-sm font-medium ${
-                            feature.included
-                              ? isElite
-                                ? "text-gray-200"
-                                : "text-gray-700"
-                              : isElite
-                              ? "text-gray-600 line-through"
-                              : "text-gray-400 line-through decoration-gray-300"
-                          }`}
-                        >
-                          {feature.text}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* CTA Button */}
-                  <div className="mt-auto">
-                    {/* Zabezpieczenie przed propagacją kliknięcia (żeby przycisk działał jako link, a nie tylko select) */}
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Link
-                        href={plan.ctaLink}
-                        className={`
-                            block w-full text-center py-3.5 px-6 rounded-xl font-bold text-sm uppercase tracking-wide transition-all duration-300
-                            ${
-                              // Button dla Free
-                              plan.style === "gray"
-                                ? "bg-gray-100 text-gray-900 hover:bg-gray-200"
-                                : ""
-                            }
-                            ${
-                              // Button dla Premium
-                              plan.style === "blue"
-                                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-500/20"
-                                : ""
-                            }
-                            ${
-                              // Button dla Premium Pro
-                              isPurple
-                                ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30 hover:bg-purple-700 hover:shadow-purple-500/50"
-                                : ""
-                            }
-                            ${
-                              // Button dla Elite
-                              isElite
-                                ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-lg shadow-yellow-500/20 hover:to-yellow-500"
-                                : ""
-                            }
-                        `}
-                      >
-                        {plan.ctaText}
-                      </Link>
-                    </div>
-                  </div>
                 </div>
               </div>
-            );
-          })}
+
+              <div className="mb-8">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-black text-slate-900 tracking-tighter">
+                    €
+                    {isAnnual && plan.price > 0
+                      ? (plan.price * 10).toFixed(2)
+                      : plan.price}
+                  </span>
+                  <span className="text-slate-400 font-bold text-lg">
+                    /{isAnnual ? "yr" : "mo"}
+                  </span>
+                </div>
+              </div>
+
+              <ul className="space-y-4 mb-10 flex-1">
+                {plan.features.map((feature, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div
+                      className={`mt-1 p-0.5 rounded-full ${feature.included ? "bg-emerald-100" : "bg-slate-100"}`}
+                    >
+                      <Check
+                        size={14}
+                        className={
+                          feature.included
+                            ? "text-emerald-600"
+                            : "text-slate-300"
+                        }
+                        strokeWidth={3}
+                      />
+                    </div>
+                    <span
+                      className={`text-sm ${feature.highlight ? `font-black ${plan.styles.highlight}` : "text-slate-600 font-medium"}`}
+                    >
+                      {feature.text}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="space-y-4">
+                <Link
+                  href={plan.ctaHref}
+                  className={`block w-full py-4 text-center font-black text-sm rounded-2xl transition-all active:scale-95 uppercase tracking-wider ${plan.styles.button}`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div className="mt-16 text-center text-gray-400 text-sm">
-          <p>Prices include VAT. Secure payment processing by Stripe.</p>
-        </div>
+        <p className="text-center mt-16 text-slate-400 text-sm max-w-2xl mx-auto">
+          MatchDays operates on a freemium model. Subscriptions never block
+          selling — they affect commissions, visibility, and access to
+          professional AI tools.
+        </p>
       </div>
     </section>
   );

@@ -3,8 +3,19 @@
  * All constant values used in listing creation and management
  */
 
+<<<<<<< HEAD
 import { Shirt, Wind, Footprints, Package, Trophy } from "lucide-react";
 import type { Category, PhotoTypeHint } from "@/types/features/listing.types";
+=======
+import {
+  Shirt,
+  Wind,
+  Footprints,
+  Package,
+  Trophy,
+} from "lucide-react";
+import type { Category } from "@/types/features/listing.types";
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
 
 // ============================================
 // CATEGORIES

@@ -90,7 +90,19 @@ body {
 .container-max {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0 16px;
+}
+
+@media (min-width: 640px) {
+  .container-max {
+    padding: 0 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-max {
+    padding: 0 32px;
+  }
 }
 
 .btn-base {

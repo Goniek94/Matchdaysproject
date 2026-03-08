@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Target,
   Award,
-  TrendingUp,
 } from "lucide-react";
 
 export default function ArenaSection() {

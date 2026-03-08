@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import AuctionCard from "@/components/AuctionCard";
-import Footer from "@/components/Footer";
 import { mockAuctions } from "@/lib/mockData";
 import { getSportsListings } from "@/lib/api/listings.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
@@ -466,7 +465,7 @@ export default function AuctionsPage(): JSX.Element {
         if (result.success && result.data) {
           console.log(
             "✅ Pobrano aukcje z API dla /auctions:",
-            result.data.length
+            result.data.length,
           );
           const adaptedAuctions = adaptAuctionsForDisplay(result.data);
           setAuctions(adaptedAuctions);
@@ -495,7 +494,7 @@ export default function AuctionsPage(): JSX.Element {
       result = result.filter(
         (item) =>
           item.title.toLowerCase().includes(query) ||
-          item.seller.name.toLowerCase().includes(query)
+          item.seller.name.toLowerCase().includes(query),
       );
     }
 
@@ -509,7 +508,7 @@ export default function AuctionsPage(): JSX.Element {
       result = result.filter((item) => item.type === "auction");
     } else if (sortBy === "ending_soon") {
       result.sort(
-        (a, b) => parseTimeLeft(a.endTime) - parseTimeLeft(b.endTime)
+        (a, b) => parseTimeLeft(a.endTime) - parseTimeLeft(b.endTime),
       );
     }
 
@@ -517,11 +516,12 @@ export default function AuctionsPage(): JSX.Element {
   }, [searchQuery, selectedCategory, sortBy, selectedProductType]);
 
   return (
-    <main className="bg-white min-h-screen flex flex-col font-sans">
-      <Navbar />
+    // ZMIANA: <main> na <div>, bo layout.tsx ma już <main>
+    <div className="bg-white min-h-screen flex flex-col font-sans">
+      {/* USUNIĘTO: <Navbar /> - jest już w layout.tsx */}
 
-      {/* HEADER MINI */}
-      <div className="pt-24 pb-6 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
+      {/* HEADER MINI - zredukowałem pt-24 na pt-6, bo layout.tsx dodaje ~80px paddingu */}
+      <div className="pt-6 pb-6 bg-gradient-to-b from-gray-50 to-white border-b border-gray-100">
         <div className="container-max text-center" />
       </div>
 
@@ -733,10 +733,10 @@ export default function AuctionsPage(): JSX.Element {
                                                           key={league}
                                                           onClick={() => {
                                                             setSelectedCategory(
-                                                              league
+                                                              league,
                                                             );
                                                             setIsMobileFiltersOpen(
-                                                              false
+                                                              false,
                                                             );
                                                           }}
                                                           className={`w-full text-left px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
@@ -748,7 +748,7 @@ export default function AuctionsPage(): JSX.Element {
                                                         >
                                                           {league}
                                                         </button>
-                                                      )
+                                                      ),
                                                     )}
                                                   </div>
                                                 </motion.div>
@@ -812,9 +812,10 @@ export default function AuctionsPage(): JSX.Element {
                 {/* Mobile Trigger */}
                 <button
                   onClick={() => setIsMobileFiltersOpen(true)}
-                  className="lg:hidden p-2 bg-black text-white rounded-lg"
+                  className="lg:hidden flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg font-bold"
                 >
                   <Filter size={20} />
+                  <span>Filters</span>
                 </button>
 
                 {selectedCategory !== "all" && (
@@ -862,11 +863,11 @@ export default function AuctionsPage(): JSX.Element {
                               colors: "bg-blue-600 text-white",
                             }
                           : auction.rare
-                          ? {
-                              text: "RARE",
-                              colors: "bg-purple-600 text-white",
-                            }
-                          : undefined
+                            ? {
+                                text: "RARE",
+                                colors: "bg-purple-600 text-white",
+                              }
+                            : undefined
                       }
                     />
                   ))}
@@ -901,7 +902,7 @@ export default function AuctionsPage(): JSX.Element {
         </div>
       </div>
 
-      <Footer />
-    </main>
+      {/* USUNIĘTO: <Footer /> - jest już w layout.tsx */}
+    </div>
   );
 }

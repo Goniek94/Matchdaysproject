@@ -1,20 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+<<<<<<< HEAD
 import Navbar from "@/components/Navbar";
+=======
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
 import ImageGallery from "@/components/auction/ImageGallery";
 import CountdownTimer from "@/components/auction/CountdownTimer";
 import BidPanel from "@/components/auction/BidPanel";
 import BuyNowPanel from "@/components/auction/BuyNowPanel";
 import SellerInfo from "@/components/auction/SellerInfo";
 import BidHistory from "@/components/auction/BidHistory";
-import ProductDetails from "@/components/auction/ProductDetails";
 import InfoCards from "@/components/auction/InfoCards";
-import Footer from "@/components/Footer";
 import Link from "next/link";
-import { getAuctionById } from "@/lib/api/auctions";
-import { placeBid, getAuctionBids } from "@/lib/api/bids";
-import { isAuthenticated } from "@/lib/api/config";
+
+// --- MOCK DATA (DEMO) ---
+import { mockAuctions, mockBidHistory } from "@/lib/mockData";
 
 interface AuctionDetailPageProps {
   params: {
@@ -30,23 +31,48 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadAuctionData();
+    if (params?.id) {
+      loadAuctionData(params.id);
+    }
   }, [params.id]);
 
-  const loadAuctionData = async () => {
+  const loadAuctionData = async (id: string) => {
     try {
       setLoading(true);
       setError(null);
 
+<<<<<<< HEAD
       const auctionResponse = await getAuctionById(params.id);
+=======
+      const foundAuction = mockAuctions.find((a) => a.id === id);
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
 
-      if (!auctionResponse.success) {
-        setError(auctionResponse.message || "Failed to load auction");
+      if (!foundAuction) {
+        setError("Auction not found (Demo)");
+        setLoading(false);
         return;
       }
 
+<<<<<<< HEAD
       setAuction(auctionResponse.data);
       await loadBids();
+=======
+      await new Promise((r) => setTimeout(r, 500));
+
+      setAuction({
+        ...foundAuction,
+        currentBid: foundAuction.price,
+        bidCount: foundAuction.bids,
+        listingType: foundAuction.type,
+        images:
+          foundAuction.images ||
+          (foundAuction.image ? [foundAuction.image] : []),
+        status: "active",
+        endTime: calculateDemoEndTime(foundAuction.endTime),
+      });
+
+      setBids(mockBidHistory);
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
     } catch (err: any) {
       console.error("Error loading auction:", err);
       setError(err.message || "Failed to load auction");
@@ -55,6 +81,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     }
   };
 
+<<<<<<< HEAD
   const loadBids = async () => {
     try {
       const bidsResponse = await getAuctionBids(params.id);
@@ -82,71 +109,91 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       return;
     }
 
+=======
+  const handlePlaceBid = async (amount: number) => {
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
     try {
       setBidding(true);
       setError(null);
 
-      const response = await placeBid(params.id, amount);
+      await new Promise((r) => setTimeout(r, 1000));
+      alert(`🎉 DEMO: Twój bid (${amount} €) przyjęty!`);
 
+<<<<<<< HEAD
       if (response.success) {
         alert("Bid placed successfully! 🎉");
         await loadAuctionData();
       } else {
         alert(response.message || "Failed to place bid");
       }
+=======
+      const newBid = {
+        id: Date.now().toString(),
+        username: "You (Demo)",
+        amount: amount,
+        time: "Just now",
+        isWinning: true,
+      };
+      setBids((prev) => [
+        newBid,
+        ...prev.map((b) => ({ ...b, isWinning: false })),
+      ]);
+      setAuction((prev: any) => ({
+        ...prev,
+        currentBid: amount,
+        bidCount: (prev.bidCount || 0) + 1,
+      }));
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
     } catch (err: any) {
       console.error("Error placing bid:", err);
-      const errorMessage =
-        err.response?.data?.message || err.message || "Failed to place bid";
-      alert(errorMessage);
+      alert(err.message || "Failed to place bid");
     } finally {
       setBidding(false);
     }
   };
 
+<<<<<<< HEAD
+=======
+  const calculateDemoEndTime = (endTimeString: string | undefined) => {
+    if (!endTimeString) return new Date(Date.now() + 86400000).toISOString();
+    if (endTimeString.includes("-") && endTimeString.includes(":"))
+      return endTimeString;
+    const now = Date.now();
+    if (endTimeString.includes("d")) {
+      const days = parseInt(endTimeString) || 1;
+      return new Date(now + days * 86400000).toISOString();
+    }
+    return new Date(now + 86400000).toISOString();
+  };
+
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
   if (loading) {
     return (
-      <main className="bg-white min-h-screen">
-        <Navbar />
-        <div className="pt-24 px-8">
-          <div className="container-max">
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading auction...</p>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading auction...</p>
         </div>
-        <Footer />
-      </main>
+      </div>
     );
   }
 
   if (error || !auction) {
     return (
-      <main className="bg-white min-h-screen">
-        <Navbar />
-        <div className="pt-24 px-8">
-          <div className="container-max">
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <h2 className="text-2xl font-light mb-4">Auction Not Found</h2>
-                <p className="text-gray-600 mb-6">
-                  {error || "This auction does not exist"}
-                </p>
-                <Link
-                  href="/auctions"
-                  className="inline-block px-6 py-3 bg-black text-white text-sm uppercase tracking-widest hover:bg-gray-800 transition-colors"
-                >
-                  Back to Auctions
-                </Link>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Auction Not Found</h2>
+          <p className="text-gray-600 mb-6">
+            {error || "This auction does not exist"}
+          </p>
+          <Link
+            href="/auctions"
+            className="inline-block px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Back to Auctions
+          </Link>
         </div>
-        <Footer />
-      </main>
+      </div>
     );
   }
 
@@ -166,9 +213,22 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
   ];
 
   return (
-    <main className="bg-white">
-      <Navbar />
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="container mx-auto px-4 max-w-7xl">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-gray-600 mb-8">
+          <Link href="/" className="hover:text-black transition-colors">
+            Auctions
+          </Link>
+          <span>/</span>
+          <Link href="#" className="hover:text-black transition-colors">
+            {auction.category || auction.itemType || "Category"}
+          </Link>
+          <span>/</span>
+          <span className="text-black font-semibold">{auction.title}</span>
+        </div>
 
+<<<<<<< HEAD
       <div className="pt-24 px-8">
         <div className="container-max">
           <div className="flex items-center gap-2 text-sm text-gray-600 mb-8">
@@ -185,6 +245,14 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
             <div>
+=======
+        {/* TOP SECTION - Image + Bidding (2 columns) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* LEFT - Image, Title, Seller */}
+          <div className="space-y-6">
+            {/* Image Gallery */}
+            <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
               <ImageGallery
                 images={auction.images || []}
                 title={auction.title}
@@ -193,6 +261,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
               />
             </div>
 
+<<<<<<< HEAD
             <div>
               <h1 className="text-4xl font-light mb-2 tracking-tight">
                 {auction.title}
@@ -200,8 +269,16 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
               <p className="text-gray-600 mb-8">{auction.description}</p>
 
               <div className="mb-6">
+=======
+            {/* Title & Badges */}
+            <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+              <h1 className="text-3xl font-bold mb-4 text-gray-900">
+                {auction.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
                 <span
-                  className={`inline-block px-4 py-2 text-xs uppercase tracking-widest font-medium rounded-[2px] ${
+                  className={`inline-block px-3 py-1 text-xs uppercase tracking-wider font-bold rounded-full ${
                     auction.listingType === "auction"
                       ? "bg-blue-100 text-blue-800"
                       : "bg-green-100 text-green-800"
@@ -211,18 +288,43 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                     ? "🔨 Auction"
                     : "🛒 Buy Now"}
                 </span>
-                {auction.status !== "active" && (
-                  <span className="ml-2 inline-block px-4 py-2 text-xs uppercase tracking-widest font-medium rounded-[2px] bg-gray-100 text-gray-800">
-                    {auction.status}
+                {auction.verified && (
+                  <span className="inline-block px-3 py-1 text-xs uppercase tracking-wider font-bold rounded-full bg-emerald-100 text-emerald-800">
+                    ✓ Verified
+                  </span>
+                )}
+                {auction.rare && (
+                  <span className="inline-block px-3 py-1 text-xs uppercase tracking-wider font-bold rounded-full bg-purple-100 text-purple-800">
+                    ⭐ Rare
                   </span>
                 )}
               </div>
+            </div>
 
+<<<<<<< HEAD
               {auction.status === "active" &&
                 auction.listingType === "auction" && (
-                  <CountdownTimer initialSeconds={secondsRemaining} />
-                )}
+=======
+            {/* Seller Info */}
+            {auction.seller && (
+              <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+                <SellerInfo seller={auction.seller} />
+              </div>
+            )}
+          </div>
 
+          {/* RIGHT - Timer, Bid Panel, Bid History */}
+          <div className="space-y-6">
+            {/* Countdown Timer */}
+            {auction.status === "active" &&
+              auction.listingType === "auction" && (
+                <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
+                  <CountdownTimer initialSeconds={secondsRemaining} />
+                </div>
+              )}
+
+<<<<<<< HEAD
               {auction.listingType === "auction" ? (
                 <>
                   <BidPanel
@@ -233,10 +335,21 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                   />
                   <BidHistory bids={bids} />
                 </>
+=======
+            {/* Bid/Buy Panel */}
+            <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+              {auction.listingType === "auction" ? (
+                <BidPanel
+                  currentBid={Number(auction.currentBid)}
+                  bidCount={auction.bidCount}
+                  onPlaceBid={handlePlaceBid}
+                  disabled={bidding || auction.status !== "active"}
+                />
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
               ) : (
                 <BuyNowPanel
                   price={Number(auction.buyNowPrice || auction.currentBid)}
-                  currency="PLN"
+                  currency="EUR"
                   auctionId={auction.id}
                   title={auction.title}
                   image={auction.images?.[0] || ""}
@@ -246,6 +359,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                   }}
                 />
               )}
+<<<<<<< HEAD
 
               {auction.seller && <SellerInfo seller={auction.seller} />}
               <ProductDetails
@@ -253,12 +367,65 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                 details={productDetails}
               />
               <InfoCards />
+=======
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
             </div>
+
+            {/* Bid History - Only for auctions */}
+            {auction.listingType === "auction" && (
+              <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+                <BidHistory bids={bids} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* BOTTOM SECTION - Full Width */}
+        <div className="space-y-6">
+          {/* Description */}
+          <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">
+              Description
+            </h2>
+            <p className="text-gray-700 leading-relaxed">
+              {auction.description}
+            </p>
+          </div>
+
+          {/* Product Details */}
+          <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900">
+              Product Details
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              {productDetails.map((detail, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center py-2 border-b border-gray-100"
+                >
+                  <span className="text-gray-600 font-medium">
+                    {detail.label}
+                  </span>
+                  <span className="text-gray-900 font-semibold">
+                    {detail.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Info Cards */}
+          <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
+            <InfoCards />
           </div>
         </div>
       </div>
+<<<<<<< HEAD
 
       <Footer />
     </main>
+=======
+    </div>
+>>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
   );
 }

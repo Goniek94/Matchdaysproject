@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { SmartFormData, INITIAL_STATE, Photo } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
-import SmartFormSummary from "./SmartFormSummary";
 import SuccessView from "./SuccessView";
 import { createSportsListing } from "@/lib/api/listings.api";
 import { uploadPhotos } from "@/lib/supabase";

@@ -1,8 +1,6 @@
 "use client";
 
 import { useCart } from "@/lib/CartContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2, ShoppingBag, ArrowRight, Shield } from "lucide-react";
@@ -22,16 +20,15 @@ export default function CartPage() {
     } else {
       // For multiple items, you could create a multi-item checkout
       alert(
-        "Multi-item checkout coming soon! For now, please checkout items individually."
+        "Multi-item checkout coming soon! For now, please checkout items individually.",
       );
     }
   };
 
   if (items.length === 0) {
     return (
-      <main className="bg-gray-50 min-h-screen">
-        <Navbar />
-        <div className="pt-32 pb-16 px-4 sm:px-8">
+      <div className="bg-gray-50">
+        <div className="pt-12 pb-16 px-4 sm:px-8">
           <div className="max-w-4xl mx-auto text-center">
             <ShoppingBag size={80} className="mx-auto text-gray-300 mb-6" />
             <h1 className="text-4xl font-light mb-4">Your cart is empty</h1>
@@ -47,16 +44,13 @@ export default function CartPage() {
             </Link>
           </div>
         </div>
-        <Footer />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="bg-gray-50 min-h-screen">
-      <Navbar />
-
-      <div className="pt-32 pb-16 px-4 sm:px-8">
+    <div className="bg-gray-50">
+      <div className="pt-12 pb-16 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -231,8 +225,6 @@ export default function CartPage() {
           </div>
         </div>
       </div>
-
-      <Footer />
-    </main>
+    </div>
   );
 }

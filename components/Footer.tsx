@@ -1,14 +1,14 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-gray-200 py-16 px-8">
+    <footer className="border-t border-gray-200 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8">
       <div className="container-max">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 md:gap-12 mb-8 sm:mb-10 md:mb-12">
           {/* About */}
           <div>
-            <h3 className="text-xs font-medium uppercase tracking-widest mb-4 text-black">
+            <h3 className="text-xs font-medium uppercase tracking-widest mb-3 sm:mb-4 text-black">
               About
             </h3>
-            <ul className="space-y-3">
+            <ul className="space-y-2 sm:space-y-3">
               <li>
                 <a
                   href="#"
@@ -46,10 +46,10 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h3 className="text-xs font-medium uppercase tracking-widest mb-4 text-black">
+            <h3 className="text-xs font-medium uppercase tracking-widest mb-3 sm:mb-4 text-black">
               Support
             </h3>
-            <ul className="space-y-3">
+            <ul className="space-y-2 sm:space-y-3">
               <li>
                 <a
                   href="#"
@@ -87,10 +87,10 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h3 className="text-xs font-medium uppercase tracking-widest mb-4 text-black">
+            <h3 className="text-xs font-medium uppercase tracking-widest mb-3 sm:mb-4 text-black">
               Legal
             </h3>
-            <ul className="space-y-3">
+            <ul className="space-y-2 sm:space-y-3">
               <li>
                 <a
                   href="#"
@@ -128,10 +128,10 @@ export default function Footer() {
 
           {/* Connect */}
           <div>
-            <h3 className="text-xs font-medium uppercase tracking-widest mb-4 text-black">
+            <h3 className="text-xs font-medium uppercase tracking-widest mb-3 sm:mb-4 text-black">
               Connect
             </h3>
-            <ul className="space-y-3">
+            <ul className="space-y-2 sm:space-y-3">
               <li>
                 <a
                   href="#"
@@ -169,8 +169,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 border-t border-gray-200 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="pt-6 sm:pt-8 border-t border-gray-200 text-center">
+          <p className="text-xs sm:text-sm text-gray-500">
             © 2025 MatchDays. All rights reserved. Premium football memorabilia
             marketplace.
           </p>
