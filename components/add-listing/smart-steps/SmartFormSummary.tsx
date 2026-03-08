@@ -2,26 +2,21 @@
 
 import { SmartFormData } from "./types";
 import { CheckCircle2, ArrowRight } from "lucide-react";
-import { useState } from "react";
 
 interface SmartFormSummaryProps {
   data: SmartFormData;
   onPublish: () => void;
   onBack: () => void;
+  isPublishing: boolean; // ← dodane
 }
 
 export default function SmartFormSummary({
   data,
   onPublish,
   onBack,
+  isPublishing, // ← z parenta, nie lokalny state
 }: SmartFormSummaryProps) {
-  const [isPublishing, setIsPublishing] = useState(false);
-
-  const handlePublish = async () => {
-    setIsPublishing(true);
-    await onPublish();
-    setIsPublishing(false);
-  };
+  // ← usunięty lokalny useState i handlePublish
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -34,7 +29,6 @@ export default function SmartFormSummary({
       </div>
 
       <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden mb-6">
-        {/* Photos preview */}
         {data.photos.length > 0 && (
           <div className="flex gap-3 p-6 border-b border-gray-100 overflow-x-auto">
             {data.photos
@@ -55,7 +49,6 @@ export default function SmartFormSummary({
           </div>
         )}
 
-        {/* Title */}
         <div className="px-8 py-6 border-b border-gray-100">
           <p className="text-xs font-bold uppercase text-gray-400 mb-1">
             Title
@@ -65,7 +58,6 @@ export default function SmartFormSummary({
           </p>
         </div>
 
-        {/* Description */}
         <div className="px-8 py-6 border-b border-gray-100">
           <p className="text-xs font-bold uppercase text-gray-400 mb-1">
             Description
@@ -75,7 +67,6 @@ export default function SmartFormSummary({
           </p>
         </div>
 
-        {/* Details grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 divide-x divide-y divide-gray-100">
           {[
             { label: "Category", value: data.categorySlug },
@@ -97,7 +88,6 @@ export default function SmartFormSummary({
           ))}
         </div>
 
-        {/* Pricing */}
         <div className="px-8 py-6 bg-gray-50 border-t border-gray-100">
           <p className="text-xs font-bold uppercase text-gray-400 mb-3">
             Pricing
@@ -134,17 +124,17 @@ export default function SmartFormSummary({
         </div>
       </div>
 
-      {/* Buttons */}
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors"
+          disabled={isPublishing}
+          className="px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 transition-colors disabled:opacity-50"
         >
           Back
         </button>
 
         <button
-          onClick={handlePublish}
+          onClick={onPublish}
           disabled={isPublishing}
           className="flex items-center gap-2 px-12 py-4 bg-black text-white rounded-xl font-bold text-lg hover:bg-gray-800 transition-all shadow-xl shadow-black/10 disabled:opacity-50 group"
         >
