@@ -5,6 +5,7 @@ import { ArrowRight, ArrowLeft } from "lucide-react";
 import { SmartFormData, INITIAL_STATE, Photo } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
 import SuccessView from "./SuccessView";
+import SmartFormSummary from "./SmartFormSummary"; // <-- DODANO TEN IMPORT
 import { createSportsListing } from "@/lib/api/listings.api";
 import { uploadPhotos } from "@/lib/supabase";
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Hero from "@/components/Hero";
 import PricingSection from "@/components/PricingSection";
 import AuctionCard from "@/components/AuctionCard";
@@ -8,7 +9,6 @@ import { getSportsListings } from "@/lib/api/listings.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import Link from "next/link";
 
-// Simple Section Header Component (bez nadmiaru animacji)
 function SectionHeader({
   emoji,
   title,
@@ -45,26 +45,27 @@ function SectionHeader({
   );
 }
 
+const popularBadges = [
+  { text: "HOT", colors: "bg-red-500 text-white shadow-red-500/40" },
+  { text: "RARE", colors: "bg-purple-600 text-white shadow-purple-600/40" },
+  { text: "HOT", colors: "bg-red-500 text-white shadow-red-500/40" },
+  { text: "RARE", colors: "bg-purple-600 text-white shadow-purple-600/40" },
+  { text: "HOT", colors: "bg-red-500 text-white shadow-red-500/40" },
+  { text: "RARE", colors: "bg-purple-600 text-white shadow-purple-600/40" },
+];
+
 export default function HomePage() {
-<<<<<<< HEAD
   const [auctions, setAuctions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Fetch auctions from API
   useEffect(() => {
     async function fetchAuctions() {
       try {
         setIsLoading(true);
-        const result = await getSportsListings({
-          page: 1,
-          limit: 12,
-          // status: "active", // Uncomment if backend supports status filter
-        });
+        const result = await getSportsListings({ page: 1, limit: 12 });
 
-        if (result.success && result.data) {
+        if (result.success && result.data && result.data.length > 0) {
           console.log("✅ Pobrano aukcje z API:", result.data.length);
-          // Adapt backend data to frontend format
           const adaptedAuctions = adaptAuctionsForDisplay(result.data);
           setAuctions(adaptedAuctions);
         } else {
@@ -73,8 +74,6 @@ export default function HomePage() {
         }
       } catch (err) {
         console.error("❌ Błąd pobierania aukcji:", err);
-        setError("Nie udało się pobrać aukcji");
-        // Fallback to mock data
         setAuctions(mockAuctions);
       } finally {
         setIsLoading(false);
@@ -84,36 +83,17 @@ export default function HomePage() {
     fetchAuctions();
   }, []);
 
-  // Dzielimy aukcje na 3 grupy po 3 sztuki
   const displayAuctions = auctions.length > 0 ? auctions : mockAuctions;
-  const hotAuctions = displayAuctions.slice(0, 3);
-  const endingAuctions = displayAuctions.slice(3, 6);
-  const rareAuctions = displayAuctions.slice(6, 9);
-=======
-  // Popular - pierwsze 6 aukcji z oryginalnymi badge
-  const popularAuctions = mockAuctions.slice(0, 6);
-  const popularBadges = [
-    { text: "HOT", colors: "bg-red-500 text-white shadow-red-500/40" },
-    { text: "RARE", colors: "bg-purple-600 text-white shadow-purple-600/40" },
-    { text: "HOT", colors: "bg-red-500 text-white shadow-red-500/40" },
-    { text: "RARE", colors: "bg-purple-600 text-white shadow-purple-600/40" },
-    { text: "HOT", colors: "bg-red-500 text-white shadow-red-500/40" },
-    { text: "RARE", colors: "bg-purple-600 text-white shadow-purple-600/40" },
-  ];
-
-  // Last Call - ostatnie 3 aukcje (powtórzone żeby było 6)
-  const lastCallAuctions = [
-    ...mockAuctions.slice(6, 9),
-    ...mockAuctions.slice(0, 3),
-  ];
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
+  const popularAuctions = displayAuctions.slice(0, 6);
+  const lastCallAuctions =
+    displayAuctions.length > 6
+      ? displayAuctions.slice(6, 12)
+      : [...displayAuctions.slice(0, 6)];
 
   return (
     <div className="bg-white">
-      {/* Hero Section */}
       <Hero />
 
-      {/* --- MARKETPLACE SECTION (2 ROWS) --- */}
       <section className="relative py-20 px-4 bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
         <div className="w-full max-w-7xl mx-auto space-y-20">
           {/* 1. POPULAR */}
@@ -126,42 +106,54 @@ export default function HomePage() {
               linkHref="/auctions"
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {popularAuctions.map((auction, index) => (
-                <AuctionCard
-                  key={auction.id}
-                  auction={auction}
-                  badge={popularBadges[index]}
-                />
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-2xl h-96 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {popularAuctions.map((auction, index) => (
+                  <AuctionCard
+                    key={auction.id}
+                    auction={auction}
+                    badge={popularBadges[index]}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 2. LAST CALL */}
-          <div>
-            <SectionHeader
-              emoji="⏳"
-              title="LAST CALL"
-              subtitle="Last chance to bid. Don't miss out."
-              linkText="Check all items"
-              linkHref="/auctions"
-            />
+          {!isLoading && lastCallAuctions.length > 0 && (
+            <div>
+              <SectionHeader
+                emoji="⏳"
+                title="LAST CALL"
+                subtitle="Last chance to bid. Don't miss out."
+                linkText="Check all items"
+                linkHref="/auctions"
+              />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {lastCallAuctions.map((auction) => (
-                <AuctionCard
-                  key={`lastcall-${auction.id}`}
-                  auction={auction}
-                  badge={{
-                    text: "LAST CALL",
-                    colors: "bg-orange-500 text-white shadow-orange-500/40",
-                  }}
-                />
-              ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {lastCallAuctions.map((auction, index) => (
+                  <AuctionCard
+                    key={`lastcall-${auction.id}-${index}`}
+                    auction={auction}
+                    badge={{
+                      text: "LAST CALL",
+                      colors: "bg-orange-500 text-white shadow-orange-500/40",
+                    }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Check All Auctions Button */}
           <div className="text-center pt-8">
             <Link
               href="/auctions"
@@ -173,7 +165,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Pricing Section */}
       <PricingSection />
     </div>
   );

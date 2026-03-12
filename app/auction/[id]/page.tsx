@@ -1,10 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-<<<<<<< HEAD
-import Navbar from "@/components/Navbar";
-=======
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
 import ImageGallery from "@/components/auction/ImageGallery";
 import CountdownTimer from "@/components/auction/CountdownTimer";
 import BidPanel from "@/components/auction/BidPanel";
@@ -41,11 +37,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       setLoading(true);
       setError(null);
 
-<<<<<<< HEAD
-      const auctionResponse = await getAuctionById(params.id);
-=======
       const foundAuction = mockAuctions.find((a) => a.id === id);
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
 
       if (!foundAuction) {
         setError("Auction not found (Demo)");
@@ -53,10 +45,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
         return;
       }
 
-<<<<<<< HEAD
-      setAuction(auctionResponse.data);
-      await loadBids();
-=======
       await new Promise((r) => setTimeout(r, 500));
 
       setAuction({
@@ -72,7 +60,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       });
 
       setBids(mockBidHistory);
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
     } catch (err: any) {
       console.error("Error loading auction:", err);
       setError(err.message || "Failed to load auction");
@@ -81,37 +68,7 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     }
   };
 
-<<<<<<< HEAD
-  const loadBids = async () => {
-    try {
-      const bidsResponse = await getAuctionBids(params.id);
-
-      if (bidsResponse.success && bidsResponse.data) {
-        const transformedBids = bidsResponse.data.map(
-          (bid: any, index: number) => ({
-            id: bid.id,
-            username: bid.bidder?.username || bid.user?.username || "Anonymous",
-            amount: Number(bid.amount),
-            time: new Date(bid.createdAt).toLocaleString("pl-PL"),
-            isWinning: index === 0,
-          }),
-        );
-        setBids(transformedBids);
-      }
-    } catch (err) {
-      console.error("Error loading bids:", err);
-    }
-  };
-
   const handlePlaceBid = async (amount: number) => {
-    if (!isAuthenticated()) {
-      alert("Please log in to place a bid");
-      return;
-    }
-
-=======
-  const handlePlaceBid = async (amount: number) => {
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
     try {
       setBidding(true);
       setError(null);
@@ -119,14 +76,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
       await new Promise((r) => setTimeout(r, 1000));
       alert(`🎉 DEMO: Twój bid (${amount} €) przyjęty!`);
 
-<<<<<<< HEAD
-      if (response.success) {
-        alert("Bid placed successfully! 🎉");
-        await loadAuctionData();
-      } else {
-        alert(response.message || "Failed to place bid");
-      }
-=======
       const newBid = {
         id: Date.now().toString(),
         username: "You (Demo)",
@@ -143,7 +92,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
         currentBid: amount,
         bidCount: (prev.bidCount || 0) + 1,
       }));
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
     } catch (err: any) {
       console.error("Error placing bid:", err);
       alert(err.message || "Failed to place bid");
@@ -152,8 +100,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     }
   };
 
-<<<<<<< HEAD
-=======
   const calculateDemoEndTime = (endTimeString: string | undefined) => {
     if (!endTimeString) return new Date(Date.now() + 86400000).toISOString();
     if (endTimeString.includes("-") && endTimeString.includes(":"))
@@ -166,7 +112,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
     return new Date(now + 86400000).toISOString();
   };
 
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -228,31 +173,12 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
           <span className="text-black font-semibold">{auction.title}</span>
         </div>
 
-<<<<<<< HEAD
-      <div className="pt-24 px-8">
-        <div className="container-max">
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-8">
-            <Link href="/" className="hover:text-black transition-colors">
-              Auctions
-            </Link>
-            <span>/</span>
-            <Link href="#" className="hover:text-black transition-colors">
-              {auction.category}
-            </Link>
-            <span>/</span>
-            <span className="text-black">{auction.title}</span>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
-            <div>
-=======
         {/* TOP SECTION - Image + Bidding (2 columns) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* LEFT - Image, Title, Seller */}
           <div className="space-y-6">
             {/* Image Gallery */}
             <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
               <ImageGallery
                 images={auction.images || []}
                 title={auction.title}
@@ -261,22 +187,12 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
               />
             </div>
 
-<<<<<<< HEAD
-            <div>
-              <h1 className="text-4xl font-light mb-2 tracking-tight">
-                {auction.title}
-              </h1>
-              <p className="text-gray-600 mb-8">{auction.description}</p>
-
-              <div className="mb-6">
-=======
             {/* Title & Badges */}
             <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
               <h1 className="text-3xl font-bold mb-4 text-gray-900">
                 {auction.title}
               </h1>
               <div className="flex flex-wrap items-center gap-2">
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
                 <span
                   className={`inline-block px-3 py-1 text-xs uppercase tracking-wider font-bold rounded-full ${
                     auction.listingType === "auction"
@@ -301,10 +217,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
               </div>
             </div>
 
-<<<<<<< HEAD
-              {auction.status === "active" &&
-                auction.listingType === "auction" && (
-=======
             {/* Seller Info */}
             {auction.seller && (
               <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
@@ -319,23 +231,10 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
             {auction.status === "active" &&
               auction.listingType === "auction" && (
                 <div className="bg-white rounded-2xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
                   <CountdownTimer initialSeconds={secondsRemaining} />
                 </div>
               )}
 
-<<<<<<< HEAD
-              {auction.listingType === "auction" ? (
-                <>
-                  <BidPanel
-                    currentBid={Number(auction.currentBid)}
-                    bidCount={auction.bidCount}
-                    onPlaceBid={handlePlaceBid}
-                    disabled={bidding || auction.status !== "active"}
-                  />
-                  <BidHistory bids={bids} />
-                </>
-=======
             {/* Bid/Buy Panel */}
             <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgb(0,0,0,0.16)] transition-all duration-300">
               {auction.listingType === "auction" ? (
@@ -345,7 +244,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                   onPlaceBid={handlePlaceBid}
                   disabled={bidding || auction.status !== "active"}
                 />
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
               ) : (
                 <BuyNowPanel
                   price={Number(auction.buyNowPrice || auction.currentBid)}
@@ -359,16 +257,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
                   }}
                 />
               )}
-<<<<<<< HEAD
-
-              {auction.seller && <SellerInfo seller={auction.seller} />}
-              <ProductDetails
-                description={auction.description}
-                details={productDetails}
-              />
-              <InfoCards />
-=======
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
             </div>
 
             {/* Bid History - Only for auctions */}
@@ -420,12 +308,6 @@ export default function AuctionDetailPage({ params }: AuctionDetailPageProps) {
           </div>
         </div>
       </div>
-<<<<<<< HEAD
-
-      <Footer />
-    </main>
-=======
     </div>
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
   );
 }

@@ -32,6 +32,26 @@ export type PhotoTypeHint =
   | "barcode"
   | "autograph"
   | "defect"
+  // Footwear-specific photo types
+  | "top_view" // both shoes from above
+  | "medial_side" // inner side of shoe
+  | "lateral_side" // outer side of shoe
+  | "heel_back" // heel/back view close-up
+  | "toe_box" // front toe box shape + perforations
+  | "outsole" // full sole bottom + branding
+  | "tongue_label_outside" // tongue exterior
+  | "tongue_label_inside" // tongue interior label (CRITICAL for legit check)
+  | "insole_top" // insole from top (logo, print)
+  | "insole_bottom" // insole bottom (factory code)
+  | "stitching_detail" // close-up of stitching/glue quality
+  | "material_closeup" // mesh/leather/suede texture
+  | "box_label" // box label with SKU/UPC/date/country
+  | "lace_eyelets" // lace holes count + laces
+  | "wings_logo" // Jordan Wings logo (embossing depth)
+  | "jumpman" // Jumpman logo on tongue/heel/side
+  | "collab_detail" // collaboration-specific detail (reversed Swoosh, etc.)
+  | "studs_plate" // football boots: stud/cleat pattern
+  | "upper_closeup" // upper material close-up (microfiber/knit)
   | null;
 
 export interface Photo {

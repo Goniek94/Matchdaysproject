@@ -13,7 +13,6 @@ import {
   Gavel,
 } from "lucide-react";
 
-// Custom Jersey/Shirt icon for favorites
 const JerseyIcon = ({
   filled,
   className,
@@ -33,7 +32,6 @@ const JerseyIcon = ({
   </svg>
 );
 
-// Interfaces
 interface Auction {
   id: string;
   title: string;
@@ -67,7 +65,6 @@ interface AuctionCardProps {
   };
 }
 
-// Badge configuration with icons
 const getBadgeConfig = (badgeText: string) => {
   const configs: Record<string, { icon: JSX.Element; gradient: string }> = {
     HOT: {
@@ -100,7 +97,6 @@ const getBadgeConfig = (badgeText: string) => {
   );
 };
 
-// Helper function to parse time string and check if ending soon
 const parseTimeRemaining = (
   timeStr: string,
 ): { isEndingSoon: boolean; isUrgent: boolean } => {
@@ -122,13 +118,11 @@ const parseTimeRemaining = (
 
 export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   const [isFavorite, setIsFavorite] = useState(false);
-  // Handle both price and currentBid from backend
   const initialPrice = auction.price || (auction as any).currentBid || 0;
   const [currentPrice, setCurrentPrice] = useState(initialPrice);
   const [priceChanged, setPriceChanged] = useState(false);
   const prevPriceRef = useRef(initialPrice);
 
-  // Detect price changes (simulating live updates)
   useEffect(() => {
     const newPrice = auction.price || (auction as any).currentBid || 0;
     if (newPrice !== prevPriceRef.current) {
@@ -141,7 +135,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   }, [auction.price, (auction as any).currentBid]);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Zapobiega przejściu do szczegółów przy kliknięciu serduszka
+    e.preventDefault();
     e.stopPropagation();
     setIsFavorite(!isFavorite);
   };
@@ -154,14 +148,12 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   const shortDesc = truncateText(auction.description, 100);
   const flagUrl = auction.country?.code
     ? `https://flagcdn.com/w20/${auction.country.code.toLowerCase()}.png`
-    : `https://flagcdn.com/w20/pl.png`; // Default to Poland
+    : `https://flagcdn.com/w20/pl.png`;
   const badgeConfig = badge ? getBadgeConfig(badge.text) : null;
   const timeStatus = parseTimeRemaining(auction.endTime);
 
-  // Frame color based on rarity - with shadow box colors
   const getFrameColors = () => {
     if (auction.rare && auction.verified) {
-      // LEGENDARY
       return {
         outer: "from-purple-500 via-violet-500 to-purple-600",
         accent: "from-purple-500 to-violet-600",
@@ -171,7 +163,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
         glow: "bg-purple-500/20",
       };
     } else if (auction.rare) {
-      // RARE
       return {
         outer: "from-amber-400 via-yellow-500 to-amber-600",
         accent: "from-amber-500 to-yellow-600",
@@ -181,7 +172,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
         glow: "bg-amber-400/20",
       };
     } else if (auction.verified) {
-      // VERIFIED
       return {
         outer: "from-blue-500 via-blue-400 to-blue-500",
         accent: "from-blue-500 to-blue-600",
@@ -191,7 +181,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
         glow: "bg-blue-500/20",
       };
     } else {
-      // COMMON
       return {
         outer: "from-amber-700 via-amber-600 to-amber-700",
         accent: "from-amber-600 to-amber-700",
@@ -206,25 +195,21 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   const frameColors = getFrameColors();
 
   return (
-    // CAŁA KARTA JEST LINKIEM
     <Link
       href={`/auction/${auction.id}`}
       className="group h-full relative block cursor-pointer"
     >
-      {/* Ambient glow effect behind card */}
       {frameColors.glow && (
         <div
           className={`absolute inset-0 -z-10 rounded-2xl blur-2xl opacity-60 group-hover:opacity-80 transition-all duration-500 ${frameColors.glow}`}
-        ></div>
+        />
       )}
 
-      {/* Main Card */}
       <div
         className={`h-full flex flex-col bg-gradient-to-b from-amber-50/80 via-white to-white rounded-2xl ${frameColors.shadow} ${frameColors.hoverShadow} transition-all duration-500 hover:-translate-y-2 transform-gpu overflow-hidden border ${frameColors.border}`}
       >
         {/* IMAGE SECTION */}
         <div className="relative">
-          {/* Premium Badge */}
           {badge && badgeConfig && (
             <div
               className={`absolute top-2 right-2 sm:top-3 sm:right-3 ${badgeConfig.gradient} text-white px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black shadow-lg flex items-center gap-1 sm:gap-1.5 ring-2 ring-white/50 z-20`}
@@ -234,7 +219,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
             </div>
           )}
 
-          {/* Favorite Button */}
           <button
             onClick={handleFavoriteClick}
             className={`absolute top-2 left-2 sm:top-3 sm:left-3 p-2 sm:p-2.5 rounded-full shadow-lg ring-2 z-20 transition-all duration-300 transform hover:scale-110 active:scale-95 ${
@@ -246,7 +230,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
             <JerseyIcon filled={isFavorite} className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
-          {/* Image container */}
           <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
             <Image
               src={auction.image}
@@ -254,9 +237,8 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
               fill
               className="object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
 
-            {/* Time Badge */}
             <div
               className={`absolute bottom-2 left-2 sm:bottom-3 sm:left-3 backdrop-blur-md text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 shadow-lg ${
                 timeStatus.isUrgent
@@ -279,18 +261,16 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
 
         {/* CONTENT SECTION */}
         <div className="relative flex flex-col flex-1 p-3 sm:p-4">
-          {/* Title & Description */}
           <div className="mb-2">
             <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-tight group-hover:text-red-600 transition-colors line-clamp-2">
               {auction.title}
             </h3>
-            <div className="w-10 h-0.5 bg-gradient-to-r from-amber-400 to-amber-200 rounded-full my-1.5"></div>
+            <div className="w-10 h-0.5 bg-gradient-to-r from-amber-400 to-amber-200 rounded-full my-1.5" />
             <p className="text-xs sm:text-[13px] text-slate-500 leading-snug line-clamp-2">
               {shortDesc}
             </p>
           </div>
 
-          {/* Price Section */}
           <div
             className={`rounded-lg sm:rounded-xl p-2.5 sm:p-3 mb-3 sm:mb-4 border h-[5.5rem] flex flex-col justify-center transition-all duration-300 ${
               priceChanged
@@ -311,14 +291,12 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                   <span className="text-xl sm:text-2xl font-black text-amber-700 tracking-tight">
                     {currentPrice.toLocaleString()}
                   </span>
-                  {/* DEMO FIX: Hardcoded Euro */}
                   <span className="text-xs sm:text-sm font-bold text-amber-600">
                     €
                   </span>
                 </div>
               </div>
 
-              {/* Bids vs Likes */}
               <div className="flex items-center gap-1 sm:gap-1.5 bg-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-amber-200/50 shadow-sm">
                 {auction.type === "buy_now" ? (
                   <>
@@ -351,7 +329,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
             </div>
           </div>
 
-          <div className="flex-1"></div>
+          <div className="flex-1" />
 
           {/* Seller Info */}
           <div className="pt-2.5 sm:pt-3 border-t border-slate-200/70">
@@ -408,13 +386,8 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
                   alt={auction.country?.name || "Poland"}
                   className="rounded-sm"
                 />
-<<<<<<< HEAD
-                <span className="text-xs font-medium">
-                  {auction.country?.code?.toUpperCase() || "PL"}
-=======
                 <span className="text-[10px] sm:text-xs font-medium">
-                  {auction.country.code.toUpperCase()}
->>>>>>> b4a964b208ac84352bb983237b815715e12e3b10
+                  {auction.country?.code?.toUpperCase() || "PL"}
                 </span>
               </div>
             </div>
@@ -429,7 +402,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
             )}
           </div>
 
-          {/* Ten przycisk jest teraz tylko wizualny, kliknięcie propaguje się do Linka wyżej */}
           <div
             className={`mt-3 sm:mt-4 w-full py-2.5 sm:py-3 bg-gradient-to-r ${frameColors.accent} text-white text-xs sm:text-sm font-bold rounded-lg sm:rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transform-gpu flex items-center justify-center`}
           >

@@ -8,7 +8,7 @@ import type {
   Photo,
   PhotoTypeHint,
 } from "@/types/features/listing.types";
-import { CATEGORIES } from "@/lib/constants/listing.constants";
+import { CATEGORIES, CURRENCY } from "@/lib/constants/listing.constants";
 
 // ============================================
 // CATEGORY HELPERS
@@ -29,7 +29,7 @@ export const getCategoryById = (id: string): Category | undefined => {
  * @returns Array of required photo types
  */
 export const getRequiredPhotosForCategory = (
-  categoryId: string
+  categoryId: string,
 ): PhotoTypeHint[] => {
   const category = getCategoryById(categoryId);
   return category?.verification.requiredPhotos || [];
@@ -41,7 +41,7 @@ export const getRequiredPhotosForCategory = (
  * @returns Array of optional photo types
  */
 export const getOptionalPhotosForCategory = (
-  categoryId: string
+  categoryId: string,
 ): PhotoTypeHint[] => {
   const category = getCategoryById(categoryId);
   return category?.verification.optionalPhotos || [];
@@ -59,7 +59,7 @@ export const getOptionalPhotosForCategory = (
  */
 export const hasRequiredPhotos = (
   photos: Photo[],
-  categoryId: string
+  categoryId: string,
 ): boolean => {
   const required = getRequiredPhotosForCategory(categoryId);
   const photoTypes = photos.map((p) => p.typeHint).filter(Boolean);
@@ -75,7 +75,7 @@ export const hasRequiredPhotos = (
  */
 export const getMissingRequiredPhotos = (
   photos: Photo[],
-  categoryId: string
+  categoryId: string,
 ): PhotoTypeHint[] => {
   const required = getRequiredPhotosForCategory(categoryId);
   const photoTypes = photos.map((p) => p.typeHint).filter(Boolean);
@@ -93,7 +93,7 @@ export const getMissingRequiredPhotos = (
  * @returns Publication status
  */
 export const getPublicationStatus = (
-  authenticityScore: number
+  authenticityScore: number,
 ): "PUBLISHED" | "UNDER_REVIEW" | "FLAGGED" => {
   if (authenticityScore >= 90) return "PUBLISHED";
   if (authenticityScore >= 70) return "UNDER_REVIEW";
@@ -153,7 +153,7 @@ export const formatPhotoTypeLabel = (typeHint: PhotoTypeHint): string => {
  */
 export const formatPrice = (
   price: number,
-  currency: string = "PLN"
+  currency: string = "PLN",
 ): string => {
   return `${price.toLocaleString()} ${currency}`;
 };

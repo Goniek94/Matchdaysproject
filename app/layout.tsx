@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
-// Import from the main components directory
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CartProvider } from "@/lib/CartContext";
+import { Inter } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "Matchdays - Authentic Football Shirts",
@@ -17,11 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", inter.variable)}>
       <body>
         <CartProvider>
           <Navbar />
-          {/* Added padding-top to prevent fixed navbar from covering content */}
           <main className="min-h-screen pt-[80px] md:pt-[100px]">
             {children}
           </main>

@@ -1,19 +1,28 @@
-import * as React from "react";
+import React from "react";
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface BadgeProps {
+  children: React.ReactNode;
+  className?: string;
+  variant?: "default" | "outline" | "secondary";
+}
 
-const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(
-  ({ className = "", ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${className}`}
-        {...props}
-      />
-    );
-  }
-);
+export function Badge({
+  children,
+  className = "",
+  variant = "default",
+}: BadgeProps) {
+  const styles =
+    variant === "outline"
+      ? "border border-gray-200"
+      : variant === "secondary"
+        ? "bg-gray-200 text-gray-800"
+        : "bg-black text-white";
 
-Badge.displayName = "Badge";
-
-export { Badge };
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${styles} ${className}`}
+    >
+      {children}
+    </span>
+  );
+}
