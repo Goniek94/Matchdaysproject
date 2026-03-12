@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import Navbar from "@/components/Navbar";
 import AuctionCard from "@/components/AuctionCard";
 import { mockAuctions } from "@/lib/mockData";
 import { getSportsListings } from "@/lib/api/listings.api";
@@ -432,7 +431,7 @@ export default function AuctionsPage(): JSX.Element {
   const [sortBy, setSortBy] = useState("recommended");
   const [selectedProductType, setSelectedProductType] = useState("all");
   const [auctions, setAuctions] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
 
   const [expandedRegions, setExpandedRegions] = useState<
     Record<string, boolean>
