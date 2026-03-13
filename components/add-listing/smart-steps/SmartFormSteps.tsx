@@ -1,12 +1,14 @@
 "use client";
 
 import { SmartFormData } from "./types";
-import StepCategory from "./StepCategory";
-import StepCompletionMode from "./StepCompletionMode";
+import {
+  StepCategory,
+  StepCompletionMode,
+  StepAISummary,
+  StepPricing,
+  StepProductDetailsManual,
+} from "./steps";
 import { PhotoStepRouter } from "./photo-steps";
-import StepAISummary from "./StepAISummary";
-import StepProductDetailsManual from "./StepProductDetailsManual";
-import StepPricing from "./StepPricing";
 
 interface SmartFormStepsProps {
   step: number;

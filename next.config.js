@@ -15,6 +15,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "i.pravatar.cc", // <-- To przyda się do avatarów
       },
+      {
+        protocol: "https",
+        hostname: "kbrxpdibulijbljelvgp.supabase.co", // <-- Supabase Storage
+      },
     ],
   },
 };

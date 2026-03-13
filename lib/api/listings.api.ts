@@ -69,8 +69,8 @@ const mapFormDataToAuctionDto = (data: SmartFormData) => {
     data.listingType === "buy_now"
       ? "buy_now"
       : data.price && data.startPrice
-      ? "auction_buy_now"
-      : "auction";
+        ? "auction_buy_now"
+        : "auction";
 
   return {
     // Basic info
@@ -94,13 +94,30 @@ const mapFormDataToAuctionDto = (data: SmartFormData) => {
     // Images - extract URLs from Photo objects
     images: data.photos.map((photo) => photo.url),
 
-    // Pricing
-    startingBid: parseFloat(data.startPrice) || parseFloat(data.price) || 10,
+    // Pricing - ensure buyNowPrice > startingBid for backend validation
+    startingBid: (() => {
+      if (data.listingType === "buy_now") {
+        // For buy_now only: startingBid should be lower than buyNowPrice
+        const price = parseFloat(data.price) || 10;
+        return (
+          parseFloat(data.startPrice) || Math.max(1, Math.floor(price * 0.5))
+        );
+      }
+      return parseFloat(data.startPrice) || parseFloat(data.price) || 10;
+    })(),
     bidIncrement: parseFloat(data.bidStep) || 5,
-    buyNowPrice:
-      data.listingType === "buy_now" || data.price
-        ? parseFloat(data.price) || undefined
-        : undefined,
+    buyNowPrice: (() => {
+      const price = parseFloat(data.price);
+      if (!price) return undefined;
+      // Always set buyNowPrice when price is provided (for buy_now or auction_buy_now)
+      if (data.listingType === "buy_now" || data.price) {
+        // Ensure buyNowPrice is always greater than startingBid
+        const startBid =
+          parseFloat(data.startPrice) || Math.max(1, Math.floor(price * 0.5));
+        return price > startBid ? price : price + 1;
+      }
+      return price || undefined;
+    })(),
 
     // Timing
     startTime,
@@ -122,7 +139,7 @@ const mapFormDataToAuctionDto = (data: SmartFormData) => {
  * Create a new sports listing
  */
 export const createSportsListing = async (
-  data: SmartFormData
+  data: SmartFormData,
 ): Promise<{
   success: boolean;
   message: string;
@@ -130,24 +147,54 @@ export const createSportsListing = async (
   error?: string;
 }> => {
   try {
-    console.log("Creating sports listing with data:", data);
+    console.group("🌐 [API] createSportsListing");
+    console.log("📋 Input SmartFormData keys:", Object.keys(data));
+    console.log("📋 Photos count:", data.photos?.length);
 
     // Map form data to auction DTO
     const auctionData = mapFormDataToAuctionDto(data);
-    console.log("Mapped to auction DTO:", auctionData);
+    console.log(
+      "🗺️ Mapped to auction DTO:",
+      JSON.stringify(auctionData, null, 2),
+    );
+
+    // Check for potential issues
+    if (!auctionData.title) console.warn("⚠️ Title is empty!");
+    if (!auctionData.images || auctionData.images.length === 0)
+      console.warn("⚠️ No images in DTO!");
+    if (auctionData.images?.some((img: string) => img.startsWith("blob:")))
+      console.warn("⚠️ Some images are still blob URLs!");
+    if (auctionData.images?.some((img: string) => img.startsWith("data:")))
+      console.warn("⚠️ Some images are still base64 (not uploaded)!");
+    if (!auctionData.startingBid || auctionData.startingBid <= 0)
+      console.warn("⚠️ Starting bid is 0 or missing!");
+
+    const url = `${API_URL}/auctions`;
+    const headers = createHeaders();
+    console.log("📡 POST to:", url);
+    console.log("📡 Headers:", JSON.stringify(headers));
+    console.log("📡 Auth token present:", !!getAuthToken());
 
     // Send to /auctions endpoint (NestJS backend)
-    const response = await fetch(`${API_URL}/auctions`, {
+    const response = await fetch(url, {
       method: "POST",
-      headers: createHeaders(),
+      headers,
       body: JSON.stringify(auctionData),
     });
 
-    const result = await response.json();
+    console.log("📡 Response status:", response.status, response.statusText);
 
-    if (!response.ok) {
+    const result = await response.json();
+    console.log("📡 Response body:", JSON.stringify(result, null, 2));
+
+    // Check both HTTP status AND backend success field
+    if (!response.ok || result.success === false) {
+      console.error("❌ Backend returned error:", result.message);
       throw new Error(result.message || "Failed to create listing");
     }
+
+    console.log("✅ Listing created successfully!");
+    console.groupEnd();
 
     return {
       success: true,
@@ -155,7 +202,8 @@ export const createSportsListing = async (
       data: result.data,
     };
   } catch (error) {
-    console.error("Error creating sports listing:", error);
+    console.error("💥 [API] Error creating sports listing:", error);
+    console.groupEnd();
     return {
       success: false,
       message: "Failed to create listing",
@@ -239,7 +287,7 @@ export const getSportsListings = async (params?: {
  * Get a single sports listing by ID
  */
 export const getSportsListingById = async (
-  id: string
+  id: string,
 ): Promise<{
   success: boolean;
   data?: any;
@@ -275,7 +323,7 @@ export const getSportsListingById = async (
  */
 export const updateSportsListing = async (
   id: string,
-  data: Partial<SmartFormData>
+  data: Partial<SmartFormData>,
 ): Promise<{
   success: boolean;
   message: string;
@@ -319,7 +367,7 @@ export const updateSportsListing = async (
  * Delete a sports listing
  */
 export const deleteSportsListing = async (
-  id: string
+  id: string,
 ): Promise<{
   success: boolean;
   message: string;
@@ -356,7 +404,7 @@ export const deleteSportsListing = async (
  */
 export const placeBid = async (
   id: string,
-  bidAmount: number
+  bidAmount: number,
 ): Promise<{
   success: boolean;
   message: string;

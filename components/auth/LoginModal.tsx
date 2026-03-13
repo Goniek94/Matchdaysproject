@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { authApi } from "@/lib/api";
+import { useAuth } from "@/lib/context/AuthContext";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -14,6 +14,7 @@ export default function LoginModal({
   onClose,
   onLoginSuccess,
 }: LoginModalProps) {
+  const { login } = useAuth();
   const [emailOrUsername, setEmailOrUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,29 +28,22 @@ export default function LoginModal({
     setLoading(true);
 
     try {
-      const response = await authApi.login({
-        emailOrUsername,
-        password,
-      });
+      // Use AuthContext login - updates global state automatically
+      await login(emailOrUsername, password);
 
-      if (response.success) {
-        console.log("✅ Login successful:", response.data);
-
-        // Call callback to update Navbar BEFORE closing modal
-        if (onLoginSuccess) {
-          await onLoginSuccess();
-        }
-
-        // Small delay to ensure state updates
-        await new Promise((resolve) => setTimeout(resolve, 100));
-
-        onClose(); // Close modal
-      } else {
-        setError(response.message || "Login failed");
+      // Notify parent (e.g. close modal, update UI)
+      if (onLoginSuccess) {
+        onLoginSuccess();
       }
+
+      onClose();
     } catch (err: any) {
-      console.error("❌ Login error:", err);
-      setError(err.response?.data?.message || "An error occurred");
+      // Error message from AuthContext or API
+      const message =
+        err?.message ||
+        err?.response?.data?.message ||
+        "Wystąpił błąd podczas logowania";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -83,17 +77,17 @@ export default function LoginModal({
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email/Login Field */}
+            {/* Email/Username Field */}
             <div>
               <label
-                htmlFor="email"
+                htmlFor="emailOrUsername"
                 className="block text-sm font-semibold mb-2"
               >
                 Email or Username
               </label>
               <input
                 type="text"
-                id="email"
+                id="emailOrUsername"
                 value={emailOrUsername}
                 onChange={(e) => setEmailOrUsername(e.target.value)}
                 placeholder="Enter your email or username"
@@ -153,7 +147,7 @@ export default function LoginModal({
           {/* Register Link */}
           <div className="mt-6 text-center">
             <p className="text-gray-600">
-              Don't have an account?{" "}
+              Don&apos;t have an account?{" "}
               <a
                 href="/register"
                 className="text-black font-semibold hover:opacity-70 transition-opacity"

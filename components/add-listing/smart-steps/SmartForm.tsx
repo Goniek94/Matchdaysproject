@@ -4,8 +4,8 @@ import { useState } from "react";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { SmartFormData, INITIAL_STATE, Photo } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
-import SuccessView from "./SuccessView";
-import SmartFormSummary from "./SmartFormSummary"; // <-- DODANO TEN IMPORT
+import { SuccessView } from "./steps";
+import { SmartFormSummary } from "./summary";
 import { createSportsListing } from "@/lib/api/listings.api";
 import { uploadPhotos } from "@/lib/supabase";
 
@@ -15,6 +15,9 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedPhotos, setPublishedPhotos] = useState<Photo[]>([]);
+  const [publishedListingId, setPublishedListingId] = useState<string | null>(
+    null,
+  );
 
   const update = (field: keyof SmartFormData, val: any) =>
     setData((prev) => ({ ...prev, [field]: val }));
@@ -37,16 +40,90 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
     try {
       setIsPublishing(true);
 
+      // === DEBUG: Full form data before publish ===
+      console.group("🚀 [Publish] START - Full form data");
+      console.log("📋 Title:", data.title);
+      console.log("📋 Description:", data.description);
+      console.log("📋 Category:", data.category, "| Slug:", data.categorySlug);
+      console.log("📋 Listing type:", data.listingType);
+      console.log("📋 Price:", data.price, "| Start price:", data.startPrice);
+      console.log("📋 Duration:", data.duration);
+      console.log("📋 Completion mode:", data.completionMode);
+      console.log(
+        "📋 Brand:",
+        data.brand,
+        "| Model:",
+        data.model,
+        "| Club:",
+        data.club,
+      );
+      console.log(
+        "📋 Condition:",
+        data.condition,
+        "| Size:",
+        data.size,
+        "| Season:",
+        data.season,
+      );
+      console.log("📋 Verification status:", data.verificationStatus);
+      console.log("📋 Verification details:", data.verification);
+      console.log("📸 Photos count:", data.photos.length);
+      data.photos.forEach((photo, i) => {
+        const urlType = photo.url?.startsWith("data:")
+          ? "BASE64"
+          : photo.url?.startsWith("blob:")
+            ? "BLOB"
+            : photo.url?.startsWith("http")
+              ? "HTTP"
+              : "UNKNOWN";
+        console.log(
+          `  📸 Photo[${i}]: type=${urlType}, typeHint=${photo.typeHint}, url=${photo.url?.substring(0, 80)}...`,
+        );
+      });
+      console.groupEnd();
+
       // 1. Upload zdjęć do Supabase Storage
-      console.log("[Publish] Uploading photos to Supabase...");
+      console.group("📤 [Publish] Step 1: Uploading photos to Supabase...");
+      console.log("Photos to upload:", data.photos.length);
+      console.log(
+        "Base64 photos (will be uploaded):",
+        data.photos.filter((p) => p.url?.startsWith("data:")).length,
+      );
+      console.log(
+        "Blob photos (will NOT be uploaded):",
+        data.photos.filter((p) => p.url?.startsWith("blob:")).length,
+      );
+      console.log(
+        "HTTP photos (already uploaded):",
+        data.photos.filter((p) => p.url?.startsWith("http")).length,
+      );
       const uploadedPhotos = await uploadPhotos(data.photos);
-      console.log("[Publish] Photos uploaded:", uploadedPhotos.length);
+      console.log(
+        "✅ Upload result:",
+        uploadedPhotos.length,
+        "photos returned",
+      );
+      uploadedPhotos.forEach((photo, i) => {
+        console.log(
+          `  ✅ Uploaded[${i}]: url=${photo.url?.substring(0, 80)}...`,
+        );
+      });
+      console.groupEnd();
 
       // 2. Zmapuj z powrotem na Photo[] zachowując id
-      const photosWithIds: Photo[] = data.photos.map((photo, index) => ({
-        ...photo,
-        url: uploadedPhotos[index]?.url || photo.url,
-      }));
+      console.group("🔄 [Publish] Step 2: Mapping photos back to Photo[]");
+      const photosWithIds: Photo[] = data.photos.map((photo, index) => {
+        const newUrl = uploadedPhotos[index]?.url || photo.url;
+        const wasUpdated = newUrl !== photo.url;
+        console.log(
+          `  Photo[${index}]: ${wasUpdated ? "✅ UPDATED" : "⚠️ KEPT ORIGINAL"} -> ${newUrl?.substring(0, 80)}...`,
+        );
+        return {
+          ...photo,
+          url: newUrl,
+        };
+      });
+      console.groupEnd();
 
       // 3. Zaktualizuj data z nowymi URLami
       const dataWithPhotos: SmartFormData = {
@@ -55,20 +132,52 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       };
 
       // 4. Zapisz listing do bazy
+      console.group(
+        "📡 [Publish] Step 3: Sending to backend (createSportsListing)",
+      );
+      console.log(
+        "Data being sent:",
+        JSON.stringify(
+          {
+            title: dataWithPhotos.title,
+            category: dataWithPhotos.category,
+            listingType: dataWithPhotos.listingType,
+            price: dataWithPhotos.price,
+            startPrice: dataWithPhotos.startPrice,
+            duration: dataWithPhotos.duration,
+            photosCount: dataWithPhotos.photos.length,
+            photoUrls: dataWithPhotos.photos.map((p) =>
+              p.url?.substring(0, 60),
+            ),
+          },
+          null,
+          2,
+        ),
+      );
       const result = await createSportsListing(dataWithPhotos);
+      console.log("📡 Backend response:", JSON.stringify(result, null, 2));
+      console.groupEnd();
 
       if (result.success) {
+        console.log("🎉 [Publish] SUCCESS! Listing created:", result.data);
+        // Save the real auction ID from backend response
+        const createdId = result.data?.id;
+        console.log("🆔 Created listing ID:", createdId);
+        setPublishedListingId(createdId || null);
         setPublishedPhotos(photosWithIds);
         setData(dataWithPhotos);
         setIsPublished(true);
       } else {
+        console.error("❌ [Publish] FAILED:", result.error || result.message);
         alert(`Failed to create listing: ${result.error || result.message}`);
       }
     } catch (error) {
-      console.error("[Publish] Error:", error);
+      console.error("💥 [Publish] EXCEPTION:", error);
+      console.error("💥 [Publish] Error stack:", (error as Error).stack);
       alert("An error occurred while publishing. Please try again.");
     } finally {
       setIsPublishing(false);
+      console.log("🏁 [Publish] END");
     }
   };
 
@@ -78,12 +187,14 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       <SuccessView
         status="live"
         title={data.title || "Your Listing"}
+        listingId={publishedListingId || undefined}
         imageUrl={publishedPhotos[0]?.url || ""}
         onReset={() => {
           setIsPublished(false);
           setStep(1);
           setData(INITIAL_STATE);
           setPublishedPhotos([]);
+          setPublishedListingId(null);
         }}
       />
     );

@@ -101,6 +101,9 @@ export interface AIAnalysisResult {
   season: string;
   model: string;
   size: string;
+  sizeEU?: string;
+  sizeUK?: string;
+  productionYear?: string;
   condition: string;
   countryOfProduction: string;
   serialCode: string;

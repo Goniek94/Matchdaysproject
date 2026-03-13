@@ -34,6 +34,7 @@ export function adaptAuctionForDisplay(backendAuction: any) {
     verified: backendAuction.verified || false,
     rare: backendAuction.rare || false,
     type: backendAuction.listingType === "buy_now" ? "buy_now" : "auction",
+    itemType: backendAuction.itemType || "shirt",
     seller: {
       name: backendAuction.seller?.username || "Unknown",
       avatar: backendAuction.seller?.avatar || undefined,

@@ -59,6 +59,16 @@ export type {
 export * as aiApi from "./ai";
 export type { AIAnalysisResult, PhotoDto, AnalyzeListingDto } from "./ai";
 
+// Export messages service
+export * as messagesApi from "./messages";
+
+// Export my listings service
+export * as myListingsApi from "./my-listings";
+export type {
+  MyListing,
+  UpdateListingPayload,
+} from "@/types/features/listings.types";
+
 // Default export with all services
 const api = {
   auth: require("./auth"),

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Hero from "@/components/Hero";
-import PricingSection from "@/components/PricingSection";
-import AuctionCard from "@/components/AuctionCard";
+import Hero from "@/components/home/Hero";
+import PricingSection from "@/components/home/PricingSection";
+import AuctionCard from "@/components/home/AuctionCard";
 import { mockAuctions } from "@/lib/mockData";
 import { getSportsListings } from "@/lib/api/listings.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";

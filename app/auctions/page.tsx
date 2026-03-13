@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import AuctionCard from "@/components/AuctionCard";
+import AuctionCard from "@/components/home/AuctionCard";
 import { mockAuctions } from "@/lib/mockData";
 import { getSportsListings } from "@/lib/api/listings.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
@@ -512,7 +512,7 @@ export default function AuctionsPage(): JSX.Element {
     }
 
     return result;
-  }, [searchQuery, selectedCategory, sortBy, selectedProductType]);
+  }, [auctions, searchQuery, selectedCategory, sortBy, selectedProductType]);
 
   return (
     // ZMIANA: <main> na <div>, bo layout.tsx ma już <main>

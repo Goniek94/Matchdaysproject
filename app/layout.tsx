@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 import { CartProvider } from "@/lib/CartContext";
+import { AuthProvider } from "@/lib/context/AuthContext";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -22,13 +23,16 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", inter.variable)}>
       <body>
-        <CartProvider>
-          <Navbar />
-          <main className="min-h-screen pt-[80px] md:pt-[100px]">
-            {children}
-          </main>
-          <Footer />
-        </CartProvider>
+        {/* AuthProvider wraps everything - global auth state */}
+        <AuthProvider>
+          <CartProvider>
+            <Navbar />
+            <main className="min-h-screen pt-[80px] md:pt-[100px]">
+              {children}
+            </main>
+            <Footer />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
