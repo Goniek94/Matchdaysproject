@@ -11,6 +11,7 @@ import {
   updateListing,
   deleteListing,
   cancelListing,
+  relistListing,
 } from "@/lib/api/my-listings";
 import type {
   MyListing,
@@ -18,6 +19,7 @@ import type {
   UpdateListingPayload,
   ListingStats,
 } from "@/types/features/listings.types";
+import type { RelistPayload } from "@/components/my-listings/RelistAuctionModal";
 
 // ─── Return type ──────────────────────────────────────────────────────────────
 
@@ -34,6 +36,7 @@ interface UseMyListingsReturn {
   update: (id: string, payload: UpdateListingPayload) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
   cancel: (id: string) => Promise<boolean>;
+  relist: (id: string, payload: RelistPayload) => Promise<boolean>;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -144,6 +147,36 @@ export function useMyListings(): UseMyListingsReturn {
     }
   };
 
+  // ── Relist listing ──────────────────────────────────────────────────────────
+  const relist = async (
+    id: string,
+    payload: RelistPayload,
+  ): Promise<boolean> => {
+    try {
+      const response = await relistListing(id, payload);
+
+      if (response.success && response.data) {
+        // Update listing in local state with new active status
+        setListings((prev) =>
+          prev.map((l) =>
+            l.id === id
+              ? {
+                  ...l,
+                  ...response.data!,
+                  status: "active" as const,
+                }
+              : l,
+          ),
+        );
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      setError(err?.message || "Failed to relist listing");
+      return false;
+    }
+  };
+
   return {
     listings,
     filteredListings,
@@ -156,5 +189,6 @@ export function useMyListings(): UseMyListingsReturn {
     update,
     remove,
     cancel,
+    relist,
   };
 }

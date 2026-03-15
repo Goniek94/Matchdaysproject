@@ -1,6 +1,7 @@
 /**
  * Authentication API Service
  * Handles all authentication-related API calls
+ * Based on Marketplace frontend pattern, adapted for Matchdays
  */
 
 import apiClient from "./client";
@@ -12,130 +13,127 @@ import {
   getUserData,
 } from "./config";
 
-// Login credentials interface
+// ─── Interfaces ────────────────────────────────────────────────────────────────
+
+/**
+ * Login credentials - matches backend LoginDto
+ */
 export interface LoginCredentials {
   emailOrUsername: string;
   password: string;
 }
 
-// Registration data interface
+/**
+ * Registration data - matches backend RegisterDto exactly
+ */
 export interface RegisterData {
+  firstName: string;
+  lastName: string;
+  birthDate: string; // YYYY-MM-DD
+  country: string; // ISO 3166-1 alpha-2 (e.g. "PL")
   email: string;
-  username: string;
+  phone: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
+  confirmPassword: string;
+  username?: string; // optional - auto-generated if not provided
 }
 
-// Update profile data interface
+/**
+ * Update profile data
+ */
 export interface UpdateProfileData {
   firstName?: string;
   lastName?: string;
   email?: string;
   username?: string;
+  phone?: string;
+  country?: string;
+  avatar?: string;
 }
 
-// Change password data interface
+/**
+ * Change password data
+ */
 export interface ChangePasswordData {
   currentPassword: string;
   newPassword: string;
 }
 
+// ─── Auth API Functions ────────────────────────────────────────────────────────
+
 /**
  * Login user
- * @param credentials - Email/username and password
- * @returns User data and success status
+ * Backend sets HTTP-Only cookies automatically
  */
 export const login = async (
-  credentials: LoginCredentials
+  credentials: LoginCredentials,
 ): Promise<ApiResponse<UserData>> => {
-  try {
-    const response = await apiClient.post<ApiResponse<UserData>>(
-      "/auth/login",
-      credentials
-    );
+  const response = await apiClient.post<ApiResponse<UserData>>(
+    "/auth/login",
+    credentials,
+  );
 
-    // Store user data if login successful
-    if (response.data.success && response.data.data) {
-      setAuthData(response.data.data);
-    }
-
-    return response.data;
-  } catch (error: any) {
-    console.error("Login error:", error);
-    throw error;
+  // Store user data if login successful
+  if (response.data.success && response.data.data) {
+    setAuthData(response.data.data);
   }
+
+  return response.data;
 };
 
 /**
  * Register new user
- * @param userData - Registration data
- * @returns User data and success status
+ * Backend sets HTTP-Only cookies automatically
  */
 export const register = async (
-  userData: RegisterData
+  userData: RegisterData,
 ): Promise<ApiResponse<UserData>> => {
-  try {
-    const response = await apiClient.post<ApiResponse<UserData>>(
-      "/auth/register",
-      userData
-    );
+  const response = await apiClient.post<ApiResponse<UserData>>(
+    "/auth/register",
+    userData,
+  );
 
-    // Store user data if registration successful
-    if (response.data.success && response.data.data) {
-      setAuthData(response.data.data);
-    }
-
-    return response.data;
-  } catch (error: any) {
-    console.error("Registration error:", error);
-    throw error;
+  // Store user data if registration successful
+  if (response.data.success && response.data.data) {
+    setAuthData(response.data.data);
   }
+
+  return response.data;
 };
 
 /**
  * Logout user
- * Clears cookies and local auth data
+ * Backend clears HTTP-Only cookies
  */
 export const logout = async (): Promise<ApiResponse> => {
   try {
     const response = await apiClient.post<ApiResponse>("/auth/logout");
-
-    // Clear local auth data
-    clearAuthData();
-
     return response.data;
   } catch (error: any) {
-    console.error("Logout error:", error);
-    // Clear local data even if API call fails
+    // Ignore errors during logout - we always clean up locally
+    console.error("Logout API error (ignored):", error?.message);
+    return { success: false, message: "Logout API error" };
+  } finally {
+    // Always clear local data, regardless of API result
     clearAuthData();
-    throw error;
   }
 };
 
 /**
- * Check if user is authenticated
- * Verifies with backend
+ * Check if user is authenticated by verifying with backend
+ * Uses HTTP-Only cookie to verify session
+ * Does NOT clear auth data on network errors - only on explicit 401
  */
 export const checkAuth = async (): Promise<ApiResponse<UserData>> => {
-  try {
-    const response = await apiClient.get<ApiResponse<UserData>>(
-      "/auth/check-auth"
-    );
+  const response =
+    await apiClient.get<ApiResponse<UserData>>("/auth/check-auth");
 
-    // Update user data if authenticated
-    if (response.data.success && response.data.data) {
-      setAuthData(response.data.data);
-    } else {
-      clearAuthData();
-    }
-
-    return response.data;
-  } catch (error: any) {
-    console.error("Check auth error:", error);
-    clearAuthData();
-    throw error;
+  // Update user data if authenticated
+  if (response.data.success && response.data.data) {
+    setAuthData(response.data.data);
   }
+
+  return response.data;
 };
 
 /**
@@ -166,120 +164,61 @@ export const refreshUserData = async (): Promise<ApiResponse<UserData>> => {
 
 /**
  * Update user profile
- * @param profileData - Profile data to update
  */
 export const updateProfile = async (
-  profileData: UpdateProfileData
+  profileData: UpdateProfileData,
 ): Promise<ApiResponse<UserData>> => {
-  try {
-    const response = await apiClient.patch<ApiResponse<UserData>>(
-      "/auth/profile",
-      profileData
-    );
+  const response = await apiClient.patch<ApiResponse<UserData>>(
+    "/auth/profile",
+    profileData,
+  );
 
-    // Update cached user data
-    if (response.data.success && response.data.data) {
-      setAuthData(response.data.data);
-    }
-
-    return response.data;
-  } catch (error: any) {
-    console.error("Update profile error:", error);
-    throw error;
+  // Update cached user data
+  if (response.data.success && response.data.data) {
+    setAuthData(response.data.data);
   }
+
+  return response.data;
 };
 
 /**
  * Change user password
- * @param passwordData - Current and new password
  */
 export const changePassword = async (
-  passwordData: ChangePasswordData
+  passwordData: ChangePasswordData,
 ): Promise<ApiResponse> => {
-  try {
-    const response = await apiClient.post<ApiResponse>(
-      "/auth/change-password",
-      passwordData
-    );
+  const response = await apiClient.post<ApiResponse>(
+    "/auth/change-password",
+    passwordData,
+  );
 
-    return response.data;
-  } catch (error: any) {
-    console.error("Change password error:", error);
-    throw error;
-  }
+  return response.data;
 };
 
 /**
- * Request password reset
- * @param email - User email
+ * Request password reset email
  */
 export const requestPasswordReset = async (
-  email: string
+  email: string,
 ): Promise<ApiResponse> => {
-  try {
-    const response = await apiClient.post<ApiResponse>(
-      "/auth/forgot-password",
-      { email }
-    );
+  const response = await apiClient.post<ApiResponse>("/auth/forgot-password", {
+    email,
+  });
 
-    return response.data;
-  } catch (error: any) {
-    console.error("Request password reset error:", error);
-    throw error;
-  }
+  return response.data;
 };
 
 /**
  * Reset password with token
- * @param token - Reset token from email
- * @param newPassword - New password
  */
 export const resetPassword = async (
   token: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<ApiResponse> => {
-  try {
-    const response = await apiClient.post<ApiResponse>("/auth/reset-password", {
-      token,
-      newPassword,
-    });
+  const response = await apiClient.post<ApiResponse>("/auth/reset-password", {
+    token,
+    newPassword,
+  });
 
-    return response.data;
-  } catch (error: any) {
-    console.error("Reset password error:", error);
-    throw error;
-  }
-};
-
-/**
- * Verify email with token
- * @param token - Verification token from email
- */
-export const verifyEmail = async (token: string): Promise<ApiResponse> => {
-  try {
-    const response = await apiClient.post<ApiResponse>("/auth/verify-email", {
-      token,
-    });
-
-    return response.data;
-  } catch (error: any) {
-    console.error("Verify email error:", error);
-    throw error;
-  }
-};
-
-/**
- * Resend verification email
- */
-export const resendVerificationEmail = async (): Promise<ApiResponse> => {
-  try {
-    const response = await apiClient.post<ApiResponse>(
-      "/auth/resend-verification"
-    );
-
-    return response.data;
-  } catch (error: any) {
-    console.error("Resend verification email error:", error);
-    throw error;
-  }
+  return response.data;
 };

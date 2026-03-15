@@ -16,6 +16,7 @@ import React, {
 import { authApi } from "@/lib/api";
 import { clearAuthData, setAuthData } from "@/lib/api/config";
 import type { UserData } from "@/lib/api/config";
+import type { RegisterData } from "@/lib/api/auth";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,7 +27,7 @@ interface AuthContextValue {
   error: string | null;
 
   login: (emailOrUsername: string, password: string) => Promise<any>;
-  register: (userData: RegisterPayload) => Promise<any>;
+  register: (userData: RegisterData) => Promise<any>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<UserData | null>;
 
@@ -35,17 +36,8 @@ interface AuthContextValue {
   clearError: () => void;
 }
 
-export interface RegisterPayload {
-  firstName: string;
-  lastName: string;
-  birthDate: string;
-  country: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  username?: string;
-}
+// Re-export RegisterData so consumers can import from AuthContext
+export type { RegisterData };
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -147,13 +139,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // ── Register ─────────────────────────────────────────────────────────────────
-  const register = async (userData: RegisterPayload) => {
+  const register = async (userData: RegisterData) => {
     try {
       setError(null);
       setIsLoading(true);
 
-      // Pass userData - username is optional, backend will auto-generate if missing
-      const response = await authApi.register(userData as any);
+      const response = await authApi.register(userData);
 
       if (response.success && response.data) {
         setUser(response.data);
@@ -181,7 +172,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       await authApi.logout();
     } catch (err) {
-      console.error("Logout API error:", err);
+      console.error("Logout error:", err);
     } finally {
       // Always clean up local state, even if API call fails
       handleLogoutCleanup();

@@ -9,6 +9,22 @@ import type {
   MyListing,
   UpdateListingPayload,
 } from "@/types/features/listings.types";
+import type { RelistPayload } from "@/components/my-listings/RelistAuctionModal";
+
+// ─── Get Single Listing ───────────────────────────────────────────────────────
+
+/**
+ * Fetch a single auction by ID (for edit page)
+ * @param id - Auction ID
+ */
+export const getListing = async (
+  id: string,
+): Promise<ApiResponse<MyListing>> => {
+  const response = await apiClient.get<ApiResponse<MyListing>>(
+    `/auctions/${id}`,
+  );
+  return response.data;
+};
 
 // ─── Get My Listings ──────────────────────────────────────────────────────────
 
@@ -67,6 +83,24 @@ export const cancelListing = async (
 ): Promise<ApiResponse<MyListing>> => {
   const response = await apiClient.patch<ApiResponse<MyListing>>(
     `/auctions/${id}/cancel`,
+  );
+  return response.data;
+};
+
+// ─── Relist Listing ───────────────────────────────────────────────────────────
+
+/**
+ * Relist an ended or cancelled auction with new settings
+ * @param id - Auction ID
+ * @param payload - New listing settings (endTime, listingType, prices, etc.)
+ */
+export const relistListing = async (
+  id: string,
+  payload: RelistPayload,
+): Promise<ApiResponse<MyListing>> => {
+  const response = await apiClient.patch<ApiResponse<MyListing>>(
+    `/auctions/${id}/relist`,
+    payload,
   );
   return response.data;
 };

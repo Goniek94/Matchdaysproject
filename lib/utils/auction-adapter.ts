@@ -1,11 +1,15 @@
 /**
  * Auction Adapter
- * Converts backend auction data to frontend format
+ * Converts backend auction data to frontend display format
+ * Also filters out ended/sold/cancelled auctions as a safety net
  */
+
+// Statuses that should NOT be shown on public listing pages
+const HIDDEN_STATUSES = ["ended", "sold", "cancelled"];
 
 export function adaptAuctionForDisplay(backendAuction: any) {
   // Calculate time remaining
-  const calculateTimeRemaining = (endTime: string) => {
+  const calculateTimeRemaining = (endTime: string): string => {
     const now = new Date();
     const end = new Date(endTime);
     const diff = end.getTime() - now.getTime();
@@ -29,10 +33,12 @@ export function adaptAuctionForDisplay(backendAuction: any) {
     description: backendAuction.description || "No description",
     image: backendAuction.images?.[0] || "/placeholder-jersey.jpg",
     bids: backendAuction.bidCount || 0,
-    likes: 0, // Can be added later
+    likes: 0,
     endTime: calculateTimeRemaining(backendAuction.endTime),
+    endTimeRaw: backendAuction.endTime, // Keep raw for sorting
     verified: backendAuction.verified || false,
     rare: backendAuction.rare || false,
+    status: backendAuction.status || "active", // Pass status to frontend
     type: backendAuction.listingType === "buy_now" ? "buy_now" : "auction",
     itemType: backendAuction.itemType || "shirt",
     seller: {
@@ -48,6 +54,20 @@ export function adaptAuctionForDisplay(backendAuction: any) {
   };
 }
 
+/**
+ * Adapt and filter auctions for public display
+ * Filters out ended/sold/cancelled as a frontend safety net
+ * (backend should already filter, but this is a double check)
+ */
 export function adaptAuctionsForDisplay(backendAuctions: any[]) {
+  return backendAuctions
+    .filter((auction) => !HIDDEN_STATUSES.includes(auction.status))
+    .map(adaptAuctionForDisplay);
+}
+
+/**
+ * Adapt all auctions without filtering (for admin/my-listings views)
+ */
+export function adaptAllAuctionsForDisplay(backendAuctions: any[]) {
   return backendAuctions.map(adaptAuctionForDisplay);
 }

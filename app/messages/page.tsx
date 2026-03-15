@@ -26,7 +26,7 @@ export default function MessagesPage() {
   const [showChat, setShowChat] = useState(false); // Mobile: toggle between list and chat
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const currentUserId = user?.id || "";
 
   const {

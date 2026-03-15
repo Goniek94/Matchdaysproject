@@ -57,6 +57,7 @@ export default function MyListingsPage() {
     remove,
     cancel,
     update,
+    relist,
   } = useMyListings();
 
   // Redirect unauthenticated users
@@ -117,6 +118,13 @@ export default function MyListingsPage() {
     payload: import("@/types/features/listings.types").UpdateListingPayload,
   ): Promise<boolean> => {
     return update(id, payload);
+  };
+
+  const handleRelist = async (
+    id: string,
+    payload: import("@/components/my-listings/RelistAuctionModal").RelistPayload,
+  ): Promise<boolean> => {
+    return relist(id, payload);
   };
 
   // Boost is a future payment feature — placeholder returns true for now
@@ -238,6 +246,7 @@ export default function MyListingsPage() {
                   onCancel={handleCancel}
                   onUpdate={handleUpdate}
                   onBoost={handleBoost}
+                  onRelist={handleRelist}
                 />
               ))}
             </div>

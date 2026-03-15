@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/lib/context/AuthContext";
 
 // Lista krajów
 const ALLOWED_COUNTRIES = [
@@ -38,6 +40,9 @@ const ALLOWED_COUNTRIES = [
 ];
 
 export default function RegisterPage() {
+  const { register } = useAuth();
+  const router = useRouter();
+
   // Multi-step state
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 4;
@@ -154,13 +159,29 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
+    setError("");
 
     try {
-      console.log("Registering user:", formData);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      alert("Registration successful! (Demo)");
-    } catch (err) {
-      setError("Registration failed. Please try again later.");
+      // Call AuthContext register - updates global auth state automatically
+      await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        birthDate: formData.birthDate,
+        country: formData.country,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      });
+
+      // Registration successful - redirect to dashboard
+      router.push("/dashboard");
+    } catch (err: any) {
+      const message =
+        err?.message ||
+        err?.response?.data?.message ||
+        "Registration failed. Please try again.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }

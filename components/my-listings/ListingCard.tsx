@@ -25,6 +25,8 @@ import {
   Package,
   Pencil,
   Zap,
+  Heart,
+  RefreshCw,
 } from "lucide-react";
 import type {
   MyListing,
@@ -33,6 +35,7 @@ import type {
 } from "@/types/features/listings.types";
 import EditListingModal from "./EditListingModal";
 import BoostListingModal from "./BoostListingModal";
+import RelistAuctionModal, { type RelistPayload } from "./RelistAuctionModal";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -110,6 +113,7 @@ interface ListingCardProps {
   onCancel: (id: string) => Promise<void>;
   onUpdate?: (id: string, payload: UpdateListingPayload) => Promise<boolean>;
   onBoost?: (listingId: string, tier: string) => Promise<boolean>;
+  onRelist?: (id: string, payload: RelistPayload) => Promise<boolean>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -151,20 +155,26 @@ export default function ListingCard({
   onCancel,
   onUpdate,
   onBoost,
+  onRelist,
 }: ListingCardProps) {
   const [confirmAction, setConfirmAction] = useState<
     "delete" | "cancel" | null
   >(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showBoost, setShowBoost] = useState(false);
+  const [showRelist, setShowRelist] = useState(false);
 
   const statusCfg = STATUS_CONFIG[listing.status] ?? STATUS_CONFIG.ended;
   const thumbnail = listing.images?.[0] ?? null;
   const bidCount = listing._count?.bids ?? listing.bidCount ?? 0;
+  const favCount = listing._count?.favorites ?? listing.favoritesCount ?? 0;
   const isEditable = ["active", "upcoming"].includes(listing.status);
+  // ended and cancelled can also be edited (title/description before relisting)
+  const canEditEnded = ["ended", "cancelled"].includes(listing.status);
   const canBoost = ["active", "upcoming"].includes(listing.status);
   const canDelete = bidCount === 0 && listing.status !== "sold";
   const canCancel = ["active", "upcoming"].includes(listing.status);
+  const canRelist = ["ended", "cancelled"].includes(listing.status);
 
   const handleConfirm = async () => {
     if (confirmAction === "delete") await onDelete(listing.id);
@@ -193,7 +203,7 @@ export default function ListingCard({
     <>
       <div className="group bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col">
         {/* Image */}
-        <div className="relative h-44 bg-gray-100 overflow-hidden flex-shrink-0">
+        <div className="relative h-80 bg-gray-100 overflow-hidden flex-shrink-0">
           {thumbnail ? (
             <Image
               src={thumbnail}
@@ -231,16 +241,16 @@ export default function ListingCard({
           </div>
 
           {/* Quick edit overlay on hover */}
-          {isEditable && onUpdate && (
-            <button
-              onClick={() => setShowEdit(true)}
+          {(isEditable || canEditEnded) && (
+            <Link
+              href={`/my-listings/${listing.id}/edit`}
               className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
             >
               <span className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl text-xs font-black text-gray-900 shadow-lg">
                 <Pencil size={14} />
                 Edit
               </span>
-            </button>
+            </Link>
           )}
         </div>
 
@@ -276,9 +286,16 @@ export default function ListingCard({
                 <Gavel size={12} />
                 <span>{bidCount}</span>
               </div>
-              <div className="flex items-center gap-1 text-gray-400 text-xs justify-end">
-                <Eye size={12} />
-                <span>{listing.views ?? 0}</span>
+              <div className="flex items-center gap-1.5 text-gray-400 text-xs justify-end">
+                <div className="flex items-center gap-0.5">
+                  <Eye size={12} />
+                  <span>{listing.views ?? 0}</span>
+                </div>
+                <span className="text-gray-200">·</span>
+                <div className="flex items-center gap-0.5 text-rose-400">
+                  <Heart size={11} />
+                  <span>{favCount}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -333,15 +350,15 @@ export default function ListingCard({
               </Link>
 
               {/* Edit */}
-              {isEditable && onUpdate && (
-                <button
-                  onClick={() => setShowEdit(true)}
+              {isEditable && (
+                <Link
+                  href={`/my-listings/${listing.id}/edit`}
                   className="flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-bold text-blue-700 transition-colors"
                   title="Edit listing"
                 >
                   <Pencil size={12} />
                   Edit
-                </button>
+                </Link>
               )}
 
               {/* Boost */}
@@ -363,6 +380,30 @@ export default function ListingCard({
                   title="Cancel auction"
                 >
                   <XCircle size={13} />
+                </button>
+              )}
+
+              {/* Edit for ended/cancelled */}
+              {canEditEnded && (
+                <Link
+                  href={`/my-listings/${listing.id}/edit`}
+                  className="flex items-center justify-center gap-1 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-bold text-blue-700 transition-colors"
+                  title="Edit listing"
+                >
+                  <Pencil size={12} />
+                  Edit
+                </Link>
+              )}
+
+              {/* Relist */}
+              {canRelist && onRelist && (
+                <button
+                  onClick={() => setShowRelist(true)}
+                  className="flex items-center justify-center gap-1 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 transition-colors"
+                  title="Relist auction"
+                >
+                  <RefreshCw size={12} />
+                  Relist
                 </button>
               )}
 
@@ -396,6 +437,15 @@ export default function ListingCard({
           listing={listing}
           onClose={() => setShowBoost(false)}
           onBoost={handleBoost}
+        />
+      )}
+
+      {/* Relist modal */}
+      {showRelist && onRelist && (
+        <RelistAuctionModal
+          listing={listing}
+          onClose={() => setShowRelist(false)}
+          onRelist={onRelist}
         />
       )}
     </>

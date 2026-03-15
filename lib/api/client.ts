@@ -1,6 +1,7 @@
 /**
  * API Client
  * Axios instance with interceptors for authentication and error handling
+ * Based on Marketplace frontend pattern, adapted for Matchdays
  */
 
 import axios, {
@@ -14,13 +15,14 @@ import { API_URL, REQUEST_TIMEOUT, clearAuthData, getUserData } from "./config";
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
   timeout: REQUEST_TIMEOUT,
-  withCredentials: true, // Important: Send cookies with every request
+  withCredentials: true, // Critical: send HTTP-Only cookies with every request
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request queue for handling token refresh
+// ─── Token Refresh Queue ───────────────────────────────────────────────────────
+
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: any) => void;
@@ -42,10 +44,8 @@ const processQueue = (error: any = null) => {
   failedQueue = [];
 };
 
-/**
- * Request Interceptor
- * Adds authorization header if user is authenticated
- */
+// ─── Request Interceptor ───────────────────────────────────────────────────────
+
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const userData = getUserData();
@@ -59,100 +59,108 @@ apiClient.interceptors.request.use(
   },
   (error: AxiosError) => {
     return Promise.reject(error);
-  }
+  },
 );
 
-/**
- * Response Interceptor
- * Handles token refresh on 401 errors
- */
+// ─── Response Interceptor ──────────────────────────────────────────────────────
+
 apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
 
-    // Handle 401 Unauthorized
+    // ── Handle 401 Unauthorized ──
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Skip refresh for auth endpoints to avoid infinite loops
+      const isAuthEndpoint =
+        originalRequest.url?.includes("/auth/login") ||
+        originalRequest.url?.includes("/auth/register") ||
+        originalRequest.url?.includes("/auth/refresh") ||
+        originalRequest.url?.includes("/auth/check-auth");
+
+      if (isAuthEndpoint) {
+        // For auth endpoints, just reject - let AuthContext handle cleanup
+        return Promise.reject(buildError(error));
+      }
+
       if (isRefreshing) {
         // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then(() => {
-            return apiClient(originalRequest);
-          })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .then(() => apiClient(originalRequest))
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Try to refresh the session
+        // Try to refresh the session using refresh token cookie
         await apiClient.post("/auth/refresh");
 
-        // Process queued requests
         processQueue();
         isRefreshing = false;
 
         // Retry original request
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, clear auth data and redirect to login
+        // Refresh failed - clear local auth data
         processQueue(refreshError);
         isRefreshing = false;
         clearAuthData();
 
-        // Redirect to login page (only in browser)
+        // Remove session flag so AuthContext knows user is logged out
         if (typeof window !== "undefined") {
-          window.location.href = "/";
+          localStorage.removeItem("isLoggedIn");
         }
 
-        return Promise.reject(refreshError);
+        // Do NOT hard redirect here - let the component/page handle it
+        // This avoids disrupting the UX with unexpected redirects
+
+        return Promise.reject(buildError(refreshError as AxiosError));
       }
     }
 
-    // Handle 431 Request Header Fields Too Large
+    // ── Handle 431 Request Header Fields Too Large ──
     if (error.response?.status === 431) {
       console.error("Request headers too large. Clearing auth data.");
       clearAuthData();
-
-      if (typeof window !== "undefined") {
-        window.location.href = "/";
-      }
     }
 
-    // Handle network errors
+    // ── Handle network errors ──
     if (!error.response) {
-      console.error("Network error:", error.message);
       return Promise.reject({
         success: false,
         message: "Błąd połączenia z serwerem. Sprawdź połączenie internetowe.",
         error: error.message,
+        status: 0,
       });
     }
 
-    // Return formatted error
-    const responseData = error.response?.data as any;
-    return Promise.reject({
-      success: false,
-      message:
-        responseData?.message || error.message || "Wystąpił nieoczekiwany błąd",
-      error: responseData?.error || error.message,
-      status: error.response?.status,
-    });
-  }
+    // ── Return formatted error ──
+    return Promise.reject(buildError(error));
+  },
 );
 
 /**
- * Simple in-memory cache for GET requests
+ * Build a consistent error object from AxiosError
  */
+function buildError(error: any) {
+  const responseData = error?.response?.data as any;
+  return {
+    success: false,
+    message:
+      responseData?.message || error?.message || "Wystąpił nieoczekiwany błąd",
+    error: responseData?.error || error?.message,
+    status: error?.response?.status,
+  };
+}
+
+// ─── Simple In-Memory Cache ────────────────────────────────────────────────────
+
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 

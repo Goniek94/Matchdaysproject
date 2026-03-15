@@ -1,6 +1,7 @@
 /**
  * API Configuration
  * Handles API URL, authentication helpers, and user data management
+ * Based on Marketplace frontend pattern, adapted for Matchdays
  */
 
 // API Base URL from environment variables
@@ -10,18 +11,50 @@ export const API_URL =
 // Request timeout in milliseconds
 export const REQUEST_TIMEOUT = 30000;
 
-// User data interface
+// ─── User Data Interface ───────────────────────────────────────────────────────
+// Matches what backend returns in toPublicProfile() / checkAuth endpoint
+
 export interface UserData {
   id: string;
   email: string;
   username: string;
-  firstName?: string;
+  name?: string;
   lastName?: string;
+  firstName?: string; // alias for name (used in some contexts)
+  birthDate?: string;
+  country?: string;
+  phone?: string;
+  avatar?: string;
   role: string;
+
+  // Gamification & Dashboard
+  level?: number;
+  experience?: number;
+  totalPoints?: number;
+  reputationScore?: number;
+  subscriptionTier?: string;
+  subscriptionExpiry?: string | null;
+
+  // Seller stats
+  rating?: number;
+  reviews?: number;
+  sales?: number;
+  positivePercentage?: number;
+  avgShippingTime?: string;
+
+  // Security & Status
+  isVerified?: boolean;
+  status?: string;
+  lastLogin?: string | null;
+  lastActivity?: string | null;
+
+  // Timestamps
   createdAt: string;
+  updatedAt?: string;
 }
 
-// API Response interface
+// ─── API Response Interface ────────────────────────────────────────────────────
+
 export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
@@ -29,7 +62,8 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
-// In-memory user data cache
+// ─── In-memory user data cache ─────────────────────────────────────────────────
+
 let cachedUserData: UserData | null = null;
 
 /**
@@ -39,7 +73,7 @@ let cachedUserData: UserData | null = null;
 export const setAuthData = (userData: UserData): void => {
   cachedUserData = userData;
 
-  // Store minimal user info in localStorage for quick access
+  // Store minimal user info in localStorage for quick access (no tokens!)
   if (typeof window !== "undefined") {
     try {
       localStorage.setItem(
@@ -48,8 +82,11 @@ export const setAuthData = (userData: UserData): void => {
           id: userData.id,
           email: userData.email,
           username: userData.username,
+          name: userData.name,
+          lastName: userData.lastName,
           role: userData.role,
-        })
+          avatar: userData.avatar,
+        }),
       );
     } catch (error) {
       console.error("Error storing user data:", error);
@@ -82,7 +119,7 @@ export const getUserData = (): UserData | null => {
 };
 
 /**
- * Clear all authentication data
+ * Clear all authentication data (local only - cookies are cleared by backend)
  */
 export const clearAuthData = (): void => {
   cachedUserData = null;
@@ -102,8 +139,8 @@ export const clearAuthData = (): void => {
 };
 
 /**
- * Check if user is authenticated
- * This should be verified with the backend via API call
+ * Check if user is authenticated (local check only)
+ * For real auth verification, use authApi.checkAuth()
  */
 export const isAuthenticated = (): boolean => {
   return getUserData() !== null;
@@ -111,7 +148,7 @@ export const isAuthenticated = (): boolean => {
 
 /**
  * Migrate from old token-based auth to HTTP-Only cookies
- * This removes any tokens stored in localStorage
+ * Removes any tokens stored in localStorage
  */
 export const migrateFromLegacyAuth = (): void => {
   if (typeof window !== "undefined") {

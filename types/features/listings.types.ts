@@ -87,9 +87,13 @@ export interface MyListing {
   seller?: ListingSeller;
   winnerId: string | null;
 
+  // Favorites count
+  favoritesCount?: number;
+
   // Bid count from _count
   _count?: {
     bids: number;
+    favorites?: number;
   };
 
   createdAt: string;

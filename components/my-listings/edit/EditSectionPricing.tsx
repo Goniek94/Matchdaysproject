@@ -37,7 +37,7 @@ export default function EditSectionPricing({
           Starting Bid
         </span>
         <span className="text-sm font-black text-gray-900">
-          £{listing.startingBid.toFixed(2)}
+          £{Number(listing.startingBid).toFixed(2)}
         </span>
       </div>
 

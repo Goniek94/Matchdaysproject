@@ -2,8 +2,9 @@
 
 /**
  * EditSectionImages
- * Read-only image gallery preview in the edit panel
- * (Full image management is on the listing detail page)
+ * Image gallery preview at the top of the edit panel.
+ * Shows thumbnails in a horizontal scroll with MAIN badge on first image.
+ * Full image management is available on the listing detail page.
  */
 
 import Image from "next/image";
@@ -17,14 +18,14 @@ interface EditSectionImagesProps {
 
 export default function EditSectionImages({ listing }: EditSectionImagesProps) {
   const images = listing.images ?? [];
-  const preview = images.slice(0, 5);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
+    <div className="space-y-2">
+      {/* Header row */}
+      <div className="flex items-center justify-between px-6 pt-4">
+        <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
           Images ({images.length})
-        </h3>
+        </span>
         <Link
           href={`/auction/${listing.id}`}
           target="_blank"
@@ -35,18 +36,21 @@ export default function EditSectionImages({ listing }: EditSectionImagesProps) {
         </Link>
       </div>
 
+      {/* Thumbnails */}
       {images.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-24 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+        <div className="mx-6 flex flex-col items-center justify-center h-24 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
           <ImageIcon size={24} className="text-gray-300 mb-1" />
           <p className="text-xs text-gray-400">No images uploaded</p>
         </div>
       ) : (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {preview.map((src, i) => (
+        <div className="flex gap-2 overflow-x-auto px-6 pb-1 scrollbar-hide">
+          {images.map((src, i) => (
             <div
               key={i}
-              className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 ${
-                i === 0 ? "border-black" : "border-gray-200"
+              className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${
+                i === 0
+                  ? "border-gray-900 shadow-md"
+                  : "border-gray-200 hover:border-gray-400"
               }`}
             >
               <Image
@@ -54,26 +58,19 @@ export default function EditSectionImages({ listing }: EditSectionImagesProps) {
                 alt={`Image ${i + 1}`}
                 fill
                 className="object-cover"
-                sizes="64px"
+                sizes="80px"
               />
               {i === 0 && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] font-bold text-center py-0.5">
+                <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[9px] font-black text-center py-0.5 tracking-widest">
                   MAIN
                 </div>
               )}
             </div>
           ))}
-          {images.length > 5 && (
-            <div className="flex-shrink-0 w-16 h-16 rounded-xl bg-gray-100 border-2 border-dashed border-gray-200 flex items-center justify-center">
-              <span className="text-xs font-bold text-gray-500">
-                +{images.length - 5}
-              </span>
-            </div>
-          )}
         </div>
       )}
 
-      <p className="text-xs text-gray-400">
+      <p className="text-[11px] text-gray-400 px-6">
         To add or reorder images, visit the listing page.
       </p>
     </div>

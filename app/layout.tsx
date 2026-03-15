@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
+import FooterWrapper from "@/components/layout/FooterWrapper";
 import { CartProvider } from "@/lib/CartContext";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { Inter } from "next/font/google";
@@ -30,7 +30,7 @@ export default function RootLayout({
             <main className="min-h-screen pt-[80px] md:pt-[100px]">
               {children}
             </main>
-            <Footer />
+            <FooterWrapper />
           </CartProvider>
         </AuthProvider>
       </body>
