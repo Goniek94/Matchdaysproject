@@ -18,7 +18,6 @@ import {
   AlertCircle,
   ImageIcon,
   Clock,
-  Tag,
   Gavel,
   Eye,
   Heart,
