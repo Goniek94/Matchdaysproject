@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import ImageGallery from "@/components/auction/ImageGallery";
 import BidPanel from "@/components/auction/BidPanel";
 import BuyNowPanel from "@/components/auction/BuyNowPanel";
@@ -22,9 +23,8 @@ export default function AuctionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [bidding, setBidding] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"details" | "shipping" | "bids">(
-    "details",
-  );
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [bidsOpen, setBidsOpen] = useState(false);
 
   useEffect(() => {
     if (id) loadAuctionData(id);
@@ -192,7 +192,6 @@ export default function AuctionDetailPage() {
     return new Date(Date.now() + days * 86400000).toISOString();
   };
 
-  // --- Loading State ---
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F7F7F5] flex items-center justify-center">
@@ -231,7 +230,6 @@ export default function AuctionDetailPage() {
     Math.floor((endTime - Date.now()) / 1000),
   );
 
-  // Category label map for readable display
   const CATEGORY_LABELS: Record<string, string> = {
     shirts: "Shirts & Jerseys",
     footwear: "Sports Footwear",
@@ -241,18 +239,12 @@ export default function AuctionDetailPage() {
     equipment: "Sports Equipment",
   };
 
-  // Build full category display
   const categoryDisplay = (() => {
     const catLabel =
       CATEGORY_LABELS[auction.category?.toLowerCase()] || auction.category;
     return catLabel || auction.itemType || null;
   })();
 
-  /**
-   * Normalize condition to a short readable label.
-   * Handles both short codes ("good") and full AI descriptions
-   * ("Used - Good. Visible creasing on the synthetic leather upper...")
-   */
   const getConditionLabel = (raw: string | null | undefined): string => {
     if (!raw) return "Unknown";
     const lower = raw.toLowerCase();
@@ -265,13 +257,11 @@ export default function AuctionDetailPage() {
     if (lower.includes("good")) return "Good";
     if (lower.includes("fair") || lower.includes("visible wear")) return "Fair";
     if (lower.includes("poor") || lower.includes("heavy wear")) return "Poor";
-    // Fallback: capitalize first word
     return raw.charAt(0).toUpperCase() + raw.slice(1).split(/[\s\-.,]/)[0];
   };
 
   const conditionLabel = getConditionLabel(auction.condition);
 
-  // Helper: build a detail entry
   type DetailEntry = {
     label: string;
     value: string | null;
@@ -282,11 +272,6 @@ export default function AuctionDetailPage() {
   const val = (v: string | null | undefined): string | null =>
     v && v !== "N/A" ? v : null;
 
-  /**
-   * Normalize shirt size: map short id codes to display labels.
-   * If the value is a long AI description (e.g. "Not visible on tags..."),
-   * return null so the field is hidden rather than showing garbage.
-   */
   const normalizeShirtSize = (
     raw: string | null | undefined,
   ): string | null => {
@@ -314,22 +299,14 @@ export default function AuctionDetailPage() {
       "13-14y": "13-14 years",
     };
     const lower = raw.toLowerCase().trim();
-    // Direct match in map
     if (SHIRT_SIZE_MAP[lower]) return SHIRT_SIZE_MAP[lower];
-    // Short value (≤10 chars, no spaces) - display as-is (uppercase)
     if (raw.length <= 10 && !raw.includes(" ")) return raw.toUpperCase();
-    // Long AI description - hide it (user didn't select a size)
     return null;
   };
 
-  // Build product details dynamically based on category
-  // Each category shows only the fields relevant to that item type
   const buildProductDetails = (): DetailEntry[] => {
-    // Use itemType (shirt, shoes, pants...) for field selection,
-    // falling back to category slug if itemType is not set
     const itemType = auction.itemType?.toLowerCase() || "";
     const catSlug = auction.category?.toLowerCase() || "";
-    // Map itemType values to our specific keys
     const typeMap: Record<string, string> = {
       shirt: "shirts",
       shirts: "shirts",
@@ -349,27 +326,19 @@ export default function AuctionDetailPage() {
     };
     const category = typeMap[itemType] || typeMap[catSlug] || "shirts";
 
-    // Fields common to all categories - always visible
     const common: DetailEntry[] = [
       { label: "Category", value: categoryDisplay || "—", icon: "📂" },
       { label: "Brand", value: val(auction.manufacturer) || "—", icon: "🏷️" },
       { label: "Condition", value: conditionLabel, icon: "✨" },
     ];
 
-    // Helper: always-visible field (shows "—" when empty)
     const always = (
       label: string,
       value: string | null | undefined,
       icon: string,
       verified = false,
-    ): DetailEntry => ({
-      label,
-      value: value || "—",
-      icon,
-      verified,
-    });
+    ): DetailEntry => ({ label, value: value || "—", icon, verified });
 
-    // Helper: optional field (hidden when empty)
     const optional = (
       label: string,
       value: string | null | undefined,
@@ -379,9 +348,6 @@ export default function AuctionDetailPage() {
       return v ? { label, value: v, icon } : null;
     };
 
-    // Category-specific fields
-    // "always" fields are always shown (with "—" if missing)
-    // "optional" fields are hidden when empty
     const specific: Record<string, (DetailEntry | null)[]> = {
       shirts: [
         always("Model", val(auction.model), "📋"),
@@ -476,7 +442,6 @@ export default function AuctionDetailPage() {
       ],
     };
 
-    // Default fallback for unknown categories
     const defaultFields: (DetailEntry | null)[] = [
       always("Model", val(auction.model), "📋"),
       always("Club / Team", val(auction.team), "🏟️"),
@@ -487,8 +452,6 @@ export default function AuctionDetailPage() {
     ];
 
     const categoryFields = specific[category] ?? defaultFields;
-
-    // Merge common + category fields, remove null entries (optional fields that are empty)
     return [...common, ...categoryFields].filter(
       (d): d is DetailEntry => d !== null,
     );
@@ -496,9 +459,32 @@ export default function AuctionDetailPage() {
 
   const productDetails = buildProductDetails();
 
+  const CollapsibleHeader = ({
+    title,
+    open,
+    onToggle,
+  }: {
+    title: string;
+    open: boolean;
+    onToggle: () => void;
+  }) => (
+    <button
+      onClick={onToggle}
+      className="flex items-center justify-between w-full px-6 py-4 hover:bg-gray-50 transition-colors"
+    >
+      <span className="text-[11px] font-bold uppercase tracking-widest text-gray-900">
+        {title}
+      </span>
+      {open ? (
+        <ChevronUp size={15} className="text-gray-400 shrink-0" />
+      ) : (
+        <ChevronDown size={15} className="text-gray-400 shrink-0" />
+      )}
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-[#F7F7F5]">
-      {/* Thin top accent bar */}
       <div className="h-1 bg-gradient-to-r from-black via-gray-600 to-black" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -517,12 +503,12 @@ export default function AuctionDetailPage() {
           </span>
         </nav>
 
-        {/* ===== MAIN GRID ===== */}
+        {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-8 items-start">
-          {/* ───── LEFT COLUMN ───── */}
-          <div className="space-y-5">
+          {/* Left Column */}
+          <div className="space-y-4">
             {/* Image Gallery */}
-            <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
+            <div className="bg-white rounded-[2px] overflow-hidden border border-gray-200">
               <ImageGallery
                 images={auction.images || []}
                 title={auction.title}
@@ -532,163 +518,108 @@ export default function AuctionDetailPage() {
             </div>
 
             {/* Title + Badges */}
-            <div className="bg-white rounded-3xl p-7 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-[2px] p-6 border border-gray-200">
               <div className="flex flex-wrap gap-2 mb-3">
                 <span
-                  className={`inline-flex items-center gap-1 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full ${
+                  className={`inline-flex items-center gap-1 px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-[2px] ${
                     auction.listingType === "auction"
                       ? "bg-blue-50 text-blue-700"
                       : "bg-green-50 text-green-700"
                   }`}
                 >
-                  {auction.listingType === "auction"
-                    ? "🔨 Auction"
-                    : "🛒 Buy Now"}
+                  {auction.listingType === "auction" ? "Auction" : "Buy Now"}
                 </span>
                 {auction.verified && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full bg-emerald-50 text-emerald-700">
+                  <span className="inline-flex items-center gap-1 px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-[2px] bg-black text-white">
                     ✓ Verified
                   </span>
                 )}
                 {auction.rare && (
-                  <span className="inline-flex items-center gap-1 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-full bg-amber-50 text-amber-700">
-                    ⭐ Rare
+                  <span className="inline-flex items-center gap-1 px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-[2px] bg-amber-50 text-amber-700">
+                    Rare
                   </span>
                 )}
               </div>
-              <h1 className="text-2xl font-bold text-gray-900 leading-snug">
+              <h1 className="text-2xl font-light text-gray-900 leading-snug tracking-tight">
                 {auction.title}
               </h1>
             </div>
 
             {/* Description */}
-            <div className="bg-white rounded-3xl p-7 shadow-sm border border-gray-100">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
+            <div className="bg-white rounded-[2px] p-6 border border-gray-200">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
                 Description
-              </h3>
-              <p className="text-gray-700 leading-relaxed text-[15px]">
+              </p>
+              <p className="text-gray-700 leading-relaxed text-sm">
                 {auction.description}
               </p>
             </div>
 
-            {/* Tabbed: Details / Shipping / Bids */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-              {/* Tab Bar */}
-              <div className="flex border-b border-gray-100">
-                {[
-                  { key: "details", label: "Product Details" },
-                  { key: "shipping", label: "Shipping" },
-                  ...(auction.listingType === "auction"
-                    ? [{ key: "bids", label: `Bids (${bids.length})` }]
-                    : []),
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key as any)}
-                    className={`flex-1 py-4 text-xs font-bold uppercase tracking-widest transition-all ${
-                      activeTab === tab.key
-                        ? "text-black border-b-2 border-black -mb-px bg-gray-50"
-                        : "text-gray-400 hover:text-gray-700"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Tab Content */}
-              <div className="p-7">
-                {activeTab === "details" && (
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-0">
-                    {productDetails.map((d, i) => (
-                      <div
-                        key={i}
-                        className={`flex items-center justify-between py-3 border-b border-gray-50 last:border-0 ${
-                          d.verified
-                            ? "bg-emerald-50/50 -mx-2 px-2 rounded-lg"
-                            : ""
+            {/* Product Details — domyślnie otwarte */}
+            <div className="bg-white rounded-[2px] border border-gray-200 overflow-hidden">
+              <CollapsibleHeader
+                title="Product Details"
+                open={detailsOpen}
+                onToggle={() => setDetailsOpen((o) => !o)}
+              />
+              {detailsOpen && (
+                <div className="border-t border-gray-100">
+                  {productDetails.map((d, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-start justify-between px-6 py-3 border-b border-gray-50 last:border-0 min-w-0 ${
+                        d.verified ? "bg-emerald-50/30" : ""
+                      }`}
+                    >
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-widest shrink-0 pt-0.5 ${
+                          d.verified ? "text-emerald-600" : "text-gray-400"
                         }`}
                       >
-                        <span
-                          className={`flex items-center gap-2 text-sm ${
-                            d.verified ? "text-emerald-600" : "text-gray-500"
-                          }`}
-                        >
-                          <span className="text-base">{d.icon}</span>
-                          {d.label}
-                          {d.verified && (
-                            <span className="text-[9px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
-                              AI
-                            </span>
-                          )}
-                        </span>
-                        <span
-                          className={`text-sm font-semibold ${
-                            d.verified ? "text-emerald-700" : "text-gray-900"
-                          }`}
-                        >
-                          {d.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {activeTab === "shipping" && (
-                  <div className="space-y-0">
-                    {[
-                      {
-                        label: "Ships from",
-                        value: auction.shippingFrom,
-                        icon: "📍",
-                      },
-                      {
-                        label: "Delivery time",
-                        value: auction.shippingTime,
-                        icon: "🚚",
-                      },
-                      {
-                        label: "Shipping cost",
-                        value:
-                          auction.shippingCost > 0
-                            ? `€${auction.shippingCost}`
-                            : "Free",
-                        icon: "💳",
-                      },
-                    ].map((row, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-4 border-b border-gray-50 last:border-0"
+                        {d.label}
+                        {d.verified && (
+                          <span className="ml-1.5 text-[8px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full tracking-wider">
+                            AI
+                          </span>
+                        )}
+                      </span>
+                      <span
+                        className={`text-sm font-medium text-right break-words min-w-0 ml-4 ${
+                          d.verified ? "text-emerald-700" : "text-gray-900"
+                        }`}
                       >
-                        <span className="flex items-center gap-2 text-sm text-gray-500">
-                          <span className="text-base">{row.icon}</span>
-                          {row.label}
-                        </span>
-                        <span
-                          className={`text-sm font-semibold ${row.value === "Free" ? "text-green-600" : "text-gray-900"}`}
-                        >
-                          {row.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {activeTab === "bids" && auction.listingType === "auction" && (
-                  <BidHistory bids={bids} />
-                )}
-              </div>
+                        {d.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
+            {/* Bids — tylko dla aukcji, domyślnie zamknięte */}
+            {auction.listingType === "auction" && (
+              <div className="bg-white rounded-[2px] border border-gray-200 overflow-hidden">
+                <CollapsibleHeader
+                  title={`Bid History (${bids.length})`}
+                  open={bidsOpen}
+                  onToggle={() => setBidsOpen((o) => !o)}
+                />
+                {bidsOpen && (
+                  <div className="border-t border-gray-100 p-5">
+                    <BidHistory bids={bids} />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Trust Badges */}
-            <div className="bg-white rounded-3xl p-7 shadow-sm border border-gray-100">
+            <div className="bg-white rounded-[2px] p-6 border border-gray-200">
               <InfoCards />
             </div>
           </div>
 
-          {/* ───── RIGHT COLUMN ───── */}
+          {/* Right Column */}
           <div className="space-y-4 lg:sticky lg:top-8">
-            {/* Bid / Buy Now Panel */}
             <div className="overflow-hidden">
               {auction.listingType === "auction" ? (
                 <BidPanel
@@ -718,7 +649,7 @@ export default function AuctionDetailPage() {
 
             {/* Seller Card */}
             {auction.seller && (
-              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-[2px] border border-gray-200 overflow-hidden">
                 <div className="px-6 pt-5 pb-1">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
                     Sold by
@@ -731,36 +662,41 @@ export default function AuctionDetailPage() {
             )}
 
             {/* Shipping summary */}
-            <div className="bg-gray-50 rounded-3xl p-5 border border-gray-100">
-              <div className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-gray-500">
-                  <span>🚚</span> Shipping
-                </span>
-                <span
-                  className={`font-bold ${auction.shippingCost === 0 ? "text-green-600" : "text-gray-900"}`}
-                >
-                  {auction.shippingCost > 0
-                    ? `€${auction.shippingCost}`
-                    : "Free"}
-                </span>
-              </div>
-              {auction.shippingFrom && (
-                <div className="flex items-center justify-between text-sm mt-3">
-                  <span className="flex items-center gap-2 text-gray-500">
-                    <span>📍</span> Ships from
+            <div className="bg-white rounded-[2px] p-5 border border-gray-200">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">
+                Shipping
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500 uppercase text-[10px] tracking-widest font-medium">
+                    Cost
                   </span>
-                  <span className="font-semibold text-gray-900">
-                    {auction.shippingFrom}
+                  <span
+                    className={`font-bold text-sm ${auction.shippingCost === 0 ? "text-green-600" : "text-gray-900"}`}
+                  >
+                    {auction.shippingCost > 0
+                      ? `€${auction.shippingCost}`
+                      : "Free"}
                   </span>
                 </div>
-              )}
-              <div className="flex items-center justify-between text-sm mt-3">
-                <span className="flex items-center gap-2 text-gray-500">
-                  <span>📦</span> Delivery
-                </span>
-                <span className="font-semibold text-gray-900">
-                  {auction.shippingTime}
-                </span>
+                {auction.shippingFrom && auction.shippingFrom !== "N/A" && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 uppercase text-[10px] tracking-widest font-medium">
+                      From
+                    </span>
+                    <span className="font-medium text-sm text-gray-900">
+                      {auction.shippingFrom}
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-500 uppercase text-[10px] tracking-widest font-medium">
+                    Delivery
+                  </span>
+                  <span className="font-medium text-sm text-gray-900">
+                    {auction.shippingTime}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
