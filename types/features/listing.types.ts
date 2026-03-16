@@ -150,7 +150,14 @@ export interface SmartFormData {
   club: string;
   season: string;
   size: string;
+  sizeEU: string;
+  sizeUK: string;
+  productionYear: string;
   condition: string;
+  countryOfProduction: string;
+  serialCode: string;
+  playerName: string;
+  playerNumber: string;
 
   // Verification fields
   verification: {
@@ -212,7 +219,14 @@ export const INITIAL_FORM_STATE: SmartFormData = {
   club: "",
   season: "",
   size: "",
+  sizeEU: "",
+  sizeUK: "",
+  productionYear: "",
   condition: "excellent",
+  countryOfProduction: "",
+  serialCode: "",
+  playerName: "",
+  playerNumber: "",
   verification: {
     hasAutograph: false,
     autographDetails: "",

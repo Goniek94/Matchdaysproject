@@ -67,6 +67,7 @@ export default function AuctionDetailPage() {
           condition: d.condition || "N/A",
           manufacturer: d.manufacturer || "N/A",
           model: d.model || null,
+          productionYear: d.productionYear || null,
           countryOfProduction: d.countryOfProduction || null,
           serialCode: d.serialCode || null,
           tagCondition: d.tagCondition || null,
@@ -240,82 +241,260 @@ export default function AuctionDetailPage() {
     equipment: "Sports Equipment",
   };
 
-  // Build full category display: "Football - Shirts & Jerseys"
+  // Build full category display
   const categoryDisplay = (() => {
     const catLabel =
       CATEGORY_LABELS[auction.category?.toLowerCase()] || auction.category;
-    const itemLabel = auction.itemType;
-    if (catLabel && itemLabel && catLabel !== itemLabel) {
-      return `${catLabel}`;
-    }
-    return catLabel || itemLabel || null;
+    return catLabel || auction.itemType || null;
   })();
 
-  // Condition short label map
-  const CONDITION_LABELS: Record<string, string> = {
-    bnwt: "BNWT",
-    bnwot: "BNWOT",
-    excellent: "Excellent",
-    good: "Good",
-    fair: "Fair",
-    poor: "Poor",
+  /**
+   * Normalize condition to a short readable label.
+   * Handles both short codes ("good") and full AI descriptions
+   * ("Used - Good. Visible creasing on the synthetic leather upper...")
+   */
+  const getConditionLabel = (raw: string | null | undefined): string => {
+    if (!raw) return "Unknown";
+    const lower = raw.toLowerCase();
+    if (lower.includes("brand new with tags") || lower.startsWith("bnwt"))
+      return "BNWT";
+    if (lower.includes("brand new without tags") || lower.startsWith("bnwot"))
+      return "BNWOT";
+    if (lower.includes("excellent") || lower.includes("like new"))
+      return "Excellent";
+    if (lower.includes("good")) return "Good";
+    if (lower.includes("fair") || lower.includes("visible wear")) return "Fair";
+    if (lower.includes("poor") || lower.includes("heavy wear")) return "Poor";
+    // Fallback: capitalize first word
+    return raw.charAt(0).toUpperCase() + raw.slice(1).split(/[\s\-.,]/)[0];
   };
 
-  // Get short condition label
-  const conditionLabel =
-    CONDITION_LABELS[auction.condition?.toLowerCase()] || auction.condition;
+  const conditionLabel = getConditionLabel(auction.condition);
 
-  // Build product details dynamically from all available form fields
-  // "verified" flag marks fields that are highlighted in green (AI-verified from tag)
-  const allProductDetails: {
+  // Helper: build a detail entry
+  type DetailEntry = {
     label: string;
     value: string | null;
     icon: string;
     verified?: boolean;
-    required?: boolean;
-  }[] = [
-    { label: "Category", value: categoryDisplay, icon: "📂" },
-    { label: "Brand", value: auction.manufacturer, icon: "🏷️" },
-    { label: "Model", value: auction.model, icon: "📋" },
-    { label: "Team", value: auction.team, icon: "🏟️" },
-    { label: "Season", value: auction.season, icon: "📅" },
-    { label: "Size", value: auction.size, icon: "📐" },
-    { label: "Size EU", value: auction.sizeEU, icon: "📐" },
-    { label: "Size UK", value: auction.sizeUK, icon: "📐" },
-    { label: "Condition", value: conditionLabel, icon: "✨" },
-    { label: "Player", value: auction.playerName, icon: "⚽" },
-    { label: "Number", value: auction.playerNumber, icon: "#️⃣" },
-    {
-      label: "Country of Production",
-      value: auction.countryOfProduction || "—",
-      icon: "🌍",
-      verified: true,
-      required: true,
-    },
-    {
-      label: "Serial Code",
-      value: auction.serialCode || "—",
-      icon: "🔢",
-      verified: true,
-      required: true,
-    },
-    { label: "Tag Condition", value: auction.tagCondition, icon: "🏷️" },
-    {
-      label: "Autograph",
-      value: auction.hasAutograph ? auction.autographDetails || "Yes" : null,
-      icon: "✍️",
-    },
-    {
-      label: "Vintage",
-      value: auction.isVintage ? auction.vintageYear || "Yes" : null,
-      icon: "🕰️",
-    },
-  ];
+  };
 
-  // Show required fields always, filter optional fields without value
-  const productDetails = allProductDetails.filter(
-    (d) => d.required || (d.value && d.value !== "N/A" && d.value !== "—"),
-  );
+  const val = (v: string | null | undefined): string | null =>
+    v && v !== "N/A" ? v : null;
+
+  /**
+   * Normalize shirt size: map short id codes to display labels.
+   * If the value is a long AI description (e.g. "Not visible on tags..."),
+   * return null so the field is hidden rather than showing garbage.
+   */
+  const normalizeShirtSize = (
+    raw: string | null | undefined,
+  ): string | null => {
+    if (!raw || raw === "N/A") return null;
+    const SHIRT_SIZE_MAP: Record<string, string> = {
+      xxxs: "XXXS",
+      xxs: "XXS",
+      xs: "XS",
+      s: "S",
+      m: "M",
+      l: "L",
+      xl: "XL",
+      xxl: "XXL",
+      xxxl: "XXXL",
+      xxxxl: "XXXXL",
+      ys: "YS",
+      ym: "YM",
+      yl: "YL",
+      yxl: "YXL",
+      "3-4y": "3-4 years",
+      "5-6y": "5-6 years",
+      "7-8y": "7-8 years",
+      "9-10y": "9-10 years",
+      "11-12y": "11-12 years",
+      "13-14y": "13-14 years",
+    };
+    const lower = raw.toLowerCase().trim();
+    // Direct match in map
+    if (SHIRT_SIZE_MAP[lower]) return SHIRT_SIZE_MAP[lower];
+    // Short value (≤10 chars, no spaces) - display as-is (uppercase)
+    if (raw.length <= 10 && !raw.includes(" ")) return raw.toUpperCase();
+    // Long AI description - hide it (user didn't select a size)
+    return null;
+  };
+
+  // Build product details dynamically based on category
+  // Each category shows only the fields relevant to that item type
+  const buildProductDetails = (): DetailEntry[] => {
+    // Use itemType (shirt, shoes, pants...) for field selection,
+    // falling back to category slug if itemType is not set
+    const itemType = auction.itemType?.toLowerCase() || "";
+    const catSlug = auction.category?.toLowerCase() || "";
+    // Map itemType values to our specific keys
+    const typeMap: Record<string, string> = {
+      shirt: "shirts",
+      shirts: "shirts",
+      jersey: "shirts",
+      shoes: "footwear",
+      footwear: "footwear",
+      sneakers: "footwear",
+      boots: "footwear",
+      pants: "pants",
+      shorts: "pants",
+      jacket: "jackets",
+      jackets: "jackets",
+      hoodie: "jackets",
+      accessory: "accessories",
+      accessories: "accessories",
+      equipment: "equipment",
+    };
+    const category = typeMap[itemType] || typeMap[catSlug] || "shirts";
+
+    // Fields common to all categories - always visible
+    const common: DetailEntry[] = [
+      { label: "Category", value: categoryDisplay || "—", icon: "📂" },
+      { label: "Brand", value: val(auction.manufacturer) || "—", icon: "🏷️" },
+      { label: "Condition", value: conditionLabel, icon: "✨" },
+    ];
+
+    // Helper: always-visible field (shows "—" when empty)
+    const always = (
+      label: string,
+      value: string | null | undefined,
+      icon: string,
+      verified = false,
+    ): DetailEntry => ({
+      label,
+      value: value || "—",
+      icon,
+      verified,
+    });
+
+    // Helper: optional field (hidden when empty)
+    const optional = (
+      label: string,
+      value: string | null | undefined,
+      icon: string,
+    ): DetailEntry | null => {
+      const v = val(value);
+      return v ? { label, value: v, icon } : null;
+    };
+
+    // Category-specific fields
+    // "always" fields are always shown (with "—" if missing)
+    // "optional" fields are hidden when empty
+    const specific: Record<string, (DetailEntry | null)[]> = {
+      shirts: [
+        always("Model", val(auction.model), "📋"),
+        always("Club / Team", val(auction.team), "🏟️"),
+        always("Season", val(auction.season), "📅"),
+        always("Size", normalizeShirtSize(auction.size), "📐"),
+        always(
+          "Country of Production",
+          auction.countryOfProduction,
+          "🌍",
+          true,
+        ),
+        always("Serial Code", auction.serialCode, "🔢", true),
+        optional("Player", auction.playerName, "⚽"),
+        optional("Number", auction.playerNumber, "#️⃣"),
+        optional("Tag Condition", auction.tagCondition, "🏷️"),
+        auction.hasAutograph
+          ? {
+              label: "Autograph",
+              value: auction.autographDetails || "Yes",
+              icon: "✍️",
+            }
+          : null,
+        auction.isVintage
+          ? {
+              label: "Vintage",
+              value: auction.vintageYear || "Yes",
+              icon: "🕰️",
+            }
+          : null,
+      ],
+      footwear: [
+        always("Model", val(auction.model), "📋"),
+        always("Production Year", val(auction.productionYear), "📅"),
+        always(
+          "Size",
+          (() => {
+            const parts = [
+              auction.size && auction.size !== "N/A"
+                ? `US ${auction.size}`
+                : null,
+              auction.sizeEU ? `EU ${auction.sizeEU}` : null,
+              auction.sizeUK ? `UK ${auction.sizeUK}` : null,
+            ].filter(Boolean);
+            return parts.length > 0 ? parts.join(" / ") : null;
+          })(),
+          "📐",
+        ),
+        always(
+          "Country of Production",
+          auction.countryOfProduction,
+          "🌍",
+          true,
+        ),
+        always("Style Code", auction.serialCode, "🔢", true),
+      ],
+      pants: [
+        always("Model", val(auction.model), "📋"),
+        always("Club / Team", val(auction.team), "🏟️"),
+        always("Season", val(auction.season), "📅"),
+        always("Size", val(auction.size), "📐"),
+        always(
+          "Country of Production",
+          auction.countryOfProduction,
+          "🌍",
+          true,
+        ),
+        always("Serial Code", auction.serialCode, "🔢", true),
+      ],
+      jackets: [
+        always("Model", val(auction.model), "📋"),
+        always("Club / Team", val(auction.team), "🏟️"),
+        always("Season", val(auction.season), "📅"),
+        always("Size", val(auction.size), "📐"),
+        always(
+          "Country of Production",
+          auction.countryOfProduction,
+          "🌍",
+          true,
+        ),
+        always("Serial Code", auction.serialCode, "🔢", true),
+      ],
+      accessories: [
+        always("Model", val(auction.model), "📋"),
+        optional("Club / Team", auction.team, "🏟️"),
+        always("Serial Code", auction.serialCode, "🔢", true),
+      ],
+      equipment: [
+        always("Model", val(auction.model), "📋"),
+        always("Size", val(auction.size), "📐"),
+        always("Serial Code", auction.serialCode, "🔢", true),
+      ],
+    };
+
+    // Default fallback for unknown categories
+    const defaultFields: (DetailEntry | null)[] = [
+      always("Model", val(auction.model), "📋"),
+      always("Club / Team", val(auction.team), "🏟️"),
+      always("Season", val(auction.season), "📅"),
+      always("Size", val(auction.size), "📐"),
+      always("Country of Production", auction.countryOfProduction, "🌍", true),
+      always("Serial Code", auction.serialCode, "🔢", true),
+    ];
+
+    const categoryFields = specific[category] ?? defaultFields;
+
+    // Merge common + category fields, remove null entries (optional fields that are empty)
+    return [...common, ...categoryFields].filter(
+      (d): d is DetailEntry => d !== null,
+    );
+  };
+
+  const productDetails = buildProductDetails();
 
   return (
     <div className="min-h-screen bg-[#F7F7F5]">

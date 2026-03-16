@@ -71,23 +71,24 @@ export const getCategoryDetailRows = (category: string): SpecFieldConfig[] => {
       { key: "size", label: "Size", getValue: (d) => d.size },
       {
         key: "country",
-        label: "Country",
-        getValue: (d) => d.aiData?.countryOfProduction,
+        label: "Country of Production",
+        // Prefer form field, fallback to aiData
+        getValue: (d) => d.countryOfProduction || d.aiData?.countryOfProduction,
       },
       {
         key: "serialCode",
         label: "Serial Code",
-        getValue: (d) => d.aiData?.serialCode,
+        getValue: (d) => d.serialCode || d.aiData?.serialCode,
       },
       {
         key: "playerName",
         label: "Player",
-        getValue: (d) => d.aiData?.playerName,
+        getValue: (d) => d.playerName || d.aiData?.playerName,
       },
       {
         key: "playerNumber",
         label: "Number",
-        getValue: (d) => d.aiData?.playerNumber,
+        getValue: (d) => d.playerNumber || d.aiData?.playerNumber,
       },
     ],
     footwear: [
@@ -95,27 +96,32 @@ export const getCategoryDetailRows = (category: string): SpecFieldConfig[] => {
       {
         key: "productionYear",
         label: "Production Year",
-        getValue: (d) => d.aiData?.productionYear,
+        getValue: (d) => d.productionYear || d.aiData?.productionYear,
+      },
+      {
+        key: "size",
+        label: "Size",
+        getValue: (d) => d.size,
       },
       {
         key: "sizeEU",
         label: "Size (EU)",
-        getValue: (d) => d.aiData?.sizeEU || d.size,
+        getValue: (d) => d.sizeEU || d.aiData?.sizeEU,
       },
       {
         key: "sizeUK",
         label: "Size (UK)",
-        getValue: (d) => d.aiData?.sizeUK,
+        getValue: (d) => d.sizeUK || d.aiData?.sizeUK,
       },
       {
         key: "country",
-        label: "Country",
-        getValue: (d) => d.aiData?.countryOfProduction,
+        label: "Country of Production",
+        getValue: (d) => d.countryOfProduction || d.aiData?.countryOfProduction,
       },
       {
         key: "serialCode",
         label: "Style Code",
-        getValue: (d) => d.aiData?.serialCode,
+        getValue: (d) => d.serialCode || d.aiData?.serialCode,
       },
     ],
     pants: [
@@ -123,20 +129,50 @@ export const getCategoryDetailRows = (category: string): SpecFieldConfig[] => {
       { key: "club", label: "Club / Team", getValue: (d) => d.club },
       { key: "season", label: "Season", getValue: (d) => d.season },
       { key: "size", label: "Size", getValue: (d) => d.size },
+      {
+        key: "country",
+        label: "Country of Production",
+        getValue: (d) => d.countryOfProduction || d.aiData?.countryOfProduction,
+      },
+      {
+        key: "serialCode",
+        label: "Serial Code",
+        getValue: (d) => d.serialCode || d.aiData?.serialCode,
+      },
     ],
     jackets: [
       { key: "model", label: "Model", getValue: (d) => d.model },
       { key: "club", label: "Club / Team", getValue: (d) => d.club },
       { key: "season", label: "Season", getValue: (d) => d.season },
       { key: "size", label: "Size", getValue: (d) => d.size },
+      {
+        key: "country",
+        label: "Country of Production",
+        getValue: (d) => d.countryOfProduction || d.aiData?.countryOfProduction,
+      },
+      {
+        key: "serialCode",
+        label: "Serial Code",
+        getValue: (d) => d.serialCode || d.aiData?.serialCode,
+      },
     ],
     accessories: [
       { key: "model", label: "Model", getValue: (d) => d.model },
       { key: "club", label: "Club / Team", getValue: (d) => d.club },
+      {
+        key: "serialCode",
+        label: "Serial Code",
+        getValue: (d) => d.serialCode || d.aiData?.serialCode,
+      },
     ],
     equipment: [
       { key: "model", label: "Model", getValue: (d) => d.model },
       { key: "size", label: "Size", getValue: (d) => d.size },
+      {
+        key: "serialCode",
+        label: "Serial Code",
+        getValue: (d) => d.serialCode || d.aiData?.serialCode,
+      },
     ],
   };
 
@@ -145,6 +181,16 @@ export const getCategoryDetailRows = (category: string): SpecFieldConfig[] => {
     { key: "club", label: "Club / Team", getValue: (d) => d.club },
     { key: "season", label: "Season", getValue: (d) => d.season },
     { key: "size", label: "Size", getValue: (d) => d.size },
+    {
+      key: "country",
+      label: "Country of Production",
+      getValue: (d) => d.countryOfProduction || d.aiData?.countryOfProduction,
+    },
+    {
+      key: "serialCode",
+      label: "Serial Code",
+      getValue: (d) => d.serialCode || d.aiData?.serialCode,
+    },
   ];
 
   return [...common, ...specific];

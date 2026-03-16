@@ -82,14 +82,46 @@ const mapFormDataToAuctionDto = (data: SmartFormData) => {
     itemType: data.categorySlug || "shirt",
     listingType,
 
-    // Details
-    team: data.club || "Unknown",
-    season: data.season || "Unknown",
-    size: data.size || "M",
+    // Details - prefer form fields, fallback to aiData
+    team: data.club || data.aiData?.team || "Unknown",
+    season: data.season || data.aiData?.season || "Unknown",
+    // Size: use form value only if it's a short code (user-selected), not a long AI description.
+    // AI may return "Not visible on tags (appears large)" - we don't want that as the stored size.
+    size: (() => {
+      const formSize = data.size?.trim();
+      const aiSize = data.aiData?.size?.trim();
+      // A valid user-selected size is short (≤10 chars) and doesn't contain spaces
+      const isValidSize = (s?: string) =>
+        !!s && s.length <= 10 && !s.includes(" ");
+      if (isValidSize(formSize)) return formSize!;
+      if (isValidSize(aiSize)) return aiSize!;
+      // Fallback: store the raw value (could be AI description) so it's not lost
+      return formSize || aiSize || "M";
+    })(),
+    sizeEU: data.sizeEU || data.aiData?.sizeEU || undefined,
+    sizeUK: data.sizeUK || data.aiData?.sizeUK || undefined,
+    productionYear:
+      data.productionYear || data.aiData?.productionYear || undefined,
     condition: data.condition || "excellent",
-    manufacturer: data.brand || undefined,
-    playerName: undefined, // Can be extracted from verification if needed
-    playerNumber: undefined,
+    manufacturer: data.brand || data.aiData?.brand || undefined,
+    model: data.model || data.aiData?.model || undefined,
+    playerName: data.playerName || data.aiData?.playerName || undefined,
+    playerNumber: data.playerNumber || data.aiData?.playerNumber || undefined,
+    // countryOfProduction & serialCode: prefer direct form fields (set by AI update() calls),
+    // then fall back to raw aiData object (in case React state batching delayed the update).
+    countryOfProduction:
+      data.countryOfProduction?.trim() ||
+      data.aiData?.countryOfProduction?.trim() ||
+      undefined,
+    serialCode:
+      data.serialCode?.trim() || data.aiData?.serialCode?.trim() || undefined,
+
+    // Verification fields
+    tagCondition: data.verification.tagCondition || undefined,
+    hasAutograph: data.verification.hasAutograph || false,
+    autographDetails: data.verification.autographDetails || undefined,
+    isVintage: data.verification.isVintage || false,
+    vintageYear: data.verification.vintageYear || undefined,
 
     // Images - extract URLs from Photo objects
     images: data.photos.map((photo) => photo.url),

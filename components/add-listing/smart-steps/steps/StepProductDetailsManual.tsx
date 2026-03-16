@@ -174,6 +174,10 @@ export default function StepProductDetailsManual({ data, update }: StepProps) {
                 </label>
                 <input
                   type="text"
+                  value={data.countryOfProduction}
+                  onChange={(e) =>
+                    update("countryOfProduction", e.target.value)
+                  }
                   placeholder="e.g. Thailand, Turkey"
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none"
                 />
@@ -186,7 +190,37 @@ export default function StepProductDetailsManual({ data, update }: StepProps) {
                 </label>
                 <input
                   type="text"
+                  value={data.serialCode}
+                  onChange={(e) => update("serialCode", e.target.value)}
                   placeholder="e.g. DH2290-688"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none"
+                />
+              </div>
+
+              {/* Player Name */}
+              <div>
+                <label className="block font-medium text-gray-700 mb-2">
+                  Player Name
+                </label>
+                <input
+                  type="text"
+                  value={data.playerName}
+                  onChange={(e) => update("playerName", e.target.value)}
+                  placeholder="e.g. Rashford"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none"
+                />
+              </div>
+
+              {/* Player Number */}
+              <div>
+                <label className="block font-medium text-gray-700 mb-2">
+                  Player Number
+                </label>
+                <input
+                  type="text"
+                  value={data.playerNumber}
+                  onChange={(e) => update("playerNumber", e.target.value)}
+                  placeholder="e.g. 10"
                   className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none"
                 />
               </div>

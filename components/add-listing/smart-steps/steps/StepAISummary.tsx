@@ -10,6 +10,32 @@ interface StepProps {
   update: (field: keyof SmartFormData, val: any) => void;
 }
 
+/**
+ * Normalize AI condition string to a short condition code.
+ * AI may return long descriptions like "Used - Good. Visible creasing..."
+ * We extract the first matching keyword and map it to our condition IDs.
+ */
+function normalizeCondition(raw: string): string {
+  if (!raw) return "good";
+  const lower = raw.toLowerCase();
+  if (lower.includes("brand new with tags") || lower.startsWith("bnwt"))
+    return "bnwt";
+  if (lower.includes("brand new without tags") || lower.startsWith("bnwot"))
+    return "bnwot";
+  if (lower.includes("excellent") || lower.includes("like new"))
+    return "excellent";
+  if (lower.includes("good")) return "good";
+  if (lower.includes("fair") || lower.includes("visible wear")) return "fair";
+  if (lower.includes("poor") || lower.includes("heavy wear")) return "poor";
+  // Fallback: return first word if it matches a known id
+  const firstWord = raw.split(/[\s\-.,]/)[0].toLowerCase();
+  if (
+    ["bnwt", "bnwot", "excellent", "good", "fair", "poor"].includes(firstWord)
+  )
+    return firstWord;
+  return "good";
+}
+
 export default function StepAISummary({ data, update }: StepProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +92,15 @@ export default function StepAISummary({ data, update }: StepProps) {
         update("season", ai.season);
         update("model", ai.model);
         update("size", ai.size);
-        update("condition", ai.condition);
+        update("sizeEU", ai.sizeEU || "");
+        update("sizeUK", ai.sizeUK || "");
+        update("productionYear", ai.productionYear || "");
+        // Normalize condition: take only the first word/code (e.g. "Used - Good. Visible..." -> "good")
+        update("condition", normalizeCondition(ai.condition));
+        update("countryOfProduction", ai.countryOfProduction || "");
+        update("serialCode", ai.serialCode || "");
+        update("playerName", ai.playerName || "");
+        update("playerNumber", ai.playerNumber || "");
       } else {
         setError("AI analysis failed. Please try again.");
       }
