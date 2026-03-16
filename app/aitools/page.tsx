@@ -641,7 +641,7 @@ function HoloScanner() {
 
           {/* Item selector dots */}
           <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
-            {ITEMS.map((it, i) => (
+            {ITEMS.map((_, i) => (
               <div
                 key={i}
                 onClick={() => handleItem(i)}
