@@ -268,7 +268,10 @@ export default function LegitCheck() {
   }, []);
 
   const getPhotoByType = useCallback(
-    (photoType: string) => photos.find((p) => p.typeHint === photoType),
+    (photoType: string | null | undefined) => {
+      if (!photoType) return undefined;
+      return photos.find((p) => p.typeHint === photoType);
+    },
     [photos],
   );
 
@@ -427,8 +430,8 @@ export default function LegitCheck() {
         >
           {visiblePhotos.map((photoConfig) => (
             <PhotoSlot
-              key={photoConfig.type}
-              typeKey={photoConfig.type}
+              key={photoConfig.type!}
+              typeKey={photoConfig.type!}
               label={photoConfig.label}
               desc={photoConfig.desc}
               isOptional={photoConfig.desc.includes("optional")}
@@ -441,8 +444,8 @@ export default function LegitCheck() {
                     }
                   : undefined
               }
-              onUpload={(files) => handleFileUpload(files, photoConfig.type)}
-              onRemove={() => removePhoto(photoConfig.type)}
+              onUpload={(files) => handleFileUpload(files, photoConfig.type!)}
+              onRemove={() => removePhoto(photoConfig.type!)}
             />
           ))}
         </PhotoGrid>
