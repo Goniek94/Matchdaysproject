@@ -10,91 +10,89 @@ export default function Hero() {
   const [direction, setDirection] = useState(0);
 
   const slides = [
-    // SLAJD 1: GŁÓWNY (Ogólny)
+    // SLAJD 1: GŁÓWNY — Co to jest Matchdays
     {
       id: 1,
-      title: "Wear the Moment",
-      subtitle: "The History of Football",
-      highlight: "LEGENDS ARE ETERNAL",
+      title: "Matchdays",
+      subtitle: "The Sports Collectibles Marketplace",
+      highlight: "BUY. SELL. COLLECT. REPEAT.",
       description:
-        "Don't just watch the history. Wear it. From the mud of Sunday League to the lights of the Champions League final. Every shirt tells a story.",
+        "The home for authentic sports memorabilia. Jerseys, kits, signed items and rare collectibles from football, basketball, hockey, motorsport and beyond — all in one place.",
       image:
-        "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Start Your Collection",
+        "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=2500&auto=format&fit=crop",
+      ctaText: "Start Exploring",
       ctaLink: "/auctions",
       color: "from-red-600 to-rose-700",
     },
-    // SLAJD 2: AI TOOLS - NOWY!
+    // SLAJD 2: AUKCJE I KOLEKCJONOWANIE
     {
       id: 2,
-      title: "AI-Powered",
-      subtitle: "Intelligence That Works For You",
-      highlight: "SUPERCHARGED BY AI",
+      title: "Bid. Win. Own.",
+      subtitle: "Live Auctions & Buy Now",
+      highlight: "RARE ITEMS. REAL VALUE.",
       description:
-        "Verify authenticity instantly. Generate pro descriptions. Get real-time valuations. Find any jersey with a photo. Our AI has analyzed 5 million shirts to make collecting effortless.",
+        "Compete in live auctions or grab items instantly at fixed prices. From match-worn shirts to signed memorabilia — every listing is verified and every deal is protected.",
       image:
-        "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=2500&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2500&auto=format&fit=crop",
+      ctaText: "Browse Auctions",
+      ctaLink: "/auctions",
+      color: "from-amber-500 to-orange-600",
+    },
+    // SLAJD 3: AI TOOLS
+    {
+      id: 3,
+      title: "AI-Powered",
+      subtitle: "Smart Collecting, Smarter Selling",
+      highlight: "VERIFIED. VALUED. TRUSTED.",
+      description:
+        "Instant authenticity checks. AI-generated descriptions. Real-time market valuations. Our technology has analyzed millions of items so you can buy and sell with total confidence.",
+      image:
+        "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?q=80&w=2500&auto=format&fit=crop",
       ctaText: "Explore AI Tools",
       ctaLink: "/aitools",
       color: "from-purple-600 to-pink-600",
     },
-    // SLAJD 3: AUTENTYCZNOŚĆ
-    {
-      id: 3,
-      title: "Zero Fakes.",
-      subtitle: "Guaranteed Authenticity",
-      highlight: "VERIFIED BY EXPERTS",
-      description:
-        "In a world full of replicas, we stand for the truth. Our AI-powered verification combined with human expertise ensures 100% authenticity. Or your money back.",
-      image:
-        "https://images.unsplash.com/photo-1577212017184-80cc0da11395?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "How We Verify",
-      ctaLink: "#verification",
-      color: "from-blue-600 to-indigo-600",
-    },
-    // --- SLAJD 4: GRYWALIZACJA (PLAY & WIN) ---
+    // SLAJD 4: SPRZEDAŻ
     {
       id: 4,
-      title: "Play & Win",
-      subtitle: "The MatchDays League",
-      highlight: "YOUR KNOWLEDGE PAYS OFF",
+      title: "Sell Smarter",
+      subtitle: "List, Search & Sell Across Europe",
+      highlight: "YOUR COLLECTION. YOUR PRICE.",
       description:
-        "Predict scores, challenge the community, and win VIP tickets or rare kits. Turn your football IQ into real rewards on our platform.",
-      // Zdjęcie: Emocje, radość, trofeum
+        "List your items in minutes, search thousands of verified collectibles and reach buyers across the entire European Union. No borders, no hidden fees — just sport, passion and fair deals.",
+      image:
+        "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=2500&auto=format&fit=crop",
+      ctaText: "Start Selling",
+      ctaLink: "/add-listing",
+      color: "from-green-600 to-emerald-600",
+    },
+    // SLAJD 5: SPOŁECZNOŚĆ / ARENA
+    {
+      id: 5,
+      title: "Play & Win",
+      subtitle: "Matchdays Arena",
+      highlight: "YOUR KNOWLEDGE PAYS OFF.",
+      description:
+        "More than a marketplace — it's a community. Predict match outcomes, challenge other collectors, climb the leaderboard and win exclusive prizes. Sport is better together.",
       image:
         "https://images.unsplash.com/photo-1516637090013-59d4239e957f?q=80&w=2500&auto=format&fit=crop",
       ctaText: "Enter the Arena",
-      ctaLink: "/games",
-      color: "from-emerald-500 to-teal-500",
+      ctaLink: "/arena",
+      color: "from-indigo-500 to-blue-600",
     },
-    // SLAJD 5: SUBSKRYPCJE
-    {
-      id: 5,
-      title: "Level Up",
-      subtitle: "Premium Membership",
-      highlight: "LOWER FEES. MORE TOOLS.",
-      description:
-        "From 15% to just 5% commission. Get AI Credits, better positioning, and exclusive perks. Choose a plan that fits your activity and start saving on every sale.",
-      image:
-        "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "View Plans",
-      ctaLink: "#pricing",
-      color: "from-indigo-500 to-purple-600",
-    },
-    // --- SLAJD 6: EU COVERAGE (UE & WYSYŁKA) ---
+    // SLAJD 6: ZAUFANIE / EU SHIPPING
     {
       id: 6,
-      title: "No Borders",
-      subtitle: "Fast EU Shipping",
-      highlight: "ZERO CUSTOMS FEES",
+      title: "Zero Fakes.",
+      subtitle: "Buyer Protection Guaranteed",
+      highlight: "100% AUTHENTIC OR MONEY BACK.",
       description:
-        "We operate across the entire European Union. From Warsaw to Madrid. Fast, insured shipping with absolutely no hidden customs fees.",
-      // Zdjęcie: Mapa, podróż, stadion z zewnątrz
+        "Every item is verified before it reaches you. Secure payments, insured EU-wide shipping and a full buyer protection policy. Shop with confidence — we've got you covered.",
       image:
         "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Shipping Info",
-      ctaLink: "/shipping",
-      color: "from-indigo-500 to-purple-600",
+      ctaText: "How It Works",
+      ctaLink: "/auctions",
+      color: "from-blue-600 to-indigo-600",
     },
   ];
 

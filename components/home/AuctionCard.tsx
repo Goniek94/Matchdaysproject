@@ -13,6 +13,7 @@ import {
   Gavel,
   Heart,
 } from "lucide-react";
+import { useWatchlist } from "@/lib/context/WatchlistContext";
 
 // ─── Jersey icon ──────────────────────────────────────────────────────────────
 
@@ -170,11 +171,17 @@ const getFrameColors = (rare: boolean, verified: boolean) => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AuctionCard({ auction, badge }: AuctionCardProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isInWatchlist, toggleWatchlist } = useWatchlist();
+
   const initialPrice = auction.price || (auction as any).currentBid || 0;
   const [currentPrice, setCurrentPrice] = useState(initialPrice);
   const [priceChanged, setPriceChanged] = useState(false);
+  const [watchlistFeedback, setWatchlistFeedback] = useState<string | null>(
+    null,
+  );
   const prevPriceRef = useRef(initialPrice);
+
+  const isFavorite = isInWatchlist(auction.id);
 
   useEffect(() => {
     const newPrice = auction.price || (auction as any).currentBid || 0;
@@ -190,7 +197,20 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsFavorite(!isFavorite);
+
+    const added = toggleWatchlist({
+      id: auction.id,
+      title: auction.title,
+      currentBid: auction.type === "auction" ? auction.price : undefined,
+      buyNowPrice: auction.type === "buy_now" ? auction.price : undefined,
+      image: auction.image,
+      listingType: auction.type === "buy_now" ? "buy_now" : "auction",
+    });
+
+    setWatchlistFeedback(
+      added ? "Added to favorites!" : "Removed from favorites",
+    );
+    setTimeout(() => setWatchlistFeedback(null), 2000);
   };
 
   const flagUrl = auction.country?.code
@@ -205,6 +225,13 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
       href={`/auction/${auction.id}`}
       className="group h-full relative block cursor-pointer"
     >
+      {/* Watchlist feedback toast */}
+      {watchlistFeedback && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 bg-black/80 text-white text-[11px] font-semibold rounded-full whitespace-nowrap shadow-lg pointer-events-none animate-fade-in">
+          {watchlistFeedback}
+        </div>
+      )}
+
       {frameColors.glow && (
         <div
           className={`absolute inset-0 -z-10 rounded-2xl blur-2xl opacity-60 group-hover:opacity-80 transition-all duration-500 ${frameColors.glow}`}

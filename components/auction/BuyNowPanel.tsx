@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/CartContext";
+import { useWatchlist } from "@/lib/context/WatchlistContext";
 import { ShoppingCart, Heart, Plus } from "lucide-react";
 
 interface BuyNowPanelProps {
@@ -11,6 +12,7 @@ interface BuyNowPanelProps {
   auctionId: string;
   title: string;
   image: string;
+  endTime?: string;
   seller: {
     name: string;
     rating: number;
@@ -24,18 +26,23 @@ export default function BuyNowPanel({
   auctionId,
   title,
   image,
+  endTime,
   seller,
   onAddToWatchlist,
 }: BuyNowPanelProps) {
   const router = useRouter();
   const { addToCart, items } = useCart();
-  const [isAddedToWatchlist, setIsAddedToWatchlist] = useState(false);
+  const { isInWatchlist, toggleWatchlist } = useWatchlist();
+
   const [justAdded, setJustAdded] = useState(false);
+  const [watchlistFeedback, setWatchlistFeedback] = useState<string | null>(
+    null,
+  );
 
   const isInCart = items.some((item) => item.id === auctionId);
+  const inWatchlist = isInWatchlist(auctionId);
 
   const handleBuyNow = () => {
-    // Redirect to checkout page with auction ID
     router.push(`/checkout?id=${auctionId}`);
   };
 
@@ -52,9 +59,23 @@ export default function BuyNowPanel({
     setTimeout(() => setJustAdded(false), 2000);
   };
 
-  const handleAddToWatchlist = () => {
-    setIsAddedToWatchlist(!isAddedToWatchlist);
-    onAddToWatchlist?.();
+  const handleToggleWatchlist = () => {
+    const added = toggleWatchlist({
+      id: auctionId,
+      title,
+      buyNowPrice: price,
+      image,
+      endTime,
+      listingType: "buy_now",
+    });
+
+    setWatchlistFeedback(
+      added ? "Added to watchlist!" : "Removed from watchlist",
+    );
+    setTimeout(() => setWatchlistFeedback(null), 2000);
+
+    // Also call the optional external callback
+    if (added) onAddToWatchlist?.();
   };
 
   return (
@@ -113,18 +134,23 @@ export default function BuyNowPanel({
 
         {/* Add to Watchlist Button */}
         <button
-          onClick={handleAddToWatchlist}
+          onClick={handleToggleWatchlist}
           className={`w-full py-4 border font-medium text-sm uppercase tracking-widest rounded-[2px] transition-all flex items-center justify-center gap-2 ${
-            isAddedToWatchlist
+            inWatchlist
               ? "bg-white/20 border-white text-white"
               : "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white"
           }`}
         >
           <Heart
             size={18}
-            fill={isAddedToWatchlist ? "currentColor" : "none"}
+            fill={inWatchlist ? "currentColor" : "none"}
+            className={inWatchlist ? "text-red-400" : ""}
           />
-          {isAddedToWatchlist ? "Added to Watchlist" : "Add to Watchlist"}
+          {watchlistFeedback
+            ? watchlistFeedback
+            : inWatchlist
+              ? "In Watchlist"
+              : "Add to Watchlist"}
         </button>
       </div>
 

@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/context/AuthContext";
+import { useWatchlist } from "@/lib/context/WatchlistContext";
+import { Heart, LogIn, AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 interface BidPanelProps {
+  auctionId?: string;
+  auctionTitle?: string;
+  auctionImage?: string;
+  auctionEndTime?: string;
   currentBid: number;
   bidCount: number;
   highestBidder?: string;
@@ -13,10 +21,15 @@ interface BidPanelProps {
 
 /**
  * Combined auction panel with countdown timer, current bid info,
- * highest bidder display, and bid placement controls.
+ * highest bidder display, bid placement controls and watchlist button.
+ * Requires authentication to place a bid.
  * Currency: EUR (€)
  */
 export default function BidPanel({
+  auctionId,
+  auctionTitle,
+  auctionImage,
+  auctionEndTime,
   currentBid,
   bidCount,
   highestBidder,
@@ -24,19 +37,29 @@ export default function BidPanel({
   onPlaceBid,
   disabled = false,
 }: BidPanelProps) {
+  const { isAuthenticated } = useAuth();
+  const { isInWatchlist, toggleWatchlist } = useWatchlist();
+
   const [bidAmount, setBidAmount] = useState("");
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
   const [isUrgent, setIsUrgent] = useState(false);
+  const [bidError, setBidError] = useState<string | null>(null);
+  const [watchlistFeedback, setWatchlistFeedback] = useState<string | null>(
+    null,
+  );
 
   const minimumBid = currentBid + 5;
   const quickBids = [minimumBid, currentBid + 10, currentBid + 25];
 
-  // Countdown timer
+  const inWatchlist = auctionId ? isInWatchlist(auctionId) : false;
+
+  // Sync countdown with initialSeconds prop changes
   useEffect(() => {
     if (initialSeconds <= 0) return;
     setTimeLeft(initialSeconds);
   }, [initialSeconds]);
 
+  // Countdown tick
   useEffect(() => {
     const interval = setInterval(() => {
       setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
@@ -64,16 +87,48 @@ export default function BidPanel({
 
   const handleQuickBid = (amount: number) => {
     setBidAmount(amount.toString());
+    setBidError(null);
   };
 
   const handlePlaceBid = () => {
-    const amount = parseFloat(bidAmount);
-    if (amount >= minimumBid) {
-      onPlaceBid?.(amount);
-      setBidAmount("");
-    } else {
-      alert(`Minimum bid is ${formatEur(minimumBid)}`);
+    setBidError(null);
+
+    if (!isAuthenticated) {
+      setBidError("You must be logged in to place a bid.");
+      return;
     }
+
+    const amount = parseFloat(bidAmount);
+    if (isNaN(amount) || amount <= 0) {
+      setBidError("Please enter a valid bid amount.");
+      return;
+    }
+
+    if (amount < minimumBid) {
+      setBidError(`Minimum bid is ${formatEur(minimumBid)}.`);
+      return;
+    }
+
+    onPlaceBid?.(amount);
+    setBidAmount("");
+  };
+
+  const handleToggleWatchlist = () => {
+    if (!auctionId) return;
+
+    const added = toggleWatchlist({
+      id: auctionId,
+      title: auctionTitle || "Auction",
+      currentBid,
+      image: auctionImage,
+      endTime: auctionEndTime,
+      listingType: "auction",
+    });
+
+    setWatchlistFeedback(
+      added ? "Added to watchlist!" : "Removed from watchlist",
+    );
+    setTimeout(() => setWatchlistFeedback(null), 2000);
   };
 
   const auctionEnded = timeLeft <= 0;
@@ -147,40 +202,94 @@ export default function BidPanel({
       {/* Bid Controls */}
       {!auctionEnded && (
         <>
-          <div className="mt-5 mb-3">
-            <input
-              type="number"
-              value={bidAmount}
-              onChange={(e) => setBidAmount(e.target.value)}
-              placeholder={`Enter bid (min. ${formatEur(minimumBid)})`}
-              disabled={disabled}
-              className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-xl text-white placeholder:text-white/40 text-sm focus:outline-none focus:bg-white/15 focus:border-white/30 transition-all disabled:opacity-50"
-            />
-          </div>
-
-          {/* Quick Bid Buttons */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {quickBids.map((amount) => (
-              <button
-                key={amount}
-                onClick={() => handleQuickBid(amount)}
-                disabled={disabled}
-                className="py-2.5 bg-white/10 border border-white/15 text-white text-xs font-bold uppercase tracking-wide rounded-xl hover:bg-white/20 hover:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          {/* Auth gate - show login prompt if not authenticated */}
+          {!isAuthenticated ? (
+            <div className="mt-5 mb-3 bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+              <p className="text-sm text-gray-300 mb-3">
+                Sign in to place a bid
+              </p>
+              <Link
+                href="/register"
+                className="inline-flex items-center gap-2 w-full justify-center py-3 bg-white text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-gray-100 transition-all"
               >
-                {formatEur(amount)}
-              </button>
-            ))}
-          </div>
+                <LogIn size={14} />
+                Sign In / Register
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 mb-3">
+                <input
+                  type="number"
+                  value={bidAmount}
+                  onChange={(e) => {
+                    setBidAmount(e.target.value);
+                    setBidError(null);
+                  }}
+                  placeholder={`Enter bid (min. ${formatEur(minimumBid)})`}
+                  disabled={disabled}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/15 rounded-xl text-white placeholder:text-white/40 text-sm focus:outline-none focus:bg-white/15 focus:border-white/30 transition-all disabled:opacity-50"
+                />
+              </div>
 
-          {/* Place Bid Button */}
-          <button
-            onClick={handlePlaceBid}
-            disabled={disabled}
-            className="w-full py-3.5 bg-white text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {disabled ? "Placing bid..." : "Place Bid"}
-          </button>
+              {/* Error message */}
+              {bidError && (
+                <div className="flex items-center gap-2 mb-3 text-red-400 text-xs">
+                  <AlertCircle size={13} />
+                  <span>{bidError}</span>
+                </div>
+              )}
+
+              {/* Quick Bid Buttons */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {quickBids.map((amount) => (
+                  <button
+                    key={amount}
+                    onClick={() => handleQuickBid(amount)}
+                    disabled={disabled}
+                    className="py-2.5 bg-white/10 border border-white/15 text-white text-xs font-bold uppercase tracking-wide rounded-xl hover:bg-white/20 hover:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {formatEur(amount)}
+                  </button>
+                ))}
+              </div>
+
+              {/* Place Bid Button */}
+              <button
+                onClick={handlePlaceBid}
+                disabled={disabled}
+                className="w-full py-3.5 bg-white text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {disabled ? "Placing bid..." : "Place Bid"}
+              </button>
+            </>
+          )}
         </>
+      )}
+
+      {/* Watchlist Button */}
+      {auctionId && (
+        <div className="mt-4">
+          <button
+            onClick={handleToggleWatchlist}
+            className={`w-full py-3 border font-medium text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 ${
+              inWatchlist
+                ? "bg-white/20 border-white text-white"
+                : "bg-white/5 border-white/20 text-white/70 hover:bg-white/10 hover:border-white/40 hover:text-white"
+            }`}
+          >
+            <Heart
+              size={14}
+              fill={inWatchlist ? "currentColor" : "none"}
+              className={inWatchlist ? "text-red-400" : ""}
+            />
+            {watchlistFeedback
+              ? watchlistFeedback
+              : inWatchlist
+                ? "In Watchlist"
+                : "Add to Watchlist"}
+          </button>
+        </div>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 import FooterWrapper from "@/components/layout/FooterWrapper";
 import { CartProvider } from "@/lib/CartContext";
 import { AuthProvider } from "@/lib/context/AuthContext";
+import { WatchlistProvider } from "@/lib/context/WatchlistContext";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -25,13 +26,15 @@ export default function RootLayout({
       <body>
         {/* AuthProvider wraps everything - global auth state */}
         <AuthProvider>
-          <CartProvider>
-            <Navbar />
-            <main className="min-h-screen pt-[80px] md:pt-[100px]">
-              {children}
-            </main>
-            <FooterWrapper />
-          </CartProvider>
+          <WatchlistProvider>
+            <CartProvider>
+              <Navbar />
+              <main className="min-h-screen pt-[80px] md:pt-[100px]">
+                {children}
+              </main>
+              <FooterWrapper />
+            </CartProvider>
+          </WatchlistProvider>
         </AuthProvider>
       </body>
     </html>

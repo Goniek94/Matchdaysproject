@@ -23,6 +23,10 @@ export default function AuctionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [bidding, setBidding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [bidFeedback, setBidFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [bidsOpen, setBidsOpen] = useState(false);
 
@@ -131,6 +135,11 @@ export default function AuctionDetailPage() {
     }
   };
 
+  const showBidFeedback = (type: "success" | "error", message: string) => {
+    setBidFeedback({ type, message });
+    setTimeout(() => setBidFeedback(null), 4000);
+  };
+
   const handlePlaceBid = async (amount: number) => {
     try {
       setBidding(true);
@@ -140,14 +149,17 @@ export default function AuctionDetailPage() {
       if (isRealAuction) {
         const result = await placeBid(id, amount);
         if (!result.success) {
-          alert(`❌ ${result.error || "Failed to place bid"}`);
+          showBidFeedback("error", result.error || "Failed to place bid");
           return;
         }
-        alert(`🎉 Bid (${amount} €) placed successfully!`);
+        showBidFeedback("success", `Bid of €${amount} placed successfully!`);
         await loadAuctionData(id);
       } else {
-        await new Promise((r) => setTimeout(r, 1000));
-        alert(`🎉 DEMO: Your bid (${amount} €) was accepted!`);
+        await new Promise((r) => setTimeout(r, 800));
+        showBidFeedback(
+          "success",
+          `DEMO: Your bid of €${amount} was accepted!`,
+        );
         const newBid = {
           id: Date.now().toString(),
           username: "You (Demo)",
@@ -166,7 +178,7 @@ export default function AuctionDetailPage() {
         }));
       }
     } catch (err: any) {
-      alert(err.message || "Failed to place bid");
+      showBidFeedback("error", err.message || "Failed to place bid");
     } finally {
       setBidding(false);
     }
@@ -620,9 +632,27 @@ export default function AuctionDetailPage() {
 
           {/* Right Column */}
           <div className="space-y-4 lg:sticky lg:top-8">
+            {/* Bid Feedback Toast */}
+            {bidFeedback && (
+              <div
+                className={`px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 ${
+                  bidFeedback.type === "success"
+                    ? "bg-green-50 text-green-800 border border-green-200"
+                    : "bg-red-50 text-red-800 border border-red-200"
+                }`}
+              >
+                <span>{bidFeedback.type === "success" ? "✓" : "✕"}</span>
+                <span>{bidFeedback.message}</span>
+              </div>
+            )}
+
             <div className="overflow-hidden">
               {auction.listingType === "auction" ? (
                 <BidPanel
+                  auctionId={auction.id}
+                  auctionTitle={auction.title}
+                  auctionImage={auction.images?.[0] || ""}
+                  auctionEndTime={auction.endTime}
                   currentBid={Number(auction.currentBid)}
                   bidCount={auction.bidCount}
                   highestBidder={bids.length > 0 ? bids[0].username : undefined}
@@ -639,10 +669,8 @@ export default function AuctionDetailPage() {
                   auctionId={auction.id}
                   title={auction.title}
                   image={auction.images?.[0] || ""}
+                  endTime={auction.endTime}
                   seller={auction.seller}
-                  onAddToWatchlist={() =>
-                    console.log("Added to watchlist:", auction.title)
-                  }
                 />
               )}
             </div>

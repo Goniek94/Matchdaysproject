@@ -8,17 +8,11 @@ import type { SmartFormData } from "@/types/features/listing.types";
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
-/**
- * Get authentication token from localStorage
- */
 const getAuthToken = (): string | null => {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("authToken");
 };
 
-/**
- * Create headers with authentication
- */
 const createHeaders = (): HeadersInit => {
   const headers: HeadersInit = {
     "Content-Type": "application/json",
@@ -32,15 +26,10 @@ const createHeaders = (): HeadersInit => {
   return headers;
 };
 
-/**
- * Map SmartFormData to backend CreateAuctionDto format
- */
 const mapFormDataToAuctionDto = (data: SmartFormData) => {
-  // Calculate auction times
   const now = new Date();
   const startTime = now.toISOString();
 
-  // Parse duration (e.g., "7d" -> 7 days)
   const durationMatch = data.duration.match(/(\d+)([dhm])/);
   let endTime = new Date(now);
 
@@ -60,11 +49,9 @@ const mapFormDataToAuctionDto = (data: SmartFormData) => {
         break;
     }
   } else {
-    // Default to 7 days
     endTime.setDate(endTime.getDate() + 7);
   }
 
-  // Map listing type
   const listingType =
     data.listingType === "buy_now"
       ? "buy_now"
@@ -72,43 +59,65 @@ const mapFormDataToAuctionDto = (data: SmartFormData) => {
         ? "auction_buy_now"
         : "auction";
 
+  const resolvedSize = (() => {
+    const formSize = data.size?.trim();
+    const aiSize = data.aiData?.size?.trim();
+    // Prefer form size if set, otherwise use AI size, fallback to "M"
+    return formSize || aiSize || "M";
+  })();
+
+  const startingBid = (() => {
+    const price = parseFloat(data.price) || 10;
+    const startPrice = parseFloat(data.startPrice);
+
+    if (data.listingType === "buy_now") {
+      // For buy_now: startingBid must be strictly less than buyNowPrice
+      // Use startPrice if provided and less than price, otherwise use price * 0.9 (10% less)
+      if (startPrice && startPrice < price) return startPrice;
+      return Math.max(1, Math.floor(price * 0.9));
+    }
+
+    // For auction / auction_buy_now: use startPrice if set, otherwise use price
+    return startPrice || price;
+  })();
+
+  const buyNowPrice = (() => {
+    const price = parseFloat(data.price);
+    if (!price) return undefined;
+
+    if (data.listingType === "buy_now") {
+      // buyNowPrice = price (the actual selling price)
+      // startingBid is already set to be lower, so this is always valid
+      return price;
+    }
+
+    // For auction_buy_now: buyNowPrice must be > startingBid
+    const startBid =
+      parseFloat(data.startPrice) || parseFloat(data.price) || 10;
+    return price > startBid ? price : startBid + 1;
+  })();
+
   return {
-    // Basic info
+    // Basic
     title: data.title || `${data.brand} ${data.model} ${data.club}`.trim(),
     description: data.description || "No description provided",
 
-    // Category & Type
+    // Category
     category: data.category || "Other",
     itemType: data.categorySlug || "shirt",
     listingType,
 
-    // Details - prefer form fields, fallback to aiData
+    // Item details
     team: data.club || data.aiData?.team || "Unknown",
     season: data.season || data.aiData?.season || "Unknown",
-    // Size: use form value only if it's a short code (user-selected), not a long AI description.
-    // AI may return "Not visible on tags (appears large)" - we don't want that as the stored size.
-    size: (() => {
-      const formSize = data.size?.trim();
-      const aiSize = data.aiData?.size?.trim();
-      // A valid user-selected size is short (≤10 chars) and doesn't contain spaces
-      const isValidSize = (s?: string) =>
-        !!s && s.length <= 10 && !s.includes(" ");
-      if (isValidSize(formSize)) return formSize!;
-      if (isValidSize(aiSize)) return aiSize!;
-      // Fallback: store the raw value (could be AI description) so it's not lost
-      return formSize || aiSize || "M";
-    })(),
-    sizeEU: data.sizeEU || data.aiData?.sizeEU || undefined,
-    sizeUK: data.sizeUK || data.aiData?.sizeUK || undefined,
-    productionYear:
-      data.productionYear || data.aiData?.productionYear || undefined,
+    size: resolvedSize,
     condition: data.condition || "excellent",
     manufacturer: data.brand || data.aiData?.brand || undefined,
     model: data.model || data.aiData?.model || undefined,
     playerName: data.playerName || data.aiData?.playerName || undefined,
     playerNumber: data.playerNumber || data.aiData?.playerNumber || undefined,
-    // countryOfProduction & serialCode: prefer direct form fields (set by AI update() calls),
-    // then fall back to raw aiData object (in case React state batching delayed the update).
+    productionYear:
+      data.productionYear || data.aiData?.productionYear || undefined,
     countryOfProduction:
       data.countryOfProduction?.trim() ||
       data.aiData?.countryOfProduction?.trim() ||
@@ -116,60 +125,37 @@ const mapFormDataToAuctionDto = (data: SmartFormData) => {
     serialCode:
       data.serialCode?.trim() || data.aiData?.serialCode?.trim() || undefined,
 
-    // Verification fields
-    tagCondition: data.verification.tagCondition || undefined,
-    hasAutograph: data.verification.hasAutograph || false,
-    autographDetails: data.verification.autographDetails || undefined,
-    isVintage: data.verification.isVintage || false,
-    vintageYear: data.verification.vintageYear || undefined,
+    // Verification
+    tagCondition: data.verification?.tagCondition || undefined,
+    hasAutograph: data.verification?.hasAutograph || false,
+    autographDetails: data.verification?.autographDetails || undefined,
+    isVintage: data.verification?.isVintage || false,
+    vintageYear: data.verification?.vintageYear || undefined,
 
-    // Images - extract URLs from Photo objects
+    // Images
     images: data.photos.map((photo) => photo.url),
 
-    // Pricing - ensure buyNowPrice > startingBid for backend validation
-    startingBid: (() => {
-      if (data.listingType === "buy_now") {
-        // For buy_now only: startingBid should be lower than buyNowPrice
-        const price = parseFloat(data.price) || 10;
-        return (
-          parseFloat(data.startPrice) || Math.max(1, Math.floor(price * 0.5))
-        );
-      }
-      return parseFloat(data.startPrice) || parseFloat(data.price) || 10;
-    })(),
+    // Pricing
+    startingBid,
     bidIncrement: parseFloat(data.bidStep) || 5,
-    buyNowPrice: (() => {
-      const price = parseFloat(data.price);
-      if (!price) return undefined;
-      // Always set buyNowPrice when price is provided (for buy_now or auction_buy_now)
-      if (data.listingType === "buy_now" || data.price) {
-        // Ensure buyNowPrice is always greater than startingBid
-        const startBid =
-          parseFloat(data.startPrice) || Math.max(1, Math.floor(price * 0.5));
-        return price > startBid ? price : price + 1;
-      }
-      return price || undefined;
-    })(),
+    buyNowPrice,
 
     // Timing
     startTime,
     endTime: endTime.toISOString(),
 
-    // Shipping (defaults)
+    // Shipping
     shippingCost: 0,
     shippingTime: "3-5 business days",
-    shippingFrom: "Poland", // Default, can be made configurable
+    shippingFrom: "Poland",
 
     // Flags
     verified: data.verificationStatus === "AI_VERIFIED_HIGH",
-    rare: data.verification.isVintage || data.verification.hasAutograph,
+    rare: data.verification?.isVintage || data.verification?.hasAutograph,
     featured: false,
   };
 };
 
-/**
- * Create a new sports listing
- */
 export const createSportsListing = async (
   data: SmartFormData,
 ): Promise<{
@@ -183,14 +169,12 @@ export const createSportsListing = async (
     console.log("📋 Input SmartFormData keys:", Object.keys(data));
     console.log("📋 Photos count:", data.photos?.length);
 
-    // Map form data to auction DTO
     const auctionData = mapFormDataToAuctionDto(data);
     console.log(
       "🗺️ Mapped to auction DTO:",
       JSON.stringify(auctionData, null, 2),
     );
 
-    // Check for potential issues
     if (!auctionData.title) console.warn("⚠️ Title is empty!");
     if (!auctionData.images || auctionData.images.length === 0)
       console.warn("⚠️ No images in DTO!");
@@ -207,7 +191,6 @@ export const createSportsListing = async (
     console.log("📡 Headers:", JSON.stringify(headers));
     console.log("📡 Auth token present:", !!getAuthToken());
 
-    // Send to /auctions endpoint (NestJS backend)
     const response = await fetch(url, {
       method: "POST",
       headers,
@@ -219,7 +202,6 @@ export const createSportsListing = async (
     const result = await response.json();
     console.log("📡 Response body:", JSON.stringify(result, null, 2));
 
-    // Check both HTTP status AND backend success field
     if (!response.ok || result.success === false) {
       console.error("❌ Backend returned error:", result.message);
       throw new Error(result.message || "Failed to create listing");
@@ -244,9 +226,6 @@ export const createSportsListing = async (
   }
 };
 
-/**
- * Get all sports listings with filters
- */
 export const getSportsListings = async (params?: {
   page?: number;
   limit?: number;
@@ -276,7 +255,6 @@ export const getSportsListings = async (params?: {
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
-          // Map 'club' to 'team' for backend
           const backendKey = key === "club" ? "team" : key;
           queryParams.append(backendKey, value.toString());
         }
@@ -295,7 +273,6 @@ export const getSportsListings = async (params?: {
       throw new Error(result.message || "Failed to fetch listings");
     }
 
-    // Backend returns { success, data: { auctions, total, page, totalPages } }
     return {
       success: true,
       data: result.data?.auctions || result.data,
@@ -315,9 +292,6 @@ export const getSportsListings = async (params?: {
   }
 };
 
-/**
- * Get a single sports listing by ID
- */
 export const getSportsListingById = async (
   id: string,
 ): Promise<{
@@ -350,9 +324,6 @@ export const getSportsListingById = async (
   }
 };
 
-/**
- * Update a sports listing
- */
 export const updateSportsListing = async (
   id: string,
   data: Partial<SmartFormData>,
@@ -363,7 +334,6 @@ export const updateSportsListing = async (
   error?: string;
 }> => {
   try {
-    // Map form data to auction DTO if needed
     const updateData = data.photos
       ? mapFormDataToAuctionDto(data as SmartFormData)
       : data;
@@ -395,9 +365,6 @@ export const updateSportsListing = async (
   }
 };
 
-/**
- * Delete a sports listing
- */
 export const deleteSportsListing = async (
   id: string,
 ): Promise<{
@@ -431,9 +398,6 @@ export const deleteSportsListing = async (
   }
 };
 
-/**
- * Place a bid on an auction listing
- */
 export const placeBid = async (
   id: string,
   bidAmount: number,
@@ -450,7 +414,7 @@ export const placeBid = async (
     const response = await fetch(`${API_URL}/auctions/${id}/bid`, {
       method: "POST",
       headers: createHeaders(),
-      body: JSON.stringify({ amount: bidAmount }), // Backend expects 'amount' not 'bidAmount'
+      body: JSON.stringify({ amount: bidAmount }),
     });
 
     const result = await response.json();

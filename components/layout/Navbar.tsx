@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
+import { useWatchlist } from "@/lib/context/WatchlistContext";
 import { LoginModal } from "@/components/auth";
 import {
   User,
@@ -24,6 +25,7 @@ import {
 export default function Navbar() {
   const { itemCount } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
+  const { count: watchlistCount } = useWatchlist();
   const [scrolled, setScrolled] = useState(false);
 
   // UI state
@@ -126,6 +128,27 @@ export default function Navbar() {
 
           {/* RIGHT: Actions */}
           <div className="flex items-center gap-2 md:gap-4 justify-end z-50">
+            {/* Favorites / Watchlist */}
+            <Link
+              href="/favorites"
+              title="Favorites"
+              className="relative p-2 md:p-3 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <Heart
+                size={24}
+                className={
+                  watchlistCount > 0
+                    ? "text-red-500 fill-red-500"
+                    : "text-gray-700"
+                }
+              />
+              {watchlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {watchlistCount > 99 ? "99+" : watchlistCount}
+                </span>
+              )}
+            </Link>
+
             {/* Cart */}
             <Link
               href="/cart"

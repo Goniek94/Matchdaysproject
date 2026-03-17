@@ -25,11 +25,30 @@ export function adaptAuctionForDisplay(backendAuction: any) {
     return `${minutes}m`;
   };
 
+  const isBuyNow = backendAuction.listingType === "buy_now";
+
+  // For buy_now: show buyNowPrice as the price
+  // For auction: show currentBid (or startingBid if no bids yet)
+  const displayPrice = isBuyNow
+    ? Number(
+        backendAuction.buyNowPrice ||
+          backendAuction.currentBid ||
+          backendAuction.startingBid ||
+          0,
+      )
+    : Number(backendAuction.currentBid || backendAuction.startingBid || 0);
+
   return {
     id: backendAuction.id,
     title: backendAuction.title,
-    price: Number(backendAuction.currentBid || backendAuction.startingBid || 0),
-    currency: "PLN",
+    price: displayPrice,
+    buyNowPrice: backendAuction.buyNowPrice
+      ? Number(backendAuction.buyNowPrice)
+      : null,
+    currentBid: Number(
+      backendAuction.currentBid || backendAuction.startingBid || 0,
+    ),
+    currency: "EUR",
     description: backendAuction.description || "No description",
     image: backendAuction.images?.[0] || "/placeholder-jersey.jpg",
     bids: backendAuction.bidCount || 0,
@@ -39,7 +58,7 @@ export function adaptAuctionForDisplay(backendAuction: any) {
     verified: backendAuction.verified || false,
     rare: backendAuction.rare || false,
     status: backendAuction.status || "active", // Pass status to frontend
-    type: backendAuction.listingType === "buy_now" ? "buy_now" : "auction",
+    type: isBuyNow ? "buy_now" : "auction",
     itemType: backendAuction.itemType || "shirt",
     seller: {
       name: backendAuction.seller?.username || "Unknown",
