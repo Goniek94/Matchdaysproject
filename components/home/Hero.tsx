@@ -45,7 +45,7 @@ export default function Hero() {
       subtitle: "Smart Collecting, Smarter Selling",
       highlight: "VERIFIED. VALUED. TRUSTED.",
       description:
-        "Instant authenticity checks. AI-generated descriptions. Real-time market valuations. Our technology has analyzed millions of items so you can buy and sell with total confidence.",
+        "Instant authenticity checks. AI-generated descriptions. Real-time market valuations. Buy and sell with total confidence",
       image:
         "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?q=80&w=2500&auto=format&fit=crop",
       ctaText: "Explore AI Tools",
@@ -74,8 +74,7 @@ export default function Hero() {
       highlight: "YOUR KNOWLEDGE PAYS OFF.",
       description:
         "More than a marketplace — it's a community. Predict match outcomes, challenge other collectors, climb the leaderboard and win exclusive prizes. Sport is better together.",
-      image:
-        "https://images.unsplash.com/photo-1516637090013-59d4239e957f?q=80&w=2500&auto=format&fit=crop",
+      image: "/images/arena.png",
       ctaText: "Enter the Arena",
       ctaLink: "/arena",
       color: "from-indigo-500 to-blue-600",
