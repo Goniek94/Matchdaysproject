@@ -14,39 +14,33 @@ function SectionHeader({
   emoji,
   title,
   subtitle,
+  href,
+  linkLabel,
 }: {
   emoji: string;
   title: string;
   subtitle: string;
-}) {
-  return (
-    <div className="mb-8">
-      <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-black flex items-center gap-3 uppercase">
-        <span className="text-4xl md:text-5xl">{emoji}</span>
-        <span>{title}</span>
-      </h2>
-      <p className="text-gray-500 mt-2 text-base md:text-lg">{subtitle}</p>
-    </div>
-  );
-}
-
-function ViewAllButton({
-  href,
-  label = "View All Items",
-}: {
   href: string;
-  label?: string;
+  linkLabel: string;
 }) {
   return (
-    <div className="mt-8 flex justify-center">
+    <div className="flex items-end justify-between mb-8">
+      <div>
+        <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-black flex items-center gap-3 uppercase">
+          <span className="text-4xl md:text-5xl">{emoji}</span>
+          <span>{title}</span>
+        </h2>
+        <p className="text-gray-500 mt-2 text-base md:text-lg">{subtitle}</p>
+      </div>
       <Link
         href={href}
-        className="group inline-flex items-center gap-3 px-8 py-4 bg-black text-white font-bold text-sm uppercase tracking-widest rounded-full hover:bg-gray-900 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/20"
+        className="hidden md:inline-flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-black transition-colors group mb-1"
       >
-        {label}
-        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
-          <ArrowRight size={14} />
-        </div>
+        {linkLabel}
+        <ArrowRight
+          size={14}
+          className="group-hover:translate-x-0.5 transition-transform"
+        />
       </Link>
     </div>
   );
@@ -70,7 +64,6 @@ export default function HomePage() {
       try {
         setIsLoading(true);
         const result = await getSportsListings({ page: 1, limit: 12 });
-
         if (result.success && result.data && result.data.length > 0) {
           const adaptedAuctions = adaptAuctionsForDisplay(result.data);
           setAuctions(adaptedAuctions);
@@ -83,7 +76,6 @@ export default function HomePage() {
         setIsLoading(false);
       }
     }
-
     fetchAuctions();
   }, []);
 
@@ -106,8 +98,9 @@ export default function HomePage() {
               emoji="🔥"
               title="POPULAR"
               subtitle="Most active auctions right now."
+              href="/auctions"
+              linkLabel="Check all items"
             />
-
             {isLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -128,9 +121,14 @@ export default function HomePage() {
                 ))}
               </div>
             )}
-
-            {/* CTA pod kartami */}
-            <ViewAllButton href="/auctions" label="Browse All Popular Items" />
+            <div className="mt-4 flex justify-end md:hidden">
+              <Link
+                href="/auctions"
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-black transition-colors"
+              >
+                Check all items <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
 
           {/* 2. LAST CALL */}
@@ -140,8 +138,9 @@ export default function HomePage() {
                 emoji="⏳"
                 title="LAST CALL"
                 subtitle="Last chance to bid. Don't miss out."
+                href="/auctions?sort=ending_soon"
+                linkLabel="See all ending soon"
               />
-
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {lastCallAuctions.map((auction, index) => (
                   <AuctionCard
@@ -154,22 +153,28 @@ export default function HomePage() {
                   />
                 ))}
               </div>
-
-              {/* CTA pod kartami */}
-              <ViewAllButton href="/auctions" label="See All Ending Soon" />
+              <div className="mt-4 flex justify-end md:hidden">
+                <Link
+                  href="/auctions?sort=ending_soon"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-black transition-colors"
+                >
+                  See all ending soon <ArrowRight size={14} />
+                </Link>
+              </div>
             </div>
           )}
 
-          {/* Główny CTA na dole */}
-          <div className="text-center pt-4 border-t border-gray-200">
-            <p className="text-gray-400 text-sm uppercase tracking-widest mb-6 font-medium">
-              Thousands of items across all sports
-            </p>
+          {/* Dół sekcji — link NAD borderem, czarny */}
+          <div className="flex justify-end pb-2 border-b border-gray-200">
             <Link
               href="/auctions"
-              className="inline-block px-12 py-5 bg-black text-white font-bold text-xl rounded-full hover:shadow-2xl hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1 hover:bg-gray-900 uppercase"
+              className="inline-flex items-center gap-1.5 text-xs font-black text-black hover:text-gray-600 transition-colors uppercase tracking-widest group"
             >
-              Check All Auctions
+              Browse all auctions
+              <ArrowRight
+                size={12}
+                className="group-hover:translate-x-0.5 transition-transform"
+              />
             </Link>
           </div>
         </div>
