@@ -8,39 +8,46 @@ import { mockAuctions } from "@/lib/mockData";
 import { getSportsListings } from "@/lib/api/listings.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 function SectionHeader({
   emoji,
   title,
   subtitle,
-  linkText,
-  linkHref,
 }: {
   emoji: string;
   title: string;
   subtitle: string;
-  linkText?: string;
-  linkHref?: string;
 }) {
   return (
     <div className="mb-8">
-      <div className="flex items-end justify-between">
-        <div>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-black flex items-center gap-3 uppercase">
-            <span className="text-4xl md:text-5xl">{emoji}</span>
-            <span>{title}</span>
-          </h2>
-          <p className="text-gray-500 mt-2 text-lg">{subtitle}</p>
+      <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-black flex items-center gap-3 uppercase">
+        <span className="text-4xl md:text-5xl">{emoji}</span>
+        <span>{title}</span>
+      </h2>
+      <p className="text-gray-500 mt-2 text-base md:text-lg">{subtitle}</p>
+    </div>
+  );
+}
+
+function ViewAllButton({
+  href,
+  label = "View All Items",
+}: {
+  href: string;
+  label?: string;
+}) {
+  return (
+    <div className="mt-8 flex justify-center">
+      <Link
+        href={href}
+        className="group inline-flex items-center gap-3 px-8 py-4 bg-black text-white font-bold text-sm uppercase tracking-widest rounded-full hover:bg-gray-900 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/20"
+      >
+        {label}
+        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+          <ArrowRight size={14} />
         </div>
-        {linkText && linkHref && (
-          <Link
-            href={linkHref}
-            className="text-sm font-bold border-b-2 border-black pb-0.5 hover:text-red-600 hover:border-red-600 transition-all duration-300 uppercase"
-          >
-            {linkText}
-          </Link>
-        )}
-      </div>
+      </Link>
     </div>
   );
 }
@@ -65,15 +72,12 @@ export default function HomePage() {
         const result = await getSportsListings({ page: 1, limit: 12 });
 
         if (result.success && result.data && result.data.length > 0) {
-          console.log("✅ Pobrano aukcje z API:", result.data.length);
           const adaptedAuctions = adaptAuctionsForDisplay(result.data);
           setAuctions(adaptedAuctions);
         } else {
-          console.warn("⚠️ Brak aukcji z API, używam mock data");
           setAuctions(mockAuctions);
         }
       } catch (err) {
-        console.error("❌ Błąd pobierania aukcji:", err);
         setAuctions(mockAuctions);
       } finally {
         setIsLoading(false);
@@ -94,7 +98,7 @@ export default function HomePage() {
     <div className="bg-white">
       <Hero />
 
-      <section className="relative py-20 px-4 bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
+      <section className="relative py-16 md:py-20 px-4 bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
         <div className="w-full max-w-7xl mx-auto space-y-20">
           {/* 1. POPULAR */}
           <div>
@@ -102,8 +106,6 @@ export default function HomePage() {
               emoji="🔥"
               title="POPULAR"
               subtitle="Most active auctions right now."
-              linkText="Check all items"
-              linkHref="/auctions"
             />
 
             {isLoading ? (
@@ -126,6 +128,9 @@ export default function HomePage() {
                 ))}
               </div>
             )}
+
+            {/* CTA pod kartami */}
+            <ViewAllButton href="/auctions" label="Browse All Popular Items" />
           </div>
 
           {/* 2. LAST CALL */}
@@ -135,8 +140,6 @@ export default function HomePage() {
                 emoji="⏳"
                 title="LAST CALL"
                 subtitle="Last chance to bid. Don't miss out."
-                linkText="Check all items"
-                linkHref="/auctions"
               />
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -151,10 +154,17 @@ export default function HomePage() {
                   />
                 ))}
               </div>
+
+              {/* CTA pod kartami */}
+              <ViewAllButton href="/auctions" label="See All Ending Soon" />
             </div>
           )}
 
-          <div className="text-center pt-8">
+          {/* Główny CTA na dole */}
+          <div className="text-center pt-4 border-t border-gray-200">
+            <p className="text-gray-400 text-sm uppercase tracking-widest mb-6 font-medium">
+              Thousands of items across all sports
+            </p>
             <Link
               href="/auctions"
               className="inline-block px-12 py-5 bg-black text-white font-bold text-xl rounded-full hover:shadow-2xl hover:shadow-black/30 transition-all duration-300 hover:-translate-y-1 hover:bg-gray-900 uppercase"

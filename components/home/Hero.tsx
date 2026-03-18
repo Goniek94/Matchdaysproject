@@ -10,7 +10,6 @@ export default function Hero() {
   const [direction, setDirection] = useState(0);
 
   const slides = [
-    // SLAJD 1: GŁÓWNY — Co to jest Matchdays
     {
       id: 1,
       title: "Matchdays",
@@ -24,7 +23,6 @@ export default function Hero() {
       ctaLink: "/auctions",
       color: "from-red-600 to-rose-700",
     },
-    // SLAJD 2: AUKCJE I KOLEKCJONOWANIE
     {
       id: 2,
       title: "Bid. Win. Own.",
@@ -38,7 +36,6 @@ export default function Hero() {
       ctaLink: "/auctions",
       color: "from-amber-500 to-orange-600",
     },
-    // SLAJD 3: AI TOOLS
     {
       id: 3,
       title: "AI-Powered",
@@ -52,7 +49,6 @@ export default function Hero() {
       ctaLink: "/aitools",
       color: "from-purple-600 to-pink-600",
     },
-    // SLAJD 4: SPRZEDAŻ
     {
       id: 4,
       title: "Sell Smarter",
@@ -66,7 +62,6 @@ export default function Hero() {
       ctaLink: "/add-listing",
       color: "from-green-600 to-emerald-600",
     },
-    // SLAJD 5: SPOŁECZNOŚĆ / ARENA
     {
       id: 5,
       title: "Play & Win",
@@ -79,7 +74,6 @@ export default function Hero() {
       ctaLink: "/arena",
       color: "from-indigo-500 to-blue-600",
     },
-    // SLAJD 6: ZAUFANIE / EU SHIPPING
     {
       id: 6,
       title: "Zero Fakes.",
@@ -95,11 +89,10 @@ export default function Hero() {
     },
   ];
 
-  // Auto-play logic
   useEffect(() => {
     const timer = setInterval(() => {
       paginate(1);
-    }, 8000); // 8 sekund na slajd
+    }, 8000);
     return () => clearInterval(timer);
   }, [currentSlide]);
 
@@ -110,7 +103,6 @@ export default function Hero() {
     );
   };
 
-  // Animacje (Warianty Framer Motion)
   const slideVariants = {
     enter: (direction: number) => ({
       x: direction > 0 ? 1000 : -1000,
@@ -125,7 +117,7 @@ export default function Hero() {
       transition: {
         x: { type: "spring" as const, stiffness: 300, damping: 30 },
         opacity: { duration: 0.5 },
-        scale: { duration: 8, ease: "linear" as const }, // Ken Burns Effect
+        scale: { duration: 8, ease: "linear" as const },
       },
     },
     exit: (direction: number) => ({
@@ -160,8 +152,14 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative h-[70vh] md:h-[75vh] w-full overflow-hidden bg-black">
-      {/* 1. WARSTWA TŁA (ZDJĘCIA) */}
+    /*
+     * ZMIANY MOBILE:
+     * - h-[85vh] zamiast 70vh — więcej miejsca na treść
+     * - min-h-[580px] — zabezpieczenie przed zbyt małą wysokością
+     * - pb-20 — padding na dole dla kropek, żeby nie nachodziły na CTA
+     */
+    <section className="relative h-[85vh] min-h-[580px] md:h-[75vh] w-full overflow-hidden bg-black">
+      {/* TŁO */}
       <AnimatePresence initial={false} custom={direction}>
         <motion.div
           key={currentSlide}
@@ -172,84 +170,80 @@ export default function Hero() {
           exit="exit"
           className="absolute inset-0 z-0"
         >
-          {/* Obraz */}
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${slides[currentSlide].image})` }}
           />
-
-          {/* Overlay: Gradient kinowy */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/30 z-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
         </motion.div>
       </AnimatePresence>
 
-      {/* 2. WARSTWA TREŚCI */}
-      <div className="container-max relative z-20 h-full flex flex-col justify-center px-6 md:px-12 items-center text-center">
+      {/* TREŚĆ — pb-20 robi miejsce dla kropek na mobile */}
+      <div className="container-max relative z-20 h-full flex flex-col justify-center px-6 md:px-12 items-center text-center pb-20 md:pb-0">
         <motion.div
           key={currentSlide}
           variants={textContainerVariants as any}
           initial="hidden"
           animate="show"
-          className="max-w-4xl"
+          className="max-w-4xl w-full"
         >
           {/* Subtitle / Badge */}
           <motion.div
             variants={textItemVariants as any}
-            className="flex items-center justify-center gap-3 mb-6"
+            className="flex items-center justify-center gap-3 mb-4 md:mb-6"
           >
             <span
-              className={`h-0.5 w-12 bg-gradient-to-r ${slides[currentSlide].color}`}
+              className={`h-0.5 w-8 md:w-12 bg-gradient-to-r ${slides[currentSlide].color}`}
             />
-            <span className="text-white/80 uppercase tracking-[0.2em] text-sm font-medium">
+            <span className="text-white/80 uppercase tracking-[0.2em] text-xs md:text-sm font-medium">
               {slides[currentSlide].subtitle}
             </span>
             <span
-              className={`h-0.5 w-12 bg-gradient-to-r ${slides[currentSlide].color}`}
+              className={`h-0.5 w-8 md:w-12 bg-gradient-to-r ${slides[currentSlide].color}`}
             />
           </motion.div>
 
-          {/* Główny Tytuł */}
+          {/* Tytuł — POPRAWKA: text-5xl na mobile zamiast text-6xl */}
           <motion.h1
             variants={textItemVariants as any}
-            className="text-6xl md:text-8xl lg:text-9xl font-black text-white leading-[0.9] tracking-tight mb-4"
+            className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black text-white leading-[0.9] tracking-tight mb-3 md:mb-4"
           >
             {slides[currentSlide].title}
           </motion.h1>
 
-          {/* Highlight Text */}
+          {/* Highlight */}
           <motion.div
             variants={textItemVariants as any}
-            className="overflow-hidden mb-8"
+            className="overflow-hidden mb-5 md:mb-8"
           >
             <h2
-              className={`text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${slides[currentSlide].color} italic tracking-tighter`}
+              className={`text-2xl sm:text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${slides[currentSlide].color} italic tracking-tighter`}
             >
               {slides[currentSlide].highlight}
             </h2>
           </motion.div>
 
-          {/* Opis */}
+          {/* Opis — POPRAWKA: text-base na mobile, ukryty na bardzo małych (opcjonalnie) */}
           <motion.p
             variants={textItemVariants as any}
-            className="text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto mb-12 leading-relaxed font-light"
+            className="text-base sm:text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto mb-8 md:mb-12 leading-relaxed font-light"
           >
             {slides[currentSlide].description}
           </motion.p>
 
-          {/* Przycisk CTA */}
+          {/* CTA — POPRAWKA: mniejszy padding na mobile */}
           <motion.div variants={textItemVariants as any}>
             <Link
               href={slides[currentSlide].ctaLink}
-              className="group relative inline-flex items-center gap-3 px-10 py-5 bg-white text-black font-bold text-xl rounded-full overflow-hidden transition-transform hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"
+              className="group relative inline-flex items-center gap-2 md:gap-3 px-7 py-4 md:px-10 md:py-5 bg-white text-black font-bold text-base md:text-xl rounded-full overflow-hidden transition-transform hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"
             >
               <span className="relative z-10">
                 {slides[currentSlide].ctaText}
               </span>
               <div className="relative z-10 bg-black text-white rounded-full p-1 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1">
-                <ArrowRight size={20} />
+                <ArrowRight size={18} />
               </div>
-              {/* Efekt hover tła przycisku */}
               <div
                 className={`absolute inset-0 bg-gradient-to-r ${slides[currentSlide].color} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}
               />
@@ -258,9 +252,7 @@ export default function Hero() {
         </motion.div>
       </div>
 
-      {/* 3. NAWIGACJA I KONTROLKI */}
-
-      {/* Strzałki (Desktop) */}
+      {/* STRZAŁKI (Desktop) */}
       <div className="absolute bottom-10 right-10 z-30 hidden md:flex gap-4">
         <button
           onClick={() => paginate(-1)}
@@ -282,8 +274,14 @@ export default function Hero() {
         </button>
       </div>
 
-      {/* Pasek postępu i Kropki */}
-      <div className="absolute bottom-10 left-6 md:left-10 z-30 flex items-center gap-6">
+      {/* PASEK POSTĘPU + KROPKI */}
+      {/*
+       * POPRAWKA MOBILE:
+       * - bottom-5 zamiast bottom-10 — bliżej dolnej krawędzi ale nie nachodzy na CTA (bo CTA ma pb-20)
+       * - left-0 right-0 + justify-center — wyśrodkowane na mobile
+       * - Na desktop: justify-start, left-10, bottom-10 jak wcześniej
+       */}
+      <div className="absolute bottom-5 left-0 right-0 md:bottom-10 md:left-10 md:right-auto z-30 flex items-center justify-center md:justify-start gap-6">
         {/* Pasek postępu (Desktop) */}
         <div className="hidden md:flex items-center gap-3 text-white/50 text-sm font-mono">
           <span>0{currentSlide + 1}</span>
@@ -299,8 +297,8 @@ export default function Hero() {
           <span>0{slides.length}</span>
         </div>
 
-        {/* Kropki (Mobile only) */}
-        <div className="flex md:hidden gap-2">
+        {/* Kropki (Mobile) */}
+        <div className="flex md:hidden gap-2 items-center">
           {slides.map((_, idx) => (
             <button
               key={idx}
