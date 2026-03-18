@@ -8,14 +8,14 @@ import {
   Shield,
   Flame,
   Star,
-  Award,
+  Gem,
   Clock,
   Gavel,
   Heart,
+  TrendingUp,
+  AlarmClock,
 } from "lucide-react";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
-
-// ─── Jersey icon ──────────────────────────────────────────────────────────────
 
 const JerseyIcon = ({
   filled,
@@ -36,8 +36,6 @@ const JerseyIcon = ({
   </svg>
 );
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface Auction {
   id: string;
   title: string;
@@ -47,9 +45,11 @@ interface Auction {
   image: string;
   bids: number;
   likes?: number;
+  views?: number;
   endTime: string;
   verified: boolean;
   rare: boolean;
+  featured?: boolean;
   type: "auction" | "buy_now";
   seller: {
     name: string;
@@ -65,112 +65,146 @@ interface Auction {
 
 interface AuctionCardProps {
   auction: Auction;
-  badge?: {
-    text: string;
-    colors: string;
-  };
+  badge?: { text: string; colors: string };
 }
-
-// ─── Badge config ─────────────────────────────────────────────────────────────
-
-const getBadgeConfig = (badgeText: string) => {
-  const configs: Record<string, { icon: JSX.Element; gradient: string }> = {
-    HOT: {
-      icon: <Flame size={14} className="animate-pulse" />,
-      gradient: "bg-gradient-to-r from-orange-500 to-red-600",
-    },
-    RARE: {
-      icon: <Sparkles size={14} />,
-      gradient: "bg-gradient-to-r from-purple-600 to-pink-600",
-    },
-    "BUY NOW": {
-      icon: <Star size={14} />,
-      gradient: "bg-gradient-to-r from-blue-600 to-cyan-600",
-    },
-    VERIFIED: {
-      icon: <Shield size={14} />,
-      gradient: "bg-gradient-to-r from-green-600 to-emerald-600",
-    },
-    UNIQUE: {
-      icon: <Award size={14} />,
-      gradient: "bg-gradient-to-r from-yellow-500 to-amber-600",
-    },
-  };
-
-  return (
-    configs[badgeText] || {
-      icon: <Star size={14} />,
-      gradient: "bg-gradient-to-r from-gray-600 to-gray-800",
-    }
-  );
-};
 
 // ─── Time helpers ─────────────────────────────────────────────────────────────
 
-const parseTimeRemaining = (
-  timeStr: string,
-): { isEndingSoon: boolean; isUrgent: boolean } => {
+const parseTimeRemaining = (timeStr: string) => {
   const hourMatch = timeStr.match(/(\d+)h/);
   const minuteMatch = timeStr.match(/(\d+)m/);
   const dayMatch = timeStr.match(/(\d+)d/);
-
   const hours = hourMatch ? parseInt(hourMatch[1]) : 0;
   const minutes = minuteMatch ? parseInt(minuteMatch[1]) : 0;
   const days = dayMatch ? parseInt(dayMatch[1]) : 0;
-
   const totalMinutes = days * 24 * 60 + hours * 60 + minutes;
-
   return {
-    isEndingSoon: totalMinutes <= 120,
-    isUrgent: totalMinutes <= 30,
+    isLastCall: totalMinutes <= 60, // ≤ 1h — LAST CALL
+    isUrgent: totalMinutes <= 30, // ≤ 30min — pulsuje
+    totalMinutes,
   };
 };
 
-// ─── Frame colors based on rarity/verification ───────────────────────────────
+// ─── Theme resolver ───────────────────────────────────────────────────────────
 
-const getFrameColors = (rare: boolean, verified: boolean) => {
-  if (rare && verified) {
+const getTheme = (auction: Auction, isLastCall: boolean) => {
+  // LAST CALL — nadpisuje wszystko gdy ≤ 1h
+  if (isLastCall && auction.type === "auction") {
     return {
-      outer: "from-purple-500 via-violet-500 to-purple-600",
-      accent: "from-purple-500 to-violet-600",
-      shadow: "shadow-[0_0_40px_rgba(168,85,247,0.5)]",
-      hoverShadow: "hover:shadow-[0_0_60px_rgba(168,85,247,0.7)]",
-      border: "border-purple-300/50",
-      glow: "bg-purple-500/20",
-    };
-  } else if (rare) {
-    return {
-      outer: "from-amber-400 via-yellow-500 to-amber-600",
-      accent: "from-amber-500 to-yellow-600",
-      shadow: "shadow-[0_0_40px_rgba(251,191,36,0.5)]",
-      hoverShadow: "hover:shadow-[0_0_60px_rgba(251,191,36,0.7)]",
-      border: "border-amber-300/50",
-      glow: "bg-amber-400/20",
-    };
-  } else if (verified) {
-    return {
-      outer: "from-blue-500 via-blue-400 to-blue-500",
-      accent: "from-blue-500 to-blue-600",
-      shadow: "shadow-[0_0_40px_rgba(59,130,246,0.5)]",
-      hoverShadow: "hover:shadow-[0_0_60px_rgba(59,130,246,0.7)]",
-      border: "border-blue-300/50",
-      glow: "bg-blue-500/20",
-    };
-  } else {
-    return {
-      outer: "from-amber-700 via-amber-600 to-amber-700",
-      accent: "from-amber-600 to-amber-700",
-      shadow: "shadow-[0_10px_40px_rgba(0,0,0,0.12)]",
-      hoverShadow: "hover:shadow-[0_20px_50px_rgba(0,0,0,0.18)]",
-      border: "border-amber-200/30",
-      glow: "",
+      badgeIcon: <AlarmClock size={11} className="animate-pulse" />,
+      badgeText: "LAST CALL",
+      badgeClass: "bg-red-600 text-white animate-pulse",
+      cardBorder: "border-red-300",
+      cardShadow: "shadow-[0_2px_20px_rgba(220,38,38,0.20)]",
+      hoverShadow: "hover:shadow-[0_8px_40px_rgba(220,38,38,0.35)]",
+      priceBg: "bg-gradient-to-r from-red-50 to-rose-50 border border-red-200",
+      priceColor: "text-red-600",
+      priceLabel: "text-red-400",
+      euroColor: "text-red-400",
+      accentLine: "bg-gradient-to-r from-red-500 to-rose-600",
+      btnClass:
+        "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white animate-pulse",
     };
   }
+
+  if (auction.rare) {
+    return {
+      badgeIcon: <Sparkles size={11} />,
+      badgeText: "RARE",
+      badgeClass: "bg-gradient-to-r from-violet-600 to-purple-700 text-white",
+      cardBorder: "border-amber-200",
+      cardShadow: "shadow-[0_2px_20px_rgba(245,158,11,0.12)]",
+      hoverShadow: "hover:shadow-[0_8px_40px_rgba(245,158,11,0.22)]",
+      priceBg:
+        "bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100",
+      priceColor: "text-amber-600",
+      priceLabel: "text-amber-400",
+      euroColor: "text-amber-400",
+      accentLine: "bg-gradient-to-r from-amber-400 to-yellow-500",
+      btnClass:
+        "bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-white",
+    };
+  }
+
+  if (auction.featured) {
+    return {
+      badgeIcon: <Gem size={11} />,
+      badgeText: "GEM",
+      badgeClass: "bg-gradient-to-r from-blue-500 to-cyan-600 text-white",
+      cardBorder: "border-blue-200",
+      cardShadow: "shadow-[0_2px_20px_rgba(59,130,246,0.12)]",
+      hoverShadow: "hover:shadow-[0_8px_40px_rgba(59,130,246,0.22)]",
+      priceBg:
+        "bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100",
+      priceColor: "text-blue-700",
+      priceLabel: "text-blue-400",
+      euroColor: "text-blue-400",
+      accentLine: "bg-gradient-to-r from-blue-500 to-cyan-500",
+      btnClass:
+        "bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white",
+    };
+  }
+
+  const isHot = (auction.views ?? 0) > 50 || auction.bids > 5;
+  if (isHot && auction.type === "auction") {
+    return {
+      badgeIcon: <Flame size={11} className="animate-pulse" />,
+      badgeText: "HOT",
+      badgeClass: "bg-gradient-to-r from-orange-500 to-red-600 text-white",
+      cardBorder: "border-orange-100",
+      cardShadow: "shadow-[0_2px_16px_rgba(249,115,22,0.10)]",
+      hoverShadow: "hover:shadow-[0_8px_36px_rgba(249,115,22,0.20)]",
+      priceBg:
+        "bg-gradient-to-r from-orange-50 to-red-50 border border-orange-100",
+      priceColor: "text-orange-600",
+      priceLabel: "text-orange-400",
+      euroColor: "text-orange-400",
+      accentLine: "bg-gradient-to-r from-orange-400 to-red-500",
+      btnClass:
+        "bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white",
+    };
+  }
+
+  if (auction.type === "buy_now") {
+    return {
+      badgeIcon: <Star size={11} />,
+      badgeText: "BUY NOW",
+      badgeClass: "bg-gradient-to-r from-emerald-500 to-teal-600 text-white",
+      cardBorder: "border-emerald-100",
+      cardShadow: "shadow-[0_2px_16px_rgba(16,185,129,0.08)]",
+      hoverShadow: "hover:shadow-[0_8px_36px_rgba(16,185,129,0.18)]",
+      priceBg:
+        "bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100",
+      priceColor: "text-emerald-700",
+      priceLabel: "text-emerald-500",
+      euroColor: "text-emerald-400",
+      accentLine: "bg-gradient-to-r from-emerald-400 to-teal-500",
+      btnClass:
+        "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white",
+    };
+  }
+
+  // Zwykła aukcja — czerwony motyw
+  return {
+    badgeIcon: <Gavel size={11} />,
+    badgeText: "AUCTION",
+    badgeClass: "bg-gradient-to-r from-red-500 to-rose-600 text-white",
+    cardBorder: "border-red-100",
+    cardShadow: "shadow-[0_2px_16px_rgba(220,38,38,0.08)]",
+    hoverShadow: "hover:shadow-[0_8px_36px_rgba(220,38,38,0.18)]",
+    priceBg: "bg-gradient-to-r from-red-50 to-rose-50 border border-red-100",
+    priceColor: "text-red-600",
+    priceLabel: "text-red-400",
+    euroColor: "text-red-400",
+    accentLine: "bg-gradient-to-r from-red-400 to-rose-500",
+    btnClass:
+      "bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white",
+  };
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function AuctionCard({ auction, badge }: AuctionCardProps) {
+export default function AuctionCard({ auction }: AuctionCardProps) {
   const { isInWatchlist, toggleWatchlist } = useWatchlist();
 
   const initialPrice = auction.price || (auction as any).currentBid || 0;
@@ -180,7 +214,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
     null,
   );
   const prevPriceRef = useRef(initialPrice);
-
   const isFavorite = isInWatchlist(auction.id);
 
   useEffect(() => {
@@ -189,7 +222,7 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
       setCurrentPrice(newPrice);
       setPriceChanged(true);
       prevPriceRef.current = newPrice;
-      const timer = setTimeout(() => setPriceChanged(false), 1000);
+      const timer = setTimeout(() => setPriceChanged(false), 1200);
       return () => clearTimeout(timer);
     }
   }, [auction.price, (auction as any).currentBid]);
@@ -197,7 +230,6 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
     const added = toggleWatchlist({
       id: auction.id,
       title: auction.title,
@@ -206,61 +238,51 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
       image: auction.image,
       listingType: auction.type === "buy_now" ? "buy_now" : "auction",
     });
-
-    setWatchlistFeedback(
-      added ? "Added to favorites!" : "Removed from favorites",
-    );
+    setWatchlistFeedback(added ? "Added to favorites!" : "Removed");
     setTimeout(() => setWatchlistFeedback(null), 2000);
   };
 
   const flagUrl = auction.country?.code
     ? `https://flagcdn.com/w20/${auction.country.code.toLowerCase()}.png`
     : `https://flagcdn.com/w20/pl.png`;
-  const badgeConfig = badge ? getBadgeConfig(badge.text) : null;
+
   const timeStatus = parseTimeRemaining(auction.endTime);
-  const frameColors = getFrameColors(auction.rare, auction.verified);
+  const theme = getTheme(auction, timeStatus.isLastCall);
 
   return (
     <Link
       href={`/auction/${auction.id}`}
       className="group h-full relative block cursor-pointer"
     >
-      {/* Watchlist feedback toast */}
       {watchlistFeedback && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 bg-black/80 text-white text-[11px] font-semibold rounded-full whitespace-nowrap shadow-lg pointer-events-none animate-fade-in">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 bg-black/80 text-white text-[11px] font-semibold rounded-full whitespace-nowrap shadow-lg pointer-events-none">
           {watchlistFeedback}
         </div>
       )}
 
-      {frameColors.glow && (
-        <div
-          className={`absolute inset-0 -z-10 rounded-2xl blur-2xl opacity-60 group-hover:opacity-80 transition-all duration-500 ${frameColors.glow}`}
-        />
-      )}
-
       <div
-        className={`h-full flex flex-col bg-gradient-to-b from-amber-50/80 via-white to-white rounded-2xl ${frameColors.shadow} ${frameColors.hoverShadow} transition-all duration-500 hover:-translate-y-2 transform-gpu overflow-hidden border ${frameColors.border}`}
+        className={`h-full flex flex-col bg-white rounded-2xl border ${theme.cardBorder} ${theme.cardShadow} ${theme.hoverShadow} transition-all duration-300 hover:-translate-y-1.5 transform-gpu overflow-hidden`}
       >
-        {/* ── IMAGE SECTION ─────────────────────────────────────────────── */}
+        {/* ── IMAGE ──────────────────────────────────────────────────────── */}
         <div className="relative">
-          {badge && badgeConfig && (
+          {theme.badgeText && (
             <div
-              className={`absolute top-2 right-2 sm:top-3 sm:right-3 ${badgeConfig.gradient} text-white px-2 py-1 sm:px-3 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-black shadow-lg flex items-center gap-1 sm:gap-1.5 ring-2 ring-white/50 z-20`}
+              className={`absolute top-3 right-3 ${theme.badgeClass} px-2.5 py-1 rounded-full text-[10px] font-black shadow-md flex items-center gap-1 z-20`}
             >
-              {badgeConfig.icon}
-              <span className="tracking-wider">{badge.text}</span>
+              {theme.badgeIcon}
+              <span className="tracking-wider">{theme.badgeText}</span>
             </div>
           )}
 
           <button
             onClick={handleFavoriteClick}
-            className={`absolute top-2 left-2 sm:top-3 sm:left-3 p-2 sm:p-2.5 rounded-full shadow-lg ring-2 z-20 transition-all duration-300 transform hover:scale-110 active:scale-95 ${
+            className={`absolute top-3 left-3 p-2 rounded-full z-20 transition-all duration-200 hover:scale-110 active:scale-95 ${
               isFavorite
-                ? "bg-gradient-to-br from-red-500 to-red-600 text-white ring-red-300"
-                : "bg-white/90 backdrop-blur-sm text-slate-400 ring-white/50 hover:text-red-500"
+                ? "bg-red-500 text-white shadow-lg shadow-red-200"
+                : "bg-white/90 backdrop-blur-sm text-slate-400 hover:text-red-500 shadow-sm"
             }`}
           >
-            <JerseyIcon filled={isFavorite} className="w-4 h-4 sm:w-5 sm:h-5" />
+            <JerseyIcon filled={isFavorite} className="w-4 h-4" />
           </button>
 
           <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
@@ -268,144 +290,128 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
               src={auction.image}
               alt={auction.title}
               fill
-              className="object-cover transition-transform duration-700 group-hover:scale-105"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
 
+            {/* Timer */}
             <div
-              className={`absolute bottom-2 left-2 sm:bottom-3 sm:left-3 backdrop-blur-md text-[10px] sm:text-xs px-2 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1.5 sm:gap-2 shadow-lg ${
+              className={`absolute bottom-3 left-3 text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 font-bold shadow-sm ${
                 timeStatus.isUrgent
                   ? "bg-red-600 text-white animate-pulse"
-                  : timeStatus.isEndingSoon
-                    ? "bg-red-500/90 text-white"
-                    : "bg-black/60 text-white"
+                  : timeStatus.isLastCall
+                    ? "bg-red-500 text-white"
+                    : "bg-black/65 text-white backdrop-blur-sm"
               }`}
             >
-              <Clock
-                size={12}
-                className={
-                  timeStatus.isEndingSoon ? "text-white" : "text-amber-400"
-                }
-              />
-              <span className="font-semibold">{auction.endTime}</span>
+              <Clock size={10} />
+              {timeStatus.isLastCall ? (
+                <span className="font-black">⚡ {auction.endTime}</span>
+              ) : (
+                auction.endTime
+              )}
             </div>
           </div>
         </div>
 
-        {/* ── CONTENT SECTION ───────────────────────────────────────────── */}
-        <div className="flex flex-col flex-1 p-4 gap-3">
-          {/* Title + description */}
-          <div>
-            <h3 className="text-sm sm:text-base font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-red-600 transition-colors">
-              {auction.title}
-            </h3>
-            <div className="w-8 h-0.5 bg-gradient-to-r from-amber-400 to-amber-200 rounded-full mt-1.5 mb-1" />
-            <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed line-clamp-2">
-              {auction.description}
-            </p>
-          </div>
-
-          {/* Type badge + Price + bids/likes */}
+        {/* ── CONTENT ────────────────────────────────────────────────────── */}
+        <div className="flex flex-col flex-1 px-4 pt-4 pb-4 gap-3">
+          {/* PRICE */}
           <div
-            className={`flex flex-col gap-2 px-3 py-3 rounded-xl border transition-all duration-300 ${
-              priceChanged
-                ? "bg-amber-50 border-amber-300"
-                : "bg-slate-50 border-slate-100"
-            }`}
+            className={`flex items-center justify-between rounded-xl px-3 py-3 ${theme.priceBg}`}
           >
-            {/* Type badge */}
-            <div className="flex items-center justify-between">
-              {auction.type === "buy_now" ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 text-[10px] font-black uppercase tracking-widest">
-                  <Star size={9} />
-                  Buy Now
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-widest">
-                  <Gavel size={9} />
-                  Auction
-                </span>
-              )}
-
-              {/* Bids / likes pill */}
-              <div className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-lg shadow-sm">
-                {auction.type === "buy_now" ? (
-                  <>
-                    <Heart size={11} className="text-rose-400 fill-rose-400" />
-                    <span className="text-[10px] font-bold text-slate-700">
-                      {auction.likes ?? 0}
-                    </span>
-                    <span className="text-[10px] text-slate-400">likes</span>
-                  </>
-                ) : (
-                  <>
-                    <Gavel size={11} className="text-amber-500" />
-                    <span className="text-[10px] font-bold text-slate-700">
-                      {auction.bids}
-                    </span>
-                    <span className="text-[10px] text-slate-400">bids</span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Price */}
             <div>
-              <p className="text-[9px] uppercase tracking-widest font-bold text-slate-400 mb-0.5">
+              <p
+                className={`text-[9px] uppercase tracking-[0.14em] font-bold mb-1 ${theme.priceLabel}`}
+              >
                 {auction.type === "buy_now" ? "Price" : "Current Bid"}
               </p>
               <div className="flex items-baseline gap-1">
                 <span
-                  className={`text-2xl font-black leading-none transition-all duration-300 ${
-                    priceChanged ? "text-amber-600" : "text-slate-900"
-                  }`}
+                  className={`text-[32px] font-black leading-none tracking-tighter transition-colors duration-300 ${priceChanged ? "text-orange-500" : theme.priceColor}`}
                 >
                   {currentPrice.toLocaleString()}
                 </span>
-                <span className="text-sm font-bold text-slate-400">€</span>
+                <span className={`text-base font-extrabold ${theme.euroColor}`}>
+                  €
+                </span>
               </div>
+            </div>
+
+            <div className="flex flex-col items-center bg-white rounded-xl px-3 py-2 shadow-sm border border-white/80 min-w-[52px]">
+              {auction.type === "buy_now" ? (
+                <>
+                  <Heart
+                    size={14}
+                    className="text-rose-400 fill-rose-400 mb-1"
+                  />
+                  <span className="text-sm font-black text-slate-800 leading-none">
+                    {auction.likes ?? 0}
+                  </span>
+                  <span className="text-[9px] text-slate-400 leading-none mt-0.5">
+                    likes
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Gavel size={14} className="text-amber-500 mb-1" />
+                  <span className="text-sm font-black text-slate-800 leading-none">
+                    {auction.bids}
+                  </span>
+                  <span className="text-[9px] text-slate-400 leading-none mt-0.5">
+                    bids
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Spacer pushes seller to bottom */}
-          <div className="flex-1" />
+          {/* Accent line */}
+          <div className={`h-[3px] w-10 rounded-full ${theme.accentLine}`} />
 
-          {/* Seller row */}
+          {/* Title */}
+          <h3 className="text-[13px] font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-slate-600 transition-colors tracking-tight">
+            {auction.title}
+          </h3>
+
+          {/* Description */}
+          <p className="text-[12px] text-slate-500 leading-[1.65] line-clamp-4 flex-1">
+            {auction.description}
+          </p>
+
+          {/* ── SELLER ─────────────────────────────────────────────────── */}
           <div className="flex items-center justify-between pt-3 border-t border-slate-100">
             <div className="flex items-center gap-2 min-w-0">
-              {/* Avatar */}
-              <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm shrink-0">
+              <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden ring-2 ring-white shadow-sm shrink-0">
                 {auction.seller.avatar ? (
                   <Image
                     src={auction.seller.avatar}
-                    width={32}
-                    height={32}
+                    width={28}
+                    height={28}
                     alt={auction.seller.name}
                     className="object-cover"
                   />
                 ) : (
-                  <span className="text-xs font-bold text-slate-600 uppercase">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase">
                     {auction.seller.name[0]}
                   </span>
                 )}
               </div>
-
-              {/* Name + rating */}
               <div className="min-w-0">
                 <div className="flex items-center gap-1">
-                  <span className="text-xs font-semibold text-slate-800 truncate">
+                  <span className="text-xs font-bold text-slate-700 truncate">
                     {auction.seller.name}
                   </span>
                   {auction.verified && (
                     <Shield
-                      size={10}
+                      size={9}
                       className="text-emerald-500 fill-emerald-500 shrink-0"
                     />
                   )}
                 </div>
                 <div className="flex items-center gap-0.5 mt-0.5">
-                  <Star size={10} className="text-amber-400 fill-amber-400" />
-                  <span className="text-[10px] font-bold text-slate-700">
+                  <Star size={9} className="text-amber-400 fill-amber-400" />
+                  <span className="text-[10px] font-bold text-slate-600">
                     {auction.seller.rating.toFixed(1)}
                   </span>
                   <span className="text-[10px] text-slate-400">
@@ -415,16 +421,15 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
               </div>
             </div>
 
-            {/* Country flag */}
-            <div className="flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-md shrink-0">
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2 py-1 rounded-md shrink-0">
               <Image
                 src={flagUrl}
-                width={16}
-                height={12}
+                width={14}
+                height={10}
                 alt={auction.country?.name || "Poland"}
                 className="rounded-sm"
               />
-              <span className="text-[10px] font-medium text-slate-600">
+              <span className="text-[10px] font-semibold text-slate-500">
                 {auction.country?.code?.toUpperCase() || "PL"}
               </span>
             </div>
@@ -432,17 +437,16 @@ export default function AuctionCard({ auction, badge }: AuctionCardProps) {
 
           {/* Buyer protection */}
           {auction.verified && (
-            <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1.5 rounded-lg">
+            <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-xl">
               <Shield size={11} className="shrink-0" />
-              <span className="text-[10px] font-semibold">
-                Buyer Protection
-              </span>
+              <span className="text-[11px] font-bold">Buyer Protection</span>
+              <TrendingUp size={11} className="ml-auto text-emerald-400" />
             </div>
           )}
 
-          {/* CTA button */}
+          {/* CTA */}
           <button
-            className={`w-full py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r ${frameColors.accent} shadow-md hover:shadow-lg hover:brightness-110 active:scale-[0.98] transition-all duration-200`}
+            className={`w-full py-3 rounded-xl text-sm font-black tracking-wide shadow-sm hover:shadow-lg active:scale-[0.98] transition-all duration-200 ${theme.btnClass}`}
           >
             {auction.type === "buy_now" ? "Buy Now" : "Place Bid"}
           </button>
