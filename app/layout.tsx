@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Matchdays - Authentic Football Shirts",
+  title: "Matchdays - Sports Memorabilia Marketplace",
   description:
-    "Play your match every day. Curated collectibles. Verified authenticity.",
+    "The marketplace for authentic sports memorabilia. Jerseys, signed items and rare collectibles from football, basketball, hockey, motorsport and more.",
 };
 
 export default function RootLayout({
@@ -23,8 +23,48 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={cn("font-sans", inter.variable)}>
-      <body>
-        {/* AuthProvider wraps everything - global auth state */}
+      <head>
+        <style>{`
+          #splash {
+            position: fixed;
+            inset: 0;
+            background: #111111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+          }
+          #splash-logo {
+            font-family: Inter, sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 0.25em;
+            color: #ffffff;
+          }
+        `}</style>
+      </head>
+      <body style={{ background: "#111111" }}>
+        {/* Splash screen - widoczny przed hydracją */}
+        <div id="splash">
+          <span id="splash-logo">MATCHDAYS</span>
+        </div>
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.addEventListener('load', function() {
+                var s = document.getElementById('splash');
+                if (s) {
+                  s.style.opacity = '0';
+                  setTimeout(function() { s.remove(); }, 400);
+                }
+              });
+            `,
+          }}
+        />
+
         <AuthProvider>
           <WatchlistProvider>
             <CartProvider>
