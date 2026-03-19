@@ -14,6 +14,29 @@ export const metadata: Metadata = {
   title: "Matchdays - Sports Memorabilia Marketplace",
   description:
     "The marketplace for authentic sports memorabilia. Jerseys, signed items and rare collectibles from football, basketball, hockey, motorsport and more.",
+  openGraph: {
+    title: "Matchdays - Sports Memorabilia Marketplace",
+    description:
+      "The marketplace for authentic sports memorabilia. Jerseys, signed items and rare collectibles from football, basketball, hockey, motorsport and more.",
+    url: "https://matchdaysproject.vercel.app",
+    siteName: "MatchDays",
+    images: [
+      {
+        url: "https://matchdaysproject.vercel.app/images/opengraph-image.png",
+        width: 1200,
+        height: 630,
+        alt: "MatchDays - Sports Memorabilia Marketplace",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Matchdays - Sports Memorabilia Marketplace",
+    description:
+      "The marketplace for authentic sports memorabilia. Jerseys, signed items and rare collectibles from football, basketball, hockey, motorsport and more.",
+    images: ["https://matchdaysproject.vercel.app/images/opengraph-image.png"],
+  },
 };
 
 export default function RootLayout({
@@ -23,48 +46,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={cn("font-sans", inter.variable)}>
-      <head>
-        <style>{`
-          #splash {
-            position: fixed;
-            inset: 0;
-            background: #111111;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            pointer-events: none;
-            transition: opacity 0.4s ease;
-          }
-          #splash-logo {
-            font-family: Inter, sans-serif;
-            font-weight: 700;
-            font-size: 1.5rem;
-            letter-spacing: 0.25em;
-            color: #ffffff;
-          }
-        `}</style>
-      </head>
       <body style={{ background: "#111111" }}>
-        {/* Splash screen - widoczny przed hydracją */}
-        <div id="splash">
-          <span id="splash-logo">MATCHDAYS</span>
-        </div>
-
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.addEventListener('load', function() {
-                var s = document.getElementById('splash');
-                if (s) {
-                  s.style.opacity = '0';
-                  setTimeout(function() { s.remove(); }, 400);
-                }
-              });
-            `,
-          }}
-        />
-
         <AuthProvider>
           <WatchlistProvider>
             <CartProvider>

@@ -1,8 +1,7 @@
 export default function Footer() {
   return (
-    <footer className="border-t border-gray-200 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8">
+    <footer className="bg-white border-t border-gray-200 py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8">
       <div className="container-max">
-        {/* Zmiana tutaj: grid-cols-2 na telefonach, md:grid-cols-4 na laptopach. Dodałem gap-x-4 i gap-y-8 dla lepszych proporcji na małych ekranach */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8 sm:gap-10 md:gap-12 mb-8 sm:mb-10 md:mb-12">
           {/* About */}
           <div>
