@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     siteName: "MatchDays",
     images: [
       {
-        url: "https://matchdaysproject.vercel.app/images/opengraph-image.png",
+        url: "https://matchdaysproject.vercel.app/images/opengraph-image.webp",
         width: 1200,
         height: 630,
         alt: "MatchDays - Sports Memorabilia Marketplace",
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     title: "Matchdays - Sports Memorabilia Marketplace",
     description:
       "The marketplace for authentic sports memorabilia. Jerseys, signed items and rare collectibles from football, basketball, hockey, motorsport and more.",
-    images: ["https://matchdaysproject.vercel.app/images/opengraph-image.png"],
+    images: ["https://matchdaysproject.vercel.app/images/opengraph-image.webp"],
   },
 };
 
