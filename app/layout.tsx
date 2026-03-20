@@ -46,7 +46,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={cn("font-sans", inter.variable)}>
-      <body style={{ background: "#111111" }}>
+      <body>
         <AuthProvider>
           <WatchlistProvider>
             <CartProvider>
