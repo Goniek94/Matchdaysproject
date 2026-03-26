@@ -315,14 +315,16 @@ export default function Navbar() {
                 </Link>
               </>
             ) : (
-              <Link
-                href="/add-listing"
-                onClick={() => setIsMobileMenuOpen(false)}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsLoginModalOpen(true);
+                }}
                 className="w-full py-4 bg-amber-400 text-black text-sm font-black rounded-xl hover:bg-amber-300 active:scale-95 transition-all text-center uppercase tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20"
               >
                 <PlusCircle size={20} strokeWidth={3} />
                 SELL ITEM
-              </Link>
+              </button>
             )}
           </div>
 
