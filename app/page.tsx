@@ -5,7 +5,7 @@ import Hero from "@/components/home/Hero";
 import PricingSection from "@/components/home/PricingSection";
 import AuctionCard from "@/components/home/AuctionCard";
 import { mockAuctions } from "@/lib/mockData";
-import { getSportsListings } from "@/lib/api/listings.api";
+import { getAuctions } from "@/lib/api/auctions.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -63,10 +63,10 @@ export default function HomePage() {
     async function fetchAuctions() {
       try {
         setIsLoading(true);
-        const result = await getSportsListings({ page: 1, limit: 12 });
-        if (result.success && result.data && result.data.length > 0) {
-          const adaptedAuctions = adaptAuctionsForDisplay(result.data);
-          setAuctions(adaptedAuctions);
+        const result = await getAuctions({ page: 1, limit: 12 });
+        const fetchedAuctions = result.data?.auctions ?? [];
+        if (result.success && fetchedAuctions.length > 0) {
+          setAuctions(adaptAuctionsForDisplay(fetchedAuctions));
         } else {
           setAuctions(mockAuctions);
         }

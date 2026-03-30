@@ -43,7 +43,16 @@ export default function BuyNowPanel({
   const inWatchlist = isInWatchlist(auctionId);
 
   const handleBuyNow = () => {
-    router.push(`/checkout?id=${auctionId}`);
+    // Add to cart first, then redirect to cart for checkout
+    addToCart({
+      id: auctionId,
+      title,
+      price,
+      currency,
+      image,
+      seller,
+    });
+    router.push(`/cart`);
   };
 
   const handleAddToCart = () => {

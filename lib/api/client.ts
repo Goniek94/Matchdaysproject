@@ -159,42 +159,4 @@ function buildError(error: any) {
   };
 }
 
-// ─── Simple In-Memory Cache ────────────────────────────────────────────────────
-
-const cache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Get data from cache if available and not expired
- */
-export const getCachedData = (key: string): any | null => {
-  const cached = cache.get(key);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    return cached.data;
-  }
-  cache.delete(key);
-  return null;
-};
-
-/**
- * Store data in cache
- */
-export const setCachedData = (key: string, data: any): void => {
-  cache.set(key, { data, timestamp: Date.now() });
-};
-
-/**
- * Clear all cached data
- */
-export const clearCache = (): void => {
-  cache.clear();
-};
-
-/**
- * Clear specific cache entry
- */
-export const clearCacheEntry = (key: string): void => {
-  cache.delete(key);
-};
-
 export default apiClient;

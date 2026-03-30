@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
-import { Heart, LogIn, AlertCircle } from "lucide-react";
+import { Heart, LogIn, AlertCircle, Crown } from "lucide-react";
 import Link from "next/link";
 
 interface BidPanelProps {
@@ -182,18 +182,26 @@ export default function BidPanel({
         </div>
       </div>
 
-      {/* Highest Bidder */}
+      {/* Highest Bidder — gold highlight */}
       {highestBidder && bidCount > 0 && (
-        <div className="mt-3 mb-5 flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2">
-          <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center">
-            <span className="text-green-400 text-xs">👑</span>
+        <div className="mt-3 mb-5 flex items-center gap-2.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-500/30 rounded-xl px-3 py-2.5">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shadow-lg shadow-amber-500/30 shrink-0">
+            <Crown size={13} className="text-black" />
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wider">
-              Highest Bidder
+            <p className="text-[9px] font-bold uppercase tracking-widest text-amber-400">
+              Leading Bidder
             </p>
-            <p className="text-sm font-semibold text-white truncate">
+            <p className="text-sm font-black text-amber-300 truncate">
               {highestBidder}
+            </p>
+          </div>
+          <div className="ml-auto text-right shrink-0">
+            <p className="text-[9px] text-amber-500/70 uppercase tracking-wider">
+              Top bid
+            </p>
+            <p className="text-sm font-black text-amber-400">
+              {`€${currentBid.toLocaleString()}`}
             </p>
           </div>
         </div>

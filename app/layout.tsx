@@ -5,6 +5,7 @@ import FooterWrapper from "@/components/layout/FooterWrapper";
 import { CartProvider } from "@/lib/CartContext";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { WatchlistProvider } from "@/lib/context/WatchlistContext";
+import QueryProvider from "@/lib/context/QueryProvider";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -47,17 +48,19 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", inter.variable)}>
       <body>
-        <AuthProvider>
-          <WatchlistProvider>
-            <CartProvider>
-              <Navbar />
-              <main className="min-h-screen pt-[80px] md:pt-[100px]">
-                {children}
-              </main>
-              <FooterWrapper />
-            </CartProvider>
-          </WatchlistProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <WatchlistProvider>
+              <CartProvider>
+                <Navbar />
+                <main className="min-h-screen pt-[80px] md:pt-[100px]">
+                  {children}
+                </main>
+                <FooterWrapper />
+              </CartProvider>
+            </WatchlistProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

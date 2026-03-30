@@ -3,14 +3,13 @@
 import { useState, useMemo, useEffect } from "react";
 import AuctionCard from "@/components/home/AuctionCard";
 import { mockAuctions } from "@/lib/mockData";
-import { getSportsListings } from "@/lib/api/listings.api";
+import { getAuctions } from "@/lib/api/auctions.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import { Search, Filter, X } from "lucide-react";
 import AuctionsSidebar, {
   FilterState,
 } from "@/components/auctions/AuctionsSidebar";
 
-// Helper: Parsowanie czasu
 const parseTimeLeft = (timeStr: string): number => {
   let totalMinutes = 0;
   const days = timeStr.match(/(\d+)d/);
@@ -42,15 +41,14 @@ export default function AuctionsPage(): JSX.Element {
   const [auctions, setAuctions] = useState<any[]>([]);
   const [_isLoading, setIsLoading] = useState(true);
 
-  // Fetch auctions from API
   useEffect(() => {
     async function fetchAuctions() {
       try {
         setIsLoading(true);
-        const result = await getSportsListings({ page: 1, limit: 50 });
+        const result = await getAuctions({ page: 1, limit: 50 });
         if (result.success && result.data) {
-          console.log("✅ Pobrano aukcje z API:", result.data.length);
-          const adaptedAuctions = adaptAuctionsForDisplay(result.data);
+          console.log("✅ Pobrano aukcje z API:", result.data.auctions.length);
+          const adaptedAuctions = adaptAuctionsForDisplay(result.data.auctions);
           setAuctions(adaptedAuctions);
         } else {
           console.warn("⚠️ Brak aukcji z API, używam mock data");
@@ -66,12 +64,10 @@ export default function AuctionsPage(): JSX.Element {
     fetchAuctions();
   }, []);
 
-  // --- LOGIKA FILTROWANIA ---
   const filteredAuctions = useMemo(() => {
     const sourceAuctions = auctions.length > 0 ? auctions : mockAuctions;
     let result = [...sourceAuctions];
 
-    // Search po tytule, teamie i sprzedawcy
     if (filters.search) {
       const q = filters.search.toLowerCase();
       result = result.filter(
@@ -82,17 +78,14 @@ export default function AuctionsPage(): JSX.Element {
       );
     }
 
-    // Sport
     if (filters.sport !== "all") {
       result = result.filter((item) => item.sport === filters.sport);
     }
 
-    // Category
     if (filters.category !== "all") {
       result = result.filter((item) => item.category === filters.category);
     }
 
-    // Country
     if (filters.country) {
       result = result.filter(
         (item) =>
@@ -100,12 +93,10 @@ export default function AuctionsPage(): JSX.Element {
       );
     }
 
-    // Item type
     if (filters.itemType !== "all") {
       result = result.filter((item) => item.itemType === filters.itemType);
     }
 
-    // Sort
     if (filters.sort === "buy_now") {
       result = result.filter((item) => item.type === "buy_now");
     } else if (filters.sort === "auction") {
@@ -119,7 +110,6 @@ export default function AuctionsPage(): JSX.Element {
     return result;
   }, [auctions, filters]);
 
-  // Aktywne filtry jako tagi
   const activeTags: { label: string; onRemove: () => void }[] = [];
   if (filters.sport !== "all")
     activeTags.push({
@@ -164,7 +154,6 @@ export default function AuctionsPage(): JSX.Element {
       <div className="flex-1 bg-white">
         <div className="w-full max-w-[1600px] mx-auto px-6 lg:px-10 py-8">
           <div className="flex flex-col lg:flex-row gap-8 items-start">
-            {/* --- SIDEBAR --- */}
             <AuctionsSidebar
               filters={filters}
               onChange={setFilters}
@@ -173,9 +162,7 @@ export default function AuctionsPage(): JSX.Element {
               onMobileClose={() => setIsMobileFiltersOpen(false)}
             />
 
-            {/* --- GRID (RIGHT SIDE) --- */}
             <div className="flex-1 w-full">
-              {/* TOP HEADER */}
               <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
                 <div>
                   <h1 className="text-4xl font-black text-black tracking-tighter mb-2">
@@ -210,9 +197,7 @@ export default function AuctionsPage(): JSX.Element {
                 </div>
               </div>
 
-              {/* ACTIVE FILTERS BAR */}
               <div className="mb-6 flex items-center gap-3 flex-wrap">
-                {/* Mobile Trigger */}
                 <button
                   onClick={() => setIsMobileFiltersOpen(true)}
                   className="lg:hidden flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg font-bold"
@@ -246,7 +231,6 @@ export default function AuctionsPage(): JSX.Element {
                 )}
               </div>
 
-              {/* GRID */}
               {filteredAuctions.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
                   {filteredAuctions.map((auction) => (

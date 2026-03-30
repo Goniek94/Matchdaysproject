@@ -6,7 +6,7 @@ import { SmartFormData, INITIAL_STATE, Photo } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
 import { SuccessView } from "./steps";
 import { SmartFormSummary } from "./summary";
-import { createSportsListing } from "@/lib/api/listings.api";
+import { createAuctionFromForm } from "@/lib/api/auctions.api";
 import { uploadPhotos } from "@/lib/supabase";
 
 export default function SmartForm({ onBack }: { onBack?: () => void }) {
@@ -132,44 +132,19 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       };
 
       // 4. Zapisz listing do bazy
-      console.group(
-        "📡 [Publish] Step 3: Sending to backend (createSportsListing)",
-      );
-      console.log(
-        "Data being sent:",
-        JSON.stringify(
-          {
-            title: dataWithPhotos.title,
-            category: dataWithPhotos.category,
-            listingType: dataWithPhotos.listingType,
-            price: dataWithPhotos.price,
-            startPrice: dataWithPhotos.startPrice,
-            duration: dataWithPhotos.duration,
-            photosCount: dataWithPhotos.photos.length,
-            photoUrls: dataWithPhotos.photos.map((p) =>
-              p.url?.substring(0, 60),
-            ),
-          },
-          null,
-          2,
-        ),
-      );
-      const result = await createSportsListing(dataWithPhotos);
-      console.log("📡 Backend response:", JSON.stringify(result, null, 2));
-      console.groupEnd();
+      console.log("📡 [Publish] Step 3: Sending to backend...");
+      const result = await createAuctionFromForm(dataWithPhotos);
+      console.log("📡 Backend response:", result.success, result.message);
 
       if (result.success) {
-        console.log("🎉 [Publish] SUCCESS! Listing created:", result.data);
-        // Save the real auction ID from backend response
-        const createdId = result.data?.id;
-        console.log("🆔 Created listing ID:", createdId);
-        setPublishedListingId(createdId || null);
+        console.log("🎉 [Publish] SUCCESS! Listing created:", result.data?.id);
+        setPublishedListingId(result.data?.id || null);
         setPublishedPhotos(photosWithIds);
         setData(dataWithPhotos);
         setIsPublished(true);
       } else {
-        console.error("❌ [Publish] FAILED:", result.error || result.message);
-        alert(`Failed to create listing: ${result.error || result.message}`);
+        console.error("❌ [Publish] FAILED:", result.message);
+        alert(`Failed to create listing: ${result.message}`);
       }
     } catch (error) {
       console.error("💥 [Publish] EXCEPTION:", error);

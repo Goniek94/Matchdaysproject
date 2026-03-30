@@ -1,18 +1,17 @@
 /**
  * API Services Index
- * Central export point for all API services
+ * Central export point for all API services.
+ * All services use axios apiClient with HTTP-Only cookie auth.
  */
 
-// Export API client and utilities
-export { default as apiClient } from "./client";
-export {
-  getCachedData,
-  setCachedData,
-  clearCache,
-  clearCacheEntry,
-} from "./client";
+// ─── API Client ───────────────────────────────────────────────────────────────
 
-// Export configuration and types
+export { default as apiClient } from "./client";
+
+// Note: In-memory cache removed — caching is now handled by React Query (TanStack Query)
+
+// ─── Configuration & Utilities ───────────────────────────────────────────────
+
 export {
   API_URL,
   REQUEST_TIMEOUT,
@@ -25,7 +24,8 @@ export {
 
 export type { UserData, ApiResponse } from "./config";
 
-// Export authentication service
+// ─── Auth Service ─────────────────────────────────────────────────────────────
+
 export * as authApi from "./auth";
 export type {
   LoginCredentials,
@@ -34,20 +34,36 @@ export type {
   ChangePasswordData,
 } from "./auth";
 
-// Export auctions service
-export * as auctionsApi from "./auctions";
+// ─── Auctions Service (unified — replaces listings.api.ts + auctions.ts) ─────
+
+export * as auctionsApi from "./auctions.api";
 export type {
+  AuctionDto,
+  AuctionDetailDto,
+  AuctionListDto,
   AuctionFilters,
-  AuctionData,
-  CreateAuctionData,
-  UpdateAuctionData,
-} from "./auctions";
+  CreateAuctionDto,
+  UpdateAuctionDto,
+  RelistAuctionDto,
+  AuctionStatus,
+  AuctionListingType,
+  AuctionSellerDto,
+  AuctionBidDto,
+} from "@/types/api/auction.types";
 
-// Export bids service
-export * as bidsApi from "./bids";
-export type { BidData, PlaceBidData } from "./bids";
+// ─── Bids Service ─────────────────────────────────────────────────────────────
 
-// Export users service
+export * as bidsApi from "./bids.api";
+export type {
+  BidDto,
+  PlaceBidDto,
+  PlaceBidResponseDto,
+  BidHistoryDto,
+  BidWinningStatusDto,
+} from "@/types/api/bid.types";
+
+// ─── Users Service ────────────────────────────────────────────────────────────
+
 export * as usersApi from "./users";
 export type {
   UserProfile,
@@ -55,36 +71,15 @@ export type {
   UserPreferencesData,
 } from "./users";
 
-// ✅ DODANE: Export AI service
-export * as aiApi from "./ai";
-export type { AIAnalysisResult, PhotoDto, AnalyzeListingDto } from "./ai";
+// ─── Messages Service ─────────────────────────────────────────────────────────
 
-// Export messages service
 export * as messagesApi from "./messages";
 
-// Export my listings service
+// ─── My Listings Service ──────────────────────────────────────────────────────
+
 export * as myListingsApi from "./my-listings";
-export type {
-  MyListing,
-  UpdateListingPayload,
-} from "@/types/features/listings.types";
 
-// Default export with all services
-const api = {
-  auth: require("./auth"),
-  auctions: require("./auctions"),
-  bids: require("./bids"),
-  users: require("./users"),
-  // ✅ DODANE: AI w default export
-  ai: require("./ai"),
-  client: require("./client").default,
-  config: {
-    API_URL: require("./config").API_URL,
-    setAuthData: require("./config").setAuthData,
-    clearAuthData: require("./config").clearAuthData,
-    getUserData: require("./config").getUserData,
-    isAuthenticated: require("./config").isAuthenticated,
-  },
-};
+// ─── AI Service ───────────────────────────────────────────────────────────────
 
-export default api;
+export * as aiApi from "./ai";
+export type { AIAnalysisResult, PhotoDto, AnalyzeListingDto } from "./ai";

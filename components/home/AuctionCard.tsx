@@ -14,8 +14,10 @@ import {
   Heart,
   TrendingUp,
   AlarmClock,
+  Eye,
 } from "lucide-react";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
+import AuctionPreviewModal from "@/components/home/AuctionPreviewModal";
 
 const JerseyIcon = ({
   filled,
@@ -213,8 +215,12 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
   const [watchlistFeedback, setWatchlistFeedback] = useState<string | null>(
     null,
   );
+  const [modalOpen, setModalOpen] = useState(false);
   const prevPriceRef = useRef(initialPrice);
   const isFavorite = isInWatchlist(auction.id);
+
+  // Only real auctions (UUID format) support the preview modal
+  const supportsModal = auction.id?.includes("-") ?? false;
 
   useEffect(() => {
     const newPrice = auction.price || (auction as any).currentBid || 0;
@@ -250,208 +256,233 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
   const theme = getTheme(auction, timeStatus.isLastCall);
 
   return (
-    <Link
-      href={`/auction/${auction.id}`}
-      className="group h-full relative block cursor-pointer"
-    >
-      {watchlistFeedback && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 bg-black/80 text-white text-[11px] font-semibold rounded-full whitespace-nowrap shadow-lg pointer-events-none">
-          {watchlistFeedback}
-        </div>
+    <>
+      {/* Preview Modal */}
+      {modalOpen && supportsModal && (
+        <AuctionPreviewModal
+          auctionId={auction.id}
+          onClose={() => setModalOpen(false)}
+        />
       )}
 
-      <div
-        className={`h-full flex flex-col bg-white rounded-2xl border ${theme.cardBorder} ${theme.cardShadow} ${theme.hoverShadow} transition-all duration-300 hover:-translate-y-1.5 transform-gpu overflow-hidden`}
-      >
-        {/* ── IMAGE ──────────────────────────────────────────────────────── */}
-        <div className="relative">
-          {theme.badgeText && (
-            <div
-              className={`absolute top-3 right-3 ${theme.badgeClass} px-2.5 py-1 rounded-full text-[10px] font-black shadow-md flex items-center gap-1 z-20`}
-            >
-              {theme.badgeIcon}
-              <span className="tracking-wider">{theme.badgeText}</span>
-            </div>
-          )}
+      <div className="group h-full relative">
+        {watchlistFeedback && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 bg-black/80 text-white text-[11px] font-semibold rounded-full whitespace-nowrap shadow-lg pointer-events-none">
+            {watchlistFeedback}
+          </div>
+        )}
 
-          <button
-            onClick={handleFavoriteClick}
-            className={`absolute top-3 left-3 p-2 rounded-full z-20 transition-all duration-200 hover:scale-110 active:scale-95 ${
-              isFavorite
-                ? "bg-red-500 text-white shadow-lg shadow-red-200"
-                : "bg-white/90 backdrop-blur-sm text-slate-400 hover:text-red-500 shadow-sm"
-            }`}
-          >
-            <JerseyIcon filled={isFavorite} className="w-4 h-4" />
-          </button>
+        <div
+          className={`h-full flex flex-col bg-white rounded-2xl border ${theme.cardBorder} ${theme.cardShadow} ${theme.hoverShadow} transition-all duration-300 hover:-translate-y-1.5 transform-gpu overflow-hidden`}
+        >
+          {/* ── IMAGE ────────────────────────────────────────────────────── */}
+          <div className="relative">
+            {theme.badgeText && (
+              <div
+                className={`absolute top-3 right-3 ${theme.badgeClass} px-2.5 py-1 rounded-full text-[10px] font-black shadow-md flex items-center gap-1 z-20`}
+              >
+                {theme.badgeIcon}
+                <span className="tracking-wider">{theme.badgeText}</span>
+              </div>
+            )}
 
-          <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-            <Image
-              src={auction.image}
-              alt={auction.title}
-              fill
-              className="object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
-
-            {/* Timer */}
-            <div
-              className={`absolute bottom-3 left-3 text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 font-bold shadow-sm ${
-                timeStatus.isUrgent
-                  ? "bg-red-600 text-white animate-pulse"
-                  : timeStatus.isLastCall
-                    ? "bg-red-500 text-white"
-                    : "bg-black/65 text-white backdrop-blur-sm"
+            <button
+              onClick={handleFavoriteClick}
+              className={`absolute top-3 left-3 p-2 rounded-full z-20 transition-all duration-200 hover:scale-110 active:scale-95 ${
+                isFavorite
+                  ? "bg-red-500 text-white shadow-lg shadow-red-200"
+                  : "bg-white/90 backdrop-blur-sm text-slate-400 hover:text-red-500 shadow-sm"
               }`}
             >
-              <Clock size={10} />
-              {timeStatus.isLastCall ? (
-                <span className="font-black">⚡ {auction.endTime}</span>
-              ) : (
-                auction.endTime
-              )}
-            </div>
-          </div>
-        </div>
+              <JerseyIcon filled={isFavorite} className="w-4 h-4" />
+            </button>
 
-        {/* ── CONTENT ────────────────────────────────────────────────────── */}
-        <div className="flex flex-col flex-1 px-4 pt-4 pb-4 gap-3">
-          {/* PRICE */}
-          <div
-            className={`flex items-center justify-between rounded-xl px-3 py-3 ${theme.priceBg}`}
-          >
-            <div>
-              <p
-                className={`text-[9px] uppercase tracking-[0.14em] font-bold mb-1 ${theme.priceLabel}`}
+            {/* Quick View button — visible on hover, only for real auctions */}
+            {supportsModal && (
+              <button
+                onClick={() => setModalOpen(true)}
+                className="absolute bottom-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 bg-black/80 backdrop-blur-sm text-white text-[10px] font-bold rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-black shadow-lg"
               >
-                {auction.type === "buy_now" ? "Price" : "Current Bid"}
-              </p>
-              <div className="flex items-baseline gap-1">
-                <span
-                  className={`text-[32px] font-black leading-none tracking-tighter transition-colors duration-300 ${priceChanged ? "text-orange-500" : theme.priceColor}`}
+                <Eye size={11} />
+                Quick View
+              </button>
+            )}
+
+            <Link href={`/auction/${auction.id}`} className="block">
+              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                <Image
+                  src={auction.image}
+                  alt={auction.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+
+                {/* Timer */}
+                <div
+                  className={`absolute bottom-3 left-3 text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1.5 font-bold shadow-sm ${
+                    timeStatus.isUrgent
+                      ? "bg-red-600 text-white animate-pulse"
+                      : timeStatus.isLastCall
+                        ? "bg-red-500 text-white"
+                        : "bg-black/65 text-white backdrop-blur-sm"
+                  }`}
                 >
-                  {currentPrice.toLocaleString()}
-                </span>
-                <span className={`text-base font-extrabold ${theme.euroColor}`}>
-                  €
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center bg-white rounded-xl px-3 py-2 shadow-sm border border-white/80 min-w-[52px]">
-              {auction.type === "buy_now" ? (
-                <>
-                  <Heart
-                    size={14}
-                    className="text-rose-400 fill-rose-400 mb-1"
-                  />
-                  <span className="text-sm font-black text-slate-800 leading-none">
-                    {auction.likes ?? 0}
-                  </span>
-                  <span className="text-[9px] text-slate-400 leading-none mt-0.5">
-                    likes
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Gavel size={14} className="text-amber-500 mb-1" />
-                  <span className="text-sm font-black text-slate-800 leading-none">
-                    {auction.bids}
-                  </span>
-                  <span className="text-[9px] text-slate-400 leading-none mt-0.5">
-                    bids
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Accent line */}
-          <div className={`h-[3px] w-10 rounded-full ${theme.accentLine}`} />
-
-          {/* Title */}
-          <h3 className="text-[13px] font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-slate-600 transition-colors tracking-tight">
-            {auction.title}
-          </h3>
-
-          {/* Description */}
-          <p className="text-[12px] text-slate-500 leading-[1.65] line-clamp-4 flex-1">
-            {auction.description}
-          </p>
-
-          {/* ── SELLER ─────────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden ring-2 ring-white shadow-sm shrink-0">
-                {auction.seller.avatar ? (
-                  <Image
-                    src={auction.seller.avatar}
-                    width={28}
-                    height={28}
-                    alt={auction.seller.name}
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="text-[10px] font-bold text-slate-600 uppercase">
-                    {auction.seller.name[0]}
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-bold text-slate-700 truncate">
-                    {auction.seller.name}
-                  </span>
-                  {auction.verified && (
-                    <Shield
-                      size={9}
-                      className="text-emerald-500 fill-emerald-500 shrink-0"
-                    />
+                  <Clock size={10} />
+                  {timeStatus.isLastCall ? (
+                    <span className="font-black">⚡ {auction.endTime}</span>
+                  ) : (
+                    auction.endTime
                   )}
                 </div>
-                <div className="flex items-center gap-0.5 mt-0.5">
-                  <Star size={9} className="text-amber-400 fill-amber-400" />
-                  <span className="text-[10px] font-bold text-slate-600">
-                    {auction.seller.rating.toFixed(1)}
+              </div>
+            </Link>
+          </div>
+
+          {/* ── CONTENT ──────────────────────────────────────────────────── */}
+          <Link
+            href={`/auction/${auction.id}`}
+            className="flex flex-col flex-1 px-4 pt-4 pb-4 gap-3"
+          >
+            {/* PRICE */}
+            <div
+              className={`flex items-center justify-between rounded-xl px-3 py-3 ${theme.priceBg}`}
+            >
+              <div>
+                <p
+                  className={`text-[9px] uppercase tracking-[0.14em] font-bold mb-1 ${theme.priceLabel}`}
+                >
+                  {auction.type === "buy_now" ? "Price" : "Current Bid"}
+                </p>
+                <div className="flex items-baseline gap-1">
+                  <span
+                    className={`text-[32px] font-black leading-none tracking-tighter transition-colors duration-300 ${priceChanged ? "text-orange-500" : theme.priceColor}`}
+                  >
+                    {currentPrice.toLocaleString()}
                   </span>
-                  <span className="text-[10px] text-slate-400">
-                    ({auction.seller.reviews})
+                  <span
+                    className={`text-base font-extrabold ${theme.euroColor}`}
+                  >
+                    €
                   </span>
                 </div>
               </div>
+
+              <div className="flex flex-col items-center bg-white rounded-xl px-3 py-2 shadow-sm border border-white/80 min-w-[52px]">
+                {auction.type === "buy_now" ? (
+                  <>
+                    <Heart
+                      size={14}
+                      className="text-rose-400 fill-rose-400 mb-1"
+                    />
+                    <span className="text-sm font-black text-slate-800 leading-none">
+                      {auction.likes ?? 0}
+                    </span>
+                    <span className="text-[9px] text-slate-400 leading-none mt-0.5">
+                      likes
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Gavel size={14} className="text-amber-500 mb-1" />
+                    <span className="text-sm font-black text-slate-800 leading-none">
+                      {auction.bids}
+                    </span>
+                    <span className="text-[9px] text-slate-400 leading-none mt-0.5">
+                      bids
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2 py-1 rounded-md shrink-0">
-              <Image
-                src={flagUrl}
-                width={14}
-                height={10}
-                alt={auction.country?.name || "Poland"}
-                className="rounded-sm"
-              />
-              <span className="text-[10px] font-semibold text-slate-500">
-                {auction.country?.code?.toUpperCase() || "PL"}
-              </span>
-            </div>
-          </div>
+            {/* Accent line */}
+            <div className={`h-[3px] w-10 rounded-full ${theme.accentLine}`} />
 
-          {/* Buyer protection */}
-          {auction.verified && (
-            <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-xl">
-              <Shield size={11} className="shrink-0" />
-              <span className="text-[11px] font-bold">Buyer Protection</span>
-              <TrendingUp size={11} className="ml-auto text-emerald-400" />
-            </div>
-          )}
+            {/* Title */}
+            <h3 className="text-[13px] font-extrabold text-slate-900 leading-snug line-clamp-2 group-hover:text-slate-600 transition-colors tracking-tight">
+              {auction.title}
+            </h3>
 
-          {/* CTA */}
-          <button
-            className={`w-full py-3 rounded-xl text-sm font-black tracking-wide shadow-sm hover:shadow-lg active:scale-[0.98] transition-all duration-200 ${theme.btnClass}`}
-          >
-            {auction.type === "buy_now" ? "Buy Now" : "Place Bid"}
-          </button>
+            {/* Description */}
+            <p className="text-[12px] text-slate-500 leading-[1.65] line-clamp-4 flex-1">
+              {auction.description}
+            </p>
+
+            {/* ── SELLER ───────────────────────────────────────────────── */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden ring-2 ring-white shadow-sm shrink-0">
+                  {auction.seller.avatar ? (
+                    <Image
+                      src={auction.seller.avatar}
+                      width={28}
+                      height={28}
+                      alt={auction.seller.name}
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="text-[10px] font-bold text-slate-600 uppercase">
+                      {auction.seller.name?.[0] ?? "?"}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-bold text-slate-700 truncate">
+                      {auction.seller.name}
+                    </span>
+                    {auction.verified && (
+                      <Shield
+                        size={9}
+                        className="text-emerald-500 fill-emerald-500 shrink-0"
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    <Star size={9} className="text-amber-400 fill-amber-400" />
+                    <span className="text-[10px] font-bold text-slate-600">
+                      {auction.seller.rating.toFixed(1)}
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      ({auction.seller.reviews})
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2 py-1 rounded-md shrink-0">
+                <Image
+                  src={flagUrl}
+                  width={14}
+                  height={10}
+                  alt={auction.country?.name || "Poland"}
+                  className="rounded-sm"
+                />
+                <span className="text-[10px] font-semibold text-slate-500">
+                  {auction.country?.code?.toUpperCase() || "PL"}
+                </span>
+              </div>
+            </div>
+
+            {/* Buyer protection */}
+            {auction.verified && (
+              <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-xl">
+                <Shield size={11} className="shrink-0" />
+                <span className="text-[11px] font-bold">Buyer Protection</span>
+                <TrendingUp size={11} className="ml-auto text-emerald-400" />
+              </div>
+            )}
+
+            {/* CTA */}
+            <div
+              className={`w-full py-3 rounded-xl text-sm font-black tracking-wide text-center shadow-sm ${theme.btnClass}`}
+            >
+              {auction.type === "buy_now" ? "Buy Now" : "Place Bid"}
+            </div>
+          </Link>
         </div>
       </div>
-    </Link>
+    </>
   );
 }
