@@ -27,6 +27,9 @@ export interface AuctionDisplayDto {
   rare: boolean;
   featured?: boolean;
   type: "auction" | "buy_now";
+  sport: string;
+  category: string;
+  itemType: string;
   seller: {
     name: string;
     avatar?: string;
@@ -66,7 +69,13 @@ export const adaptAuctionForDisplay = (
   id: auction.id,
   title: auction.title,
   description: auction.description,
-  price: auction.currentBid || auction.startingBid,
+  // For buy_now listings show the buyNowPrice (the actual price the buyer pays).
+  // For auction/auction_buy_now show the current highest bid (or starting bid if no bids yet).
+  // Number() is needed because Prisma Decimal serialises to a string like "100.00".
+  price:
+    auction.listingType === "buy_now"
+      ? Number(auction.buyNowPrice || auction.currentBid || auction.startingBid)
+      : Number(auction.currentBid || auction.startingBid),
   currency: "€",
   bids: auction.bidCount,
   endTime: formatTimeRemaining(auction.endTime),
@@ -75,6 +84,10 @@ export const adaptAuctionForDisplay = (
   rare: auction.rare,
   featured: auction.featured,
   type: auction.listingType === "buy_now" ? "buy_now" : "auction",
+  // category in DB stores the sport (e.g. "football"), itemType stores the item kind
+  sport: auction.category || "other",
+  category: auction.category || "other",
+  itemType: auction.itemType || "shirt",
   seller: {
     name: auction.seller?.username || "Unknown",
     avatar: auction.seller?.avatar,
@@ -174,9 +187,9 @@ export const mapFormDataToCreateAuctionDto = (
     title: data.title || `${data.brand} ${data.model} ${data.club}`.trim(),
     description: data.description || "No description provided",
 
-    // Category
-    category: data.category || "Other",
-    itemType: data.categorySlug || "shirt",
+    // Category: use AI-detected sport as category (e.g. "football"), itemType is the item kind (e.g. "shirts_jerseys")
+    category: data.sport || data.aiData?.sport || "other",
+    itemType: data.category || data.categorySlug || "shirt",
     listingType,
 
     // Item details

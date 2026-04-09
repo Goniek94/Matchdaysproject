@@ -127,7 +127,7 @@ export const clearAuthData = (): void => {
   if (typeof window !== "undefined") {
     try {
       localStorage.removeItem("user");
-
+      localStorage.removeItem("isLoggedIn"); // must clear so initializeAuth skips checkAuth call
       // Clear any legacy tokens if they exist
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");

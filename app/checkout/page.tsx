@@ -1,18 +1,21 @@
 "use client";
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { mockAuctions } from "@/lib/mockData";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Shield, Truck, CreditCard, Lock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { Shield, Truck, Lock, ArrowLeft, CheckCircle, AlertCircle } from "lucide-react";
+import { useCart } from "@/lib/CartContext";
+import { useAuth } from "@/lib/context/AuthContext";
+import { buyNow } from "@/lib/api/auctions.api";
+import { getMyAddress } from "@/lib/api/users";
+
+// ─── Checkout form ────────────────────────────────────────────────────────────
 
 function CheckoutContent() {
-  const searchParams = useSearchParams();
-  const auctionId = searchParams.get("id");
-  const auction =
-    mockAuctions.find((a) => a.id === auctionId) || mockAuctions[0];
+  const router = useRouter();
+  const { items, clearCart } = useCart();
+  const { isAuthenticated, user } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
@@ -24,65 +27,174 @@ function CheckoutContent() {
     country: "Poland",
     phone: "",
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<"success" | "error" | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // Pre-fill form with user's saved address
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const prefill = async () => {
+      try {
+        const res = await getMyAddress();
+        const addr = (res as any)?.address;
+        if (!addr) return;
+
+        setFormData((prev) => ({
+          ...prev,
+          email: (user as any)?.email ?? prev.email,
+          firstName: (user as any)?.name ?? prev.firstName,
+          lastName: (user as any)?.lastName ?? prev.lastName,
+          phone: (user as any)?.phone ?? prev.phone,
+          address: addr.street ?? prev.address,
+          city: addr.city ?? prev.city,
+          postalCode: addr.postalCode ?? prev.postalCode,
+          country: addr.country ?? prev.country,
+        }));
+      } catch {
+        // Silently fail — user can fill manually
+      }
+    };
+
+    prefill();
+  }, [isAuthenticated, user]);
 
   const shippingCost = 25;
-  const totalPrice = auction.price + shippingCost;
+  const itemsTotal = items.reduce((sum, i) => sum + i.price, 0);
+  const totalPrice = itemsTotal + shippingCost;
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here would be payment processing
-    alert("Order placed successfully! (This is a demo)");
+
+    if (!isAuthenticated) {
+      setErrorMsg("You must be logged in to place an order.");
+      setResult("error");
+      return;
+    }
+
+    if (items.length === 0) {
+      setErrorMsg("Your cart is empty.");
+      setResult("error");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setResult(null);
+
+      // Call buyNow for each cart item sequentially
+      const errors: string[] = [];
+      for (const item of items) {
+        const res = await buyNow(item.id);
+        if (!res.success) {
+          errors.push(`${item.title}: ${res.message ?? "Purchase failed"}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        setErrorMsg(errors.join(" | "));
+        setResult("error");
+        return;
+      }
+
+      // All purchases successful
+      clearCart();
+      setResult("success");
+      setTimeout(() => router.push("/history"), 3000);
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : "Unexpected error");
+      setResult("error");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  // ── Empty cart ──
+  if (items.length === 0 && result !== "success") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-light mb-3">Your cart is empty</h2>
+          <Link href="/auctions" className="text-black underline">
+            Browse Auctions
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Success state ──
+  if (result === "success") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 max-w-md w-full text-center">
+          <CheckCircle size={56} className="mx-auto text-emerald-500 mb-4" />
+          <h2 className="text-2xl font-semibold mb-2">Order placed!</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            Your purchase is confirmed. You can track it in{" "}
+            <Link href="/history" className="text-black font-medium underline">
+              Transaction History
+            </Link>
+            .
+          </p>
+          <p className="text-xs text-gray-400">Redirecting in 3 seconds…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-gray-50">
+    <div className="bg-gray-50 min-h-screen">
       <div className="pt-4 pb-16 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto">
           {/* Back Button */}
           <Link
-            href={`/auction/${auction.id}`}
+            href="/cart"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-black mb-8 transition-colors"
           >
             <ArrowLeft size={20} />
-            <span>Back to listing</span>
+            <span>Back to cart</span>
           </Link>
 
-          {/* Page Title */}
           <h1 className="text-4xl font-light mb-2">Checkout</h1>
           <p className="text-gray-600 mb-8">Complete your purchase securely</p>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Form */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Error banner */}
+              {result === "error" && (
+                <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                  <AlertCircle size={18} className="flex-shrink-0 mt-0.5" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
               {/* Contact Information */}
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h2 className="text-xl font-semibold mb-4">
                   Contact Information
                 </h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      placeholder="your.email@example.com"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-                      required
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="your.email@example.com"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+                    required
+                  />
                 </div>
               </div>
 
@@ -176,7 +288,6 @@ function CheckoutContent() {
                       value={formData.country}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-                      required
                     >
                       <option value="Poland">Poland</option>
                       <option value="Germany">Germany</option>
@@ -203,42 +314,6 @@ function CheckoutContent() {
                   </div>
                 </form>
               </div>
-
-              {/* Payment Method */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
-                <div className="space-y-3">
-                  <label className="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-black transition-all">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card"
-                      defaultChecked
-                      className="w-4 h-4 text-black"
-                    />
-                    <CreditCard className="ml-3 mr-2" size={20} />
-                    <span className="font-medium">Credit / Debit Card</span>
-                  </label>
-                  <label className="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-black transition-all">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="paypal"
-                      className="w-4 h-4 text-black"
-                    />
-                    <span className="ml-3 font-medium">PayPal</span>
-                  </label>
-                  <label className="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-black transition-all">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="transfer"
-                      className="w-4 h-4 text-black"
-                    />
-                    <span className="ml-3 font-medium">Bank Transfer</span>
-                  </label>
-                </div>
-              </div>
             </div>
 
             {/* Right Column - Order Summary */}
@@ -246,50 +321,51 @@ function CheckoutContent() {
               <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
                 <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
 
-                {/* Product */}
-                <div className="flex gap-4 mb-6 pb-6 border-b">
-                  <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    <Image
-                      src={auction.image}
-                      alt={auction.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-sm mb-1 line-clamp-2">
-                      {auction.title}
-                    </h3>
-                    <p className="text-xs text-gray-500 mb-2">
-                      Seller: {auction.seller.name}
-                    </p>
-                    {auction.verified && (
-                      <div className="flex items-center gap-1 text-emerald-600 text-xs">
-                        <Shield size={12} />
-                        <span>Verified</span>
+                {/* Items */}
+                <div className="space-y-4 mb-6 pb-6 border-b max-h-64 overflow-y-auto">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex gap-3">
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                        <Image
+                          src={item.image || "/images/placeholder.jpg"}
+                          alt={item.title}
+                          fill
+                          className="object-cover"
+                        />
                       </div>
-                    )}
-                  </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm mb-1 line-clamp-2">
+                          {item.title}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Seller: {item.seller.name}
+                        </p>
+                        <p className="text-sm font-bold mt-1">
+                          {item.price.toLocaleString()} {item.currency}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Price Breakdown */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Item price</span>
+                    <span className="text-gray-600">
+                      Items ({items.length})
+                    </span>
                     <span className="font-medium">
-                      {auction.price.toLocaleString()} {auction.currency}
+                      €{itemsTotal.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Shipping</span>
-                    <span className="font-medium">
-                      {shippingCost.toLocaleString()} {auction.currency}
-                    </span>
+                    <span className="font-medium">€{shippingCost}</span>
                   </div>
                   <div className="border-t pt-3 flex justify-between">
                     <span className="font-semibold">Total</span>
                     <span className="font-bold text-xl">
-                      {totalPrice.toLocaleString()} {auction.currency}
+                      €{totalPrice.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -297,10 +373,11 @@ function CheckoutContent() {
                 {/* Place Order Button */}
                 <button
                   onClick={handleSubmit}
-                  className="w-full py-4 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-all hover:shadow-lg flex items-center justify-center gap-2"
+                  disabled={submitting}
+                  className="w-full py-4 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-all hover:shadow-lg flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <Lock size={18} />
-                  Place Order
+                  {submitting ? "Processing…" : "Place Order"}
                 </button>
 
                 {/* Trust Badges */}
@@ -332,10 +409,7 @@ export default function CheckoutPage() {
     <Suspense
       fallback={
         <div className="flex justify-center items-center min-h-screen">
-          <div className="text-center p-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading checkout...</p>
-          </div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black" />
         </div>
       }
     >

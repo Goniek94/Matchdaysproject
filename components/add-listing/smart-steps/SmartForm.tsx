@@ -241,7 +241,7 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
           </div>
         )}
 
-        {isStep4AI && (
+        {isStep4AI && data.aiData && (
           <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
             <button
               onClick={handleBackNavigation}

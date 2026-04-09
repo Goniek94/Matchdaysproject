@@ -87,6 +87,7 @@ export default function StepAISummary({ data, update }: StepProps) {
         // Write AI results to SmartFormData fields
         update("title", ai.title);
         update("description", ai.description);
+        update("sport", ai.sport || "");
         update("brand", ai.brand);
         update("club", ai.team);
         update("season", ai.season);
@@ -129,11 +130,10 @@ export default function StepAISummary({ data, update }: StepProps) {
         <div className="bg-white rounded-3xl shadow-2xl p-12 border border-gray-100 flex flex-col items-center justify-center min-h-[400px]">
           <Loader2 className="w-16 h-16 text-blue-600 animate-spin mb-6" />
           <h2 className="text-2xl font-black text-gray-900 mb-2">
-            AI Is Analyzing Your Photos
+            Analyzing Your Photos
           </h2>
           <p className="text-gray-500 text-center max-w-sm">
-            Gemini Vision is identifying brand, team, season and estimating
-            value...
+            Identifying brand, team, season and estimating value...
           </p>
         </div>
       </div>
@@ -303,6 +303,7 @@ export default function StepAISummary({ data, update }: StepProps) {
             <table className="w-full">
               <tbody className="divide-y divide-gray-200">
                 {[
+                  { label: "Sport", value: (() => { const s: Record<string,string> = {football:"Football",basketball:"Basketball",hockey:"Ice Hockey",tennis:"Tennis",f1:"Formula 1",rugby:"Rugby",baseball:"Baseball",cricket:"Cricket",esports:"Esports",other:"Other"}; return s[aiResult.sport] || aiResult.sport || ""; })() },
                   { label: "Brand", value: aiResult.brand },
                   { label: "Club / Team", value: aiResult.team },
                   { label: "Season", value: aiResult.season },

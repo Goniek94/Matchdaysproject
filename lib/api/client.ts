@@ -107,15 +107,10 @@ apiClient.interceptors.response.use(
         // Retry original request
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - clear local auth data
+        // Refresh failed - clear local auth data (includes isLoggedIn flag)
         processQueue(refreshError);
         isRefreshing = false;
         clearAuthData();
-
-        // Remove session flag so AuthContext knows user is logged out
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("isLoggedIn");
-        }
 
         // Do NOT hard redirect here - let the component/page handle it
         // This avoids disrupting the UX with unexpected redirects

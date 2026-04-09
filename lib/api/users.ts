@@ -313,6 +313,30 @@ export const addUserReview = async (
   }
 };
 
+// ─── Address ──────────────────────────────────────────────────────────────────
+
+export interface UserAddress {
+  street: string | null;
+  city: string | null;
+  postalCode: string | null;
+  country: string | null;
+}
+
+export const getMyAddress = async (): Promise<ApiResponse<{ address: UserAddress }>> => {
+  const response = await apiClient.get<ApiResponse<{ address: UserAddress }>>('/users/address');
+  return response.data;
+};
+
+export const updateMyAddress = async (address: Partial<UserAddress>): Promise<ApiResponse> => {
+  const response = await apiClient.patch<ApiResponse>('/users/address', {
+    addressStreet: address.street,
+    addressCity: address.city,
+    addressPostalCode: address.postalCode,
+    addressCountry: address.country,
+  });
+  return response.data;
+};
+
 /**
  * Delete user account
  * @param password - User password for confirmation

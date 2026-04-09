@@ -96,6 +96,7 @@ export interface Category {
 export interface AIAnalysisResult {
   title: string;
   description: string;
+  sport: string;
   brand: string;
   team: string;
   season: string;
@@ -145,6 +146,7 @@ export interface SmartFormData {
   // Step 4: Product Details
   title: string;
   description: string;
+  sport: string;
   brand: string;
   model: string;
   club: string;
@@ -214,6 +216,7 @@ export const INITIAL_FORM_STATE: SmartFormData = {
   photos: [],
   title: "",
   description: "",
+  sport: "",
   brand: "",
   model: "",
   club: "",

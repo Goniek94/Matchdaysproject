@@ -169,3 +169,47 @@ export const buyNow = async (
   );
   return response.data;
 };
+
+// ─── Won Auctions ─────────────────────────────────────────────────────────────
+
+/**
+ * Fetch all auctions won (or bought) by the current user.
+ * Requires authentication (HTTP-Only cookie).
+ */
+export const getWonAuctions = async (): Promise<ApiResponse<AuctionDto[]>> => {
+  const response = await apiClient.get<ApiResponse<AuctionDto[]>>(
+    "/auctions/my/won",
+  );
+  return response.data;
+};
+
+/**
+ * Buyer confirms a purchase after winning/buying an auction.
+ * Transitions status: sold → awaiting_payment.
+ * Requires authentication (HTTP-Only cookie).
+ */
+export const confirmPurchase = async (
+  id: string,
+): Promise<ApiResponse<AuctionDto>> => {
+  const response = await apiClient.patch<ApiResponse<AuctionDto>>(
+    `/auctions/${id}/confirm`,
+  );
+  return response.data;
+};
+
+// ── Favorites ────────────────────────────────────────────────────────────────
+
+export const addFavorite = async (auctionId: string): Promise<{ success: boolean; favorited: boolean }> => {
+  const response = await apiClient.post(`/auctions/${auctionId}/favorite`);
+  return response.data;
+};
+
+export const removeFavorite = async (auctionId: string): Promise<{ success: boolean; favorited: boolean }> => {
+  const response = await apiClient.delete(`/auctions/${auctionId}/favorite`);
+  return response.data;
+};
+
+export const getFavoriteIds = async (): Promise<string[]> => {
+  const response = await apiClient.get<{ success: boolean; data: string[] }>('/auctions/favorites/ids');
+  return response.data.data ?? [];
+};

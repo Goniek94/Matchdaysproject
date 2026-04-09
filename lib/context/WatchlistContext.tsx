@@ -14,6 +14,11 @@ import React, {
   useRef,
 } from "react";
 import { useAuth } from "./AuthContext";
+import {
+  addFavorite as apiAddFavorite,
+  removeFavorite as apiRemoveFavorite,
+  getFavoriteIds,
+} from "@/lib/api/auctions.api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,7 +58,7 @@ export const WatchlistProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   // Ref to always have the latest watchlist value synchronously (avoids stale closure)
   const watchlistRef = useRef<WatchlistItem[]>([]);
@@ -69,19 +74,46 @@ export const WatchlistProvider = ({
     : `${STORAGE_KEY}_guest`;
 
   // Load from localStorage on mount / user change
+  // When authenticated, also fetch favorited IDs from backend to keep in sync
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        setWatchlist(JSON.parse(saved));
-      } else {
+
+    if (isAuthenticated && user?.id) {
+      // Fetch favorite IDs from backend; keep existing item metadata from localStorage
+      getFavoriteIds()
+        .then((ids) => {
+          const saved = localStorage.getItem(storageKey);
+          const local: WatchlistItem[] = saved ? JSON.parse(saved) : [];
+          // Build set of backend IDs; preserve local metadata where available
+          const localMap = new Map(local.map((i) => [i.id, i]));
+          const synced = ids.map((id) =>
+            localMap.get(id) ?? { id, title: "", addedAt: new Date().toISOString() },
+          );
+          setWatchlist(synced);
+          localStorage.setItem(storageKey, JSON.stringify(synced));
+        })
+        .catch(() => {
+          // Fallback to localStorage if API fails
+          try {
+            const saved = localStorage.getItem(storageKey);
+            setWatchlist(saved ? JSON.parse(saved) : []);
+          } catch {
+            setWatchlist([]);
+          }
+        });
+    } else {
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          setWatchlist(JSON.parse(saved));
+        } else {
+          setWatchlist([]);
+        }
+      } catch {
         setWatchlist([]);
       }
-    } catch {
-      setWatchlist([]);
     }
-  }, [storageKey]);
+  }, [storageKey, isAuthenticated, user?.id]);
 
   // Persist to localStorage whenever watchlist changes
   const persist = useCallback(
@@ -113,8 +145,13 @@ export const WatchlistProvider = ({
         persist(updated);
         return updated;
       });
+
+      // Sync with backend when authenticated
+      if (isAuthenticated) {
+        apiAddFavorite(item.id).catch(() => {/* Silently ignore */});
+      }
     },
-    [persist],
+    [persist, isAuthenticated],
   );
 
   const removeFromWatchlist = useCallback(
@@ -124,8 +161,13 @@ export const WatchlistProvider = ({
         persist(updated);
         return updated;
       });
+
+      // Sync with backend when authenticated
+      if (isAuthenticated) {
+        apiRemoveFavorite(id).catch(() => {/* Silently ignore */});
+      }
     },
-    [persist],
+    [persist, isAuthenticated],
   );
 
   /**
@@ -150,9 +192,18 @@ export const WatchlistProvider = ({
         return updated;
       });
 
+      // Sync with backend when authenticated
+      if (isAuthenticated) {
+        if (exists) {
+          apiRemoveFavorite(item.id).catch(() => {/* Silently ignore */});
+        } else {
+          apiAddFavorite(item.id).catch(() => {/* Silently ignore */});
+        }
+      }
+
       return !exists;
     },
-    [persist],
+    [persist, isAuthenticated],
   );
 
   const clearWatchlist = useCallback(() => {

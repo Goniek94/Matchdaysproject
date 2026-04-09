@@ -20,12 +20,16 @@ import {
   PlusCircle,
   ChevronDown,
   MessageCircle,
+  Trophy,
+  Bell,
 } from "lucide-react";
+import { useNotifications } from "@/lib/context/NotificationContext";
 
 export default function Navbar() {
   const { itemCount } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const { count: watchlistCount } = useWatchlist();
+  const { unreadCount } = useNotifications();
   const [scrolled, setScrolled] = useState(false);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -113,6 +117,21 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-2 md:gap-4 justify-end z-50">
+            {isAuthenticated && (
+              <Link
+                href="/notifications"
+                title="Notifications"
+                className="relative p-2 md:p-3 hover:bg-gray-100 rounded-full transition-colors hidden lg:flex"
+              >
+                <Bell size={24} className="text-gray-700" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {isAuthenticated && (
               <Link
                 href="/favorites"
@@ -218,6 +237,12 @@ export default function Navbar() {
                           text="Your Listings"
                         />
                         <DropdownItem
+                          href="/notifications"
+                          icon={<Bell size={20} />}
+                          text="Notifications"
+                          badge={unreadCount > 0 ? unreadCount : undefined}
+                        />
+                        <DropdownItem
                           href="/messages"
                           icon={<MessageCircle size={20} />}
                           text="Messages"
@@ -226,6 +251,11 @@ export default function Navbar() {
                           href="/favorites"
                           icon={<Heart size={20} />}
                           text="Favorites"
+                        />
+                        <DropdownItem
+                          href="/collection/mine"
+                          icon={<Trophy size={20} />}
+                          text="My Collection"
                         />
                         <DropdownItem
                           href="/history"
@@ -451,11 +481,13 @@ function DropdownItem({
   href,
   icon,
   text,
+  badge,
   className = "",
 }: {
   href: string;
   icon: React.ReactNode;
   text: string;
+  badge?: number;
   className?: string;
 }) {
   return (
@@ -465,6 +497,11 @@ function DropdownItem({
     >
       <span className="text-gray-400 group-hover:text-black">{icon}</span>
       {text}
+      {badge !== undefined && badge > 0 && (
+        <span className="ml-auto bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
     </Link>
   );
 }

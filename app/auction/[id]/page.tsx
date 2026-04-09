@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { ChevronUp, ChevronDown, Gavel } from "lucide-react";
+import { ChevronUp, ChevronDown, Gavel, Trophy, X } from "lucide-react";
+import { useAuth } from "@/lib/context/AuthContext";
+import Link from "next/link";
 import ImageGallery from "@/components/auction/ImageGallery";
 import BidPanel from "@/components/auction/BidPanel";
 import BuyNowPanel from "@/components/auction/BuyNowPanel";
 import SellerInfo from "@/components/auction/SellerInfo";
 import BidHistory from "@/components/auction/BidHistory";
 import InfoCards from "@/components/auction/InfoCards";
-import Link from "next/link";
 
 import { getAuctionById } from "@/lib/api/auctions.api";
 import { placeBid } from "@/lib/api/bids.api";
@@ -155,6 +156,7 @@ const mapDtoToDisplay = (d: AuctionDetailDto): AuctionDisplay => ({
 export default function AuctionDetailPage() {
   const params = useParams();
   const id = params?.id as string;
+  const { user } = useAuth();
 
   const [auction, setAuction] = useState<AuctionDisplay | null>(null);
   const [bids, setBids] = useState<BidDisplay[]>([]);
@@ -168,6 +170,8 @@ export default function AuctionDetailPage() {
   const [detailsOpen, setDetailsOpen] = useState(true);
   const [bidsOpen, setBidsOpen] = useState(false);
   const [bidModalOpen, setBidModalOpen] = useState(false);
+  const [winBanner, setWinBanner] = useState(false);
+  const winNotifiedRef = useRef(false);
 
   // Real auctions have UUID format (contain dashes), mock ones are numeric strings
   const isRealAuction = id?.includes("-") ?? false;
@@ -177,6 +181,21 @@ export default function AuctionDetailPage() {
     auction?.endTime,
     isRealAuction,
   );
+
+  // Detect win: auction ended + current user is the highest bidder
+  useEffect(() => {
+    if (
+      !winNotifiedRef.current &&
+      isRealAuction &&
+      realtime.isEnded &&
+      realtime.winner &&
+      user?.username &&
+      realtime.winner === user.username
+    ) {
+      winNotifiedRef.current = true;
+      setWinBanner(true);
+    }
+  }, [realtime.isEnded, realtime.winner, user?.username, isRealAuction]);
 
   useEffect(() => {
     if (id) loadAuctionData(id);
@@ -386,17 +405,37 @@ export default function AuctionDetailPage() {
 
   const CATEGORY_LABELS: Record<string, string> = {
     shirts: "Shirts & Jerseys",
+    shirts_jerseys: "Shirts & Jerseys",
     footwear: "Sports Footwear",
+    sports_footwear: "Sports Footwear",
     pants: "Pants & Shorts",
+    pants_shorts: "Pants & Shorts",
     jackets: "Jackets & Hoodies",
+    jackets_hoodies: "Jackets & Hoodies",
     accessories: "Accessories",
     equipment: "Sports Equipment",
+    sports_equipment: "Sports Equipment",
   };
 
+  const SPORT_LABELS: Record<string, string> = {
+    football: "Football",
+    basketball: "Basketball",
+    hockey: "Ice Hockey",
+    tennis: "Tennis",
+    f1: "Formula 1",
+    rugby: "Rugby",
+    baseball: "Baseball",
+    cricket: "Cricket",
+    esports: "Esports",
+    other: "Other",
+  };
+
+  // category field in DB now stores the sport (e.g. "football")
+  const sportDisplay = SPORT_LABELS[auction.category?.toLowerCase()] || null;
+
   const categoryDisplay = (() => {
-    const catLabel =
-      CATEGORY_LABELS[auction.category?.toLowerCase()] || auction.category;
-    return catLabel || auction.itemType || null;
+    const itemSlug = auction.itemType?.toLowerCase() || "";
+    return CATEGORY_LABELS[itemSlug] || auction.itemType || null;
   })();
 
   const getConditionLabel = (raw: string | null | undefined): string => {
@@ -460,27 +499,32 @@ export default function AuctionDetailPage() {
 
   const buildProductDetails = (): DetailEntry[] => {
     const itemType = auction.itemType?.toLowerCase() || "";
-    const catSlug = auction.category?.toLowerCase() || "";
     const typeMap: Record<string, string> = {
       shirt: "shirts",
       shirts: "shirts",
+      shirts_jerseys: "shirts",
       jersey: "shirts",
       shoes: "footwear",
       footwear: "footwear",
+      sports_footwear: "footwear",
       sneakers: "footwear",
       boots: "footwear",
       pants: "pants",
+      pants_shorts: "pants",
       shorts: "pants",
       jacket: "jackets",
       jackets: "jackets",
+      jackets_hoodies: "jackets",
       hoodie: "jackets",
       accessory: "accessories",
       accessories: "accessories",
       equipment: "equipment",
+      sports_equipment: "equipment",
     };
-    const category = typeMap[itemType] || typeMap[catSlug] || "shirts";
+    const category = typeMap[itemType] || "shirts";
 
     const common: DetailEntry[] = [
+      ...(sportDisplay ? [{ label: "Sport", value: sportDisplay, icon: "⚽" }] : []),
       { label: "Category", value: categoryDisplay || "—", icon: "📂" },
       { label: "Brand", value: val(auction.manufacturer) || "—", icon: "🏷️" },
       { label: "Condition", value: conditionLabel, icon: "✨" },
@@ -641,6 +685,37 @@ export default function AuctionDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F5]">
+      {/* ── Win notification banner ── */}
+      {winBanner && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] w-full max-w-lg px-4">
+          <div className="bg-gradient-to-r from-amber-500 to-yellow-400 text-black rounded-2xl shadow-2xl p-5 flex items-start gap-4">
+            <div className="flex-shrink-0 w-12 h-12 bg-white/30 rounded-full flex items-center justify-center">
+              <Trophy size={26} className="text-black" />
+            </div>
+            <div className="flex-1">
+              <p className="font-black text-lg leading-tight">
+                Congratulations! You won this auction!
+              </p>
+              <p className="text-sm mt-1 font-medium text-black/70">
+                Winning bid: €{realtime.currentBid.toLocaleString()}
+              </p>
+              <Link
+                href="/history"
+                className="inline-block mt-2 text-sm font-bold underline"
+              >
+                Go to Transaction History →
+              </Link>
+            </div>
+            <button
+              onClick={() => setWinBanner(false)}
+              className="flex-shrink-0 p-1 hover:bg-black/10 rounded-lg transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Bid Modal — opens on "Place Bid" button click */}
       {bidModalOpen && auction.listingType === "auction" && (
         <BidModal

@@ -1,475 +1,755 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useMemo, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft,
-  Users,
-  Calendar,
-  Trophy,
-  Timer,
-  TimerOff,
+  ArrowLeft, Search, X, Trophy, Share2,
+  Lightbulb, Check, RefreshCw, Users, Calendar,
 } from "lucide-react";
 import Link from "next/link";
 
-type GameMode = "daily" | "online" | null;
-type TimerMode = "timer" | "no-timer" | null;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Phase = "select" | "playing" | "won" | "lost";
+type FilledCell = { player: string };
+type GridCell = FilledCell | null;
+
+// ─── Club config ──────────────────────────────────────────────────────────────
+
+const COL_CLUBS = [
+  {
+    id: "man_utd",
+    name: "Manchester Utd",
+    short: "MAN UTD",
+    logo: "https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg",
+    ring: "ring-red-500/60",
+    bg: "bg-red-950/60",
+  },
+  {
+    id: "real_madrid",
+    name: "Real Madrid",
+    short: "REAL MADRID",
+    logo: "https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg",
+    ring: "ring-gray-300/60",
+    bg: "bg-gray-800/60",
+  },
+  {
+    id: "chelsea",
+    name: "Chelsea",
+    short: "CHELSEA",
+    logo: "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg",
+    ring: "ring-blue-500/60",
+    bg: "bg-blue-950/60",
+  },
+];
+
+const ROW_CLUBS = [
+  {
+    id: "liverpool",
+    name: "Liverpool",
+    short: "LIVERPOOL",
+    logo: "https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg",
+    ring: "ring-red-400/60",
+    bg: "bg-red-950/60",
+  },
+  {
+    id: "arsenal",
+    name: "Arsenal",
+    short: "ARSENAL",
+    logo: "https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg",
+    ring: "ring-rose-500/60",
+    bg: "bg-rose-950/60",
+  },
+  {
+    id: "barcelona",
+    name: "Barcelona",
+    short: "BARCELONA",
+    logo: "https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg",
+    ring: "ring-indigo-500/60",
+    bg: "bg-indigo-950/60",
+  },
+];
+
+// ─── Puzzle data ──────────────────────────────────────────────────────────────
+// Key: "rowIndex-colIndex"  → list of valid player names (lowercase)
+
+const ANSWERS: Record<string, string[]> = {
+  "0-0": ["michael owen", "paul ince"],                           // Liverpool × Man Utd
+  "0-1": ["michael owen", "xabi alonso", "steve mcmanaman"],      // Liverpool × Real Madrid
+  "0-2": ["fernando torres", "nicolas anelka", "glen johnson"],   // Liverpool × Chelsea
+  "1-0": [                                                         // Arsenal × Man Utd
+    "robin van persie", "mikael silvestre",
+    "alexis sanchez", "henrikh mkhitaryan", "danny welbeck",
+  ],
+  "1-1": ["nicolas anelka", "jose antonio reyes", "mesut ozil"],  // Arsenal × Real Madrid
+  "1-2": ["ashley cole", "cesc fabregas", "william gallas", "nicolas anelka"], // Arsenal × Chelsea
+  "2-0": ["gerard pique", "mark hughes", "laurent blanc"],        // Barcelona × Man Utd
+  "2-1": ["luis figo", "ronaldo", "michael laudrup", "bernd schuster"], // Barcelona × Real Madrid
+  "2-2": ["cesc fabregas", "pedro"],                              // Barcelona × Chelsea
+};
+
+const HINTS: Record<string, string> = {
+  "0-0": "Only one modern player scored for both clubs in the PL era",
+  "0-1": "A Merseyside hero who later won La Liga in the Spanish capital",
+  "0-2": "A record fee took this striker from Anfield to Stamford Bridge",
+  "1-0": "Wore the Gunners shirt, then the Red Devils shirt — or vice versa",
+  "1-1": "The German playmaker left Bernabéu for the Emirates in 2013",
+  "1-2": "A left-back's controversial move across London",
+  "2-0": "Came through Old Trafford's academy before starring at Camp Nou",
+  "2-1": "Made the most controversial transfer in El Clásico history",
+  "2-2": "This Spanish winger moved from Catalonia to west London",
+};
+
+// ─── Player list for autocomplete ────────────────────────────────────────────
+
+const ALL_PLAYERS = [
+  "Michael Owen", "Paul Ince", "Xabi Alonso", "Steve McManaman",
+  "Fernando Torres", "Nicolas Anelka", "Glen Johnson",
+  "Robin van Persie", "Mikael Silvestre", "Alexis Sanchez",
+  "Henrikh Mkhitaryan", "Danny Welbeck",
+  "Mesut Ozil", "Jose Antonio Reyes",
+  "Ashley Cole", "Cesc Fabregas", "William Gallas",
+  "Gerard Pique", "Mark Hughes", "Laurent Blanc",
+  "Luis Figo", "Ronaldo", "Michael Laudrup", "Bernd Schuster",
+  "Pedro",
+  // Extra players (wrong answers, realistic guesses)
+  "Thierry Henry", "Patrick Vieira", "Robert Pires", "Freddie Ljungberg",
+  "Frank Lampard", "John Terry", "Didier Drogba", "Eden Hazard", "Diego Costa",
+  "Wayne Rooney", "Paul Scholes", "Ryan Giggs", "Rio Ferdinand", "Gary Neville",
+  "Cristiano Ronaldo", "Karim Benzema", "Sergio Ramos", "Zinedine Zidane", "Raul",
+  "Lionel Messi", "Andres Iniesta", "Xavi", "Ronaldinho", "Samuel Etoo",
+  "Steven Gerrard", "Jamie Carragher", "Robbie Fowler", "Ian Rush",
+  "Claude Makelele", "Arjen Robben", "Joe Cole", "Michael Ballack",
+  "David Beckham", "Andy Cole", "Dwight Yorke", "Ole Gunnar Solskjaer",
+  "Paul Pogba", "Marcus Rashford", "Bruno Fernandes", "Nemanja Vidic",
+  "Timo Werner", "Kai Havertz", "Mason Mount", "Reece James",
+  "James Milner", "Jordan Henderson", "Philippe Coutinho", "Luis Garcia",
+  "Gareth Bale", "Luka Modric", "Toni Kroos", "Marcelo",
+  "Luis Suarez", "Neymar", "Ivan Rakitic", "Sergio Busquets",
+  "Dennis Bergkamp", "Gilberto Silva", "Sol Campbell", "Tony Adams",
+  "Ruud van Nistelrooy", "Juan Sebastian Veron", "Eric Cantona",
+  "Didier Deschamps", "Hristo Stoichkov", "Rivaldo",
+];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function normalize(name: string) {
+  return name.toLowerCase().trim()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // strip accents
+}
+
+function getFilledCount(grid: GridCell[][]) {
+  return grid.flat().filter((c): c is FilledCell => c !== null).length;
+}
+
+// ─── Club Logo ────────────────────────────────────────────────────────────────
+
+function ClubLogo({ src, alt, size = 40 }: { src: string; alt: string; size?: number }) {
+  const [err, setErr] = useState(false);
+  return err ? (
+    <div
+      className="rounded-full bg-white/10 flex items-center justify-center font-black text-white text-xs"
+      style={{ width: size, height: size }}
+    >
+      {alt.slice(0, 3)}
+    </div>
+  ) : (
+    <img
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      className="object-contain drop-shadow-sm"
+      onError={() => setErr(true)}
+    />
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TikiTakaToe() {
-  const [selectedMode, setSelectedMode] = useState<GameMode>(null);
-  const [timerMode, setTimerMode] = useState<TimerMode>(null);
+  const [phase, setPhase] = useState<Phase>("select");
+  const [grid, setGrid] = useState<GridCell[][]>([
+    [null, null, null],
+    [null, null, null],
+    [null, null, null],
+  ]);
+  const [activeCell, setActiveCell] = useState<[number, number] | null>(null);
+  const [search, setSearch] = useState("");
+  const [wrongFlash, setWrongFlash] = useState<string | null>(null);
+  const [wrongGuess, setWrongGuess] = useState<string | null>(null);
+  const [guessesLeft, setGuessesLeft] = useState(9);
+  const [usedHints, setUsedHints] = useState<Set<string>>(new Set());
+  const [shownHint, setShownHint] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans">
-      {/* Background Effects */}
-      <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[150px]"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-900/20 rounded-full blur-[150px]"></div>
-      </div>
+  const filledCount = getFilledCount(grid);
 
-      <div className="relative z-10 pt-24 pb-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <Link
-              href="/arena"
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-            >
-              <ArrowLeft size={20} />
-              <span className="font-bold">Back to Arena</span>
+  const suggestions = useMemo(() => {
+    if (!search.trim() || search.length < 2) return [];
+    const q = normalize(search);
+    return ALL_PLAYERS.filter((p) => normalize(p).includes(q)).slice(0, 7);
+  }, [search]);
+
+  // Focus input when modal opens
+  useEffect(() => {
+    if (activeCell) {
+      setSearch("");
+      setWrongGuess(null);
+      setTimeout(() => inputRef.current?.focus(), 80);
+    }
+  }, [activeCell]);
+
+  const handleCellClick = (row: number, col: number) => {
+    if (guessesLeft === 0 || phase !== "playing") return;
+    if (grid[row][col] !== null) return; // already filled
+    setActiveCell([row, col]);
+  };
+
+  const handleGuess = (playerName: string) => {
+    if (!activeCell) return;
+    const [row, col] = activeCell;
+    const key = `${row}-${col}`;
+    const valid = ANSWERS[key] ?? [];
+    const correct = valid.some((v) => normalize(v) === normalize(playerName));
+
+    if (correct) {
+      const newGrid = grid.map((r) => [...r]);
+      newGrid[row][col] = { player: playerName };
+      setGrid(newGrid);
+      setActiveCell(null);
+      if (getFilledCount(newGrid) === 9) {
+        setTimeout(() => setPhase("won"), 400);
+      }
+    } else {
+      setWrongGuess(playerName);
+      setWrongFlash(key);
+      setTimeout(() => setWrongFlash(null), 600);
+      const next = guessesLeft - 1;
+      setGuessesLeft(next);
+      if (next === 0) {
+        setActiveCell(null);
+        setTimeout(() => setPhase("lost"), 700);
+      }
+    }
+  };
+
+  const handleHint = () => {
+    if (!activeCell) return;
+    const key = `${activeCell[0]}-${activeCell[1]}`;
+    setUsedHints((prev) => new Set([...prev, key]));
+    setShownHint(HINTS[key] ?? null);
+  };
+
+  const resetGame = () => {
+    setPhase("playing");
+    setGrid([[null, null, null], [null, null, null], [null, null, null]]);
+    setGuessesLeft(9);
+    setUsedHints(new Set());
+    setActiveCell(null);
+    setSearch("");
+    setWrongGuess(null);
+    setShownHint(null);
+  };
+
+  const shareResult = () => {
+    const emoji = grid.map((row) =>
+      row.map((c) => (c ? "🟩" : "⬜")).join("")
+    ).join("\n");
+    const text = `Tiki-Taka-Toe — ${filledCount}/9\n${emoji}\nPlay at matchdays.store`;
+    navigator.clipboard.writeText(text).catch(() => {});
+  };
+
+  // ── SELECT SCREEN ──────────────────────────────────────────────────────────
+  if (phase === "select") {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[150px]" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-blue-900/20 rounded-full blur-[150px]" />
+        </div>
+
+        <div className="relative z-10 pt-28 pb-20 px-6">
+          <div className="max-w-3xl mx-auto">
+            <Link href="/arena" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-10 transition-colors">
+              <ArrowLeft size={18} /> Back to Arena
             </Link>
-          </div>
 
-          {/* Title */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-3 mb-4 px-4 py-2 bg-purple-500/20 border border-purple-500/50 rounded-full">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                ⚽
+            <div className="text-center mb-14">
+              <div className="inline-flex items-center gap-3 mb-5 px-4 py-2 bg-purple-500/20 border border-purple-500/40 rounded-full">
+                <span className="text-xl">⚽</span>
+                <span className="text-sm font-black uppercase tracking-widest text-purple-300">Tiki-Taka-Toe</span>
               </div>
-              <span className="text-sm font-bold uppercase tracking-wider">
-                Tiki-Taka-Toe
-              </span>
+              <h1 className="text-6xl md:text-7xl font-black uppercase italic mb-3 leading-none">
+                Choose{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-500">
+                  Mode
+                </span>
+              </h1>
+              <p className="text-gray-400 text-lg">
+                Name players who connect two clubs — fill all 9 squares to win
+              </p>
             </div>
-            <h1 className="text-6xl font-black uppercase italic mb-4">
-              Choose Your{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-blue-600">
-                Mode
-              </span>
-            </h1>
-            <p className="text-gray-400 text-lg">
-              Test your football knowledge in this strategic game
-            </p>
-          </div>
 
-          {/* Mode Selection */}
-          {!selectedMode && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {/* Daily Mode */}
-              <motion.div
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Daily */}
+              <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                onClick={() => setSelectedMode("daily")}
-                className="relative group cursor-pointer"
+                onClick={() => setPhase("playing")}
+                className="relative group text-left"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all"></div>
-                <div className="relative bg-gray-900/80 backdrop-blur-md border border-blue-500/30 rounded-3xl p-8 hover:border-blue-500/60 transition-all hover:-translate-y-2">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-cyan-500/10 rounded-3xl blur-xl group-hover:blur-2xl transition-all" />
+                <div className="relative bg-gray-900/80 border border-blue-500/30 rounded-3xl p-8 hover:border-blue-400/60 transition-all hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-6">
-                    <div className="w-16 h-16 bg-blue-500/20 rounded-2xl flex items-center justify-center border border-blue-500/50">
-                      <Calendar size={32} className="text-blue-400" />
+                    <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center border border-blue-500/40">
+                      <Calendar size={28} className="text-blue-400" />
                     </div>
-                    <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/50 rounded-full text-xs font-bold text-blue-400 uppercase">
+                    <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/40 rounded-full text-xs font-bold text-blue-400 uppercase">
                       Daily
                     </span>
                   </div>
-
-                  <h3 className="text-3xl font-black uppercase italic mb-3">
-                    Daily Challenge
-                  </h3>
-                  <p className="text-gray-400 mb-6 leading-relaxed">
-                    New puzzle every day. Complete it to earn rewards and climb
-                    the leaderboard. One chance per day!
+                  <h3 className="text-3xl font-black uppercase italic mb-2">Daily Challenge</h3>
+                  <p className="text-gray-400 mb-6 text-sm leading-relaxed">
+                    One fresh 3×3 grid every day. 9 guesses to fill all squares. Compete on the global leaderboard.
                   </p>
-
-                  <div className="space-y-2 mb-6">
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="text-gray-300">
-                        Fresh puzzle every 24h
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="text-gray-300">
-                        Compete on global leaderboard
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                      <span className="text-gray-300">Earn daily rewards</span>
-                    </div>
-                  </div>
-
                   <div className="flex items-center justify-between pt-4 border-t border-white/10">
                     <div>
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">
-                        Today's Prize
-                      </div>
-                      <div className="text-lg font-black text-blue-400">
-                        500 Coins
-                      </div>
+                      <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">Today's Prize</div>
+                      <div className="text-base font-black text-blue-400">500 Coins</div>
                     </div>
-                    <button className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold uppercase text-sm transition-colors">
-                      Play Daily
-                    </button>
+                    <span className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold uppercase text-sm transition-colors">
+                      Play
+                    </span>
                   </div>
                 </div>
-              </motion.div>
+              </motion.button>
 
-              {/* Online Mode */}
+              {/* Online — Coming Soon */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                onClick={() => setSelectedMode("online")}
-                className="relative group cursor-pointer"
+                className="relative opacity-60"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all"></div>
-                <div className="relative bg-gray-900/80 backdrop-blur-md border border-purple-500/30 rounded-3xl p-8 hover:border-purple-500/60 transition-all hover:-translate-y-2">
+                <div className="relative bg-gray-900/80 border border-purple-500/20 rounded-3xl p-8">
                   <div className="flex items-center justify-between mb-6">
-                    <div className="w-16 h-16 bg-purple-500/20 rounded-2xl flex items-center justify-center border border-purple-500/50">
-                      <Users size={32} className="text-purple-400" />
+                    <div className="w-14 h-14 bg-purple-500/20 rounded-2xl flex items-center justify-center border border-purple-500/30">
+                      <Users size={28} className="text-purple-400" />
                     </div>
-                    <span className="px-3 py-1 bg-purple-500/20 border border-purple-500/50 rounded-full text-xs font-bold text-purple-400 uppercase flex items-center gap-1">
-                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                      Live
+                    <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs font-bold text-purple-400 uppercase">
+                      Soon
                     </span>
                   </div>
-
-                  <h3 className="text-3xl font-black uppercase italic mb-3">
-                    Online Match
-                  </h3>
-                  <p className="text-gray-400 mb-6 leading-relaxed">
-                    Challenge players worldwide in real-time. Prove you're the
-                    ultimate football expert!
+                  <h3 className="text-3xl font-black uppercase italic mb-2">Online Match</h3>
+                  <p className="text-gray-500 mb-6 text-sm leading-relaxed">
+                    Challenge other players in real-time. Ranked matchmaking and trophies coming soon.
                   </p>
-
-                  <div className="space-y-2 mb-6">
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                      <span className="text-gray-300">
-                        Real-time multiplayer
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                      <span className="text-gray-300">Ranked matchmaking</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                      <span className="text-gray-300">
-                        Win to earn trophies
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                    <div>
-                      <div className="text-xs text-gray-500 uppercase font-bold mb-1">
-                        Players Online
-                      </div>
-                      <div className="text-lg font-black text-purple-400">
-                        1,247
-                      </div>
-                    </div>
-                    <button className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl font-bold uppercase text-sm transition-colors">
-                      Find Match
-                    </button>
+                  <div className="pt-4 border-t border-white/5">
+                    <span className="px-5 py-2.5 bg-gray-700/50 rounded-xl font-bold uppercase text-sm text-gray-500 cursor-not-allowed inline-block">
+                      Coming Soon
+                    </span>
                   </div>
                 </div>
               </motion.div>
             </div>
-          )}
 
-          {/* Timer Selection (shown after mode selection) */}
-          {selectedMode && !timerMode && (
+            {/* How to play */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-3xl mx-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-10 p-6 bg-white/5 border border-white/10 rounded-2xl"
             >
-              <div className="text-center mb-8">
-                <h2 className="text-4xl font-black uppercase italic mb-4">
-                  Choose Timer Mode
-                </h2>
-                <p className="text-gray-400">
-                  Play with or without time pressure
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Timer Mode */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  onClick={() => setTimerMode("timer")}
-                  className="relative group cursor-pointer"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all"></div>
-                  <div className="relative bg-gray-900/80 backdrop-blur-md border border-yellow-500/30 rounded-3xl p-8 hover:border-yellow-500/60 transition-all hover:-translate-y-2">
-                    <div className="w-16 h-16 bg-yellow-500/20 rounded-2xl flex items-center justify-center border border-yellow-500/50 mb-6 mx-auto">
-                      <Timer size={32} className="text-yellow-400" />
-                    </div>
-                    <h3 className="text-3xl font-black uppercase italic mb-3 text-center">
-                      With Timer
-                    </h3>
-                    <p className="text-gray-400 text-center mb-6">
-                      Race against the clock! Complete the grid before time runs
-                      out.
-                    </p>
-                    <div className="text-center">
-                      <span className="px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-full text-sm font-bold text-yellow-400">
-                        60 Seconds
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* No Timer Mode */}
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  onClick={() => setTimerMode("no-timer")}
-                  className="relative group cursor-pointer"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all"></div>
-                  <div className="relative bg-gray-900/80 backdrop-blur-md border border-green-500/30 rounded-3xl p-8 hover:border-green-500/60 transition-all hover:-translate-y-2">
-                    <div className="w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center border border-green-500/50 mb-6 mx-auto">
-                      <TimerOff size={32} className="text-green-400" />
-                    </div>
-                    <h3 className="text-3xl font-black uppercase italic mb-3 text-center">
-                      No Timer
-                    </h3>
-                    <p className="text-gray-400 text-center mb-6">
-                      Take your time! Think carefully about each move.
-                    </p>
-                    <div className="text-center">
-                      <span className="px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-full text-sm font-bold text-green-400">
-                        Unlimited
-                      </span>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-
-              <div className="text-center mt-6">
-                <button
-                  onClick={() => setSelectedMode(null)}
-                  className="text-gray-400 hover:text-white transition-colors text-sm font-bold"
-                >
-                  ← Back to mode selection
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Game Board (shown after timer selection) */}
-          {selectedMode && timerMode && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="max-w-4xl mx-auto"
-            >
-              {/* Mode Header */}
-              <div className="flex items-center justify-between mb-8 p-6 bg-gray-900/50 backdrop-blur-md rounded-2xl border border-white/10">
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => setTimerMode(null)}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                  >
-                    <ArrowLeft size={20} />
-                  </button>
-                  <div>
-                    <h2 className="text-2xl font-black uppercase">
-                      {selectedMode === "daily"
-                        ? "Daily Challenge"
-                        : "Online Match"}
-                    </h2>
-                    <p className="text-sm text-gray-400">
-                      {selectedMode === "daily"
-                        ? "Complete today's puzzle"
-                        : "Waiting for opponent..."}
-                    </p>
-                  </div>
+              <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-3">How to play</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-300">
+                <div className="flex gap-3">
+                  <span className="text-purple-400 font-black shrink-0">1.</span>
+                  <span>Click any square on the 3×3 grid</span>
                 </div>
-
-                {selectedMode === "online" && (
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500 uppercase font-bold">
-                        OPP
-                      </div>
-                      <div className="text-2xl font-black text-red-400">
-                        0-0
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500 uppercase font-bold">
-                        YOU
-                      </div>
-                      <div className="text-2xl font-black text-green-400">
-                        0-40
-                      </div>
-                    </div>
-                    <div className="px-4 py-2 bg-blue-500/20 border border-blue-500/50 rounded-lg">
-                      <span className="text-sm font-bold text-blue-400 uppercase">
-                        Their Turn
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Timer Display */}
-              {timerMode === "timer" && (
-                <div className="mb-6 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-2xl flex items-center justify-center gap-3">
-                  <Timer size={24} className="text-yellow-400" />
-                  <span className="text-3xl font-black text-yellow-400 font-mono">
-                    0:60
-                  </span>
+                <div className="flex gap-3">
+                  <span className="text-purple-400 font-black shrink-0">2.</span>
+                  <span>Type a player who played for <strong>both</strong> the row and column club</span>
                 </div>
-              )}
-
-              {/* 4x4 Grid */}
-              <div className="bg-gradient-to-br from-purple-900 to-indigo-900 rounded-3xl p-6 border-4 border-white/10 shadow-2xl">
-                <div className="grid grid-cols-5 gap-3">
-                  {/* Top-left corner (logo) */}
-                  <div className="bg-indigo-900/80 backdrop-blur-md rounded-xl p-3 flex items-center justify-center border-2 border-white/20">
-                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-xl">
-                      ⚽
-                    </div>
-                  </div>
-
-                  {/* Top row headers - Clubs/Teams */}
-                  <div className="bg-blue-900/80 backdrop-blur-md rounded-xl p-3 flex flex-col items-center justify-center border-2 border-blue-500/30">
-                    <img
-                      src="https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg"
-                      alt="CHE"
-                      className="w-8 h-8 mb-1"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        e.currentTarget.nextElementSibling!.textContent = "🔵";
-                      }}
-                    />
-                    <div className="text-[10px] font-bold uppercase text-center">
-                      CHE
-                    </div>
-                  </div>
-                  <div className="bg-blue-900/80 backdrop-blur-md rounded-xl p-3 flex flex-col items-center justify-center border-2 border-blue-500/30">
-                    <Trophy size={24} className="text-yellow-400 mb-1" />
-                    <div className="text-[10px] font-bold uppercase text-center">
-                      WC Boot
-                    </div>
-                  </div>
-                  <div className="bg-blue-900/80 backdrop-blur-md rounded-xl p-3 flex flex-col items-center justify-center border-2 border-blue-500/30">
-                    <div className="text-2xl mb-1">👤</div>
-                    <div className="text-[10px] font-bold uppercase text-center">
-                      Lukaku
-                    </div>
-                  </div>
-                  <div className="bg-blue-900/80 backdrop-blur-md rounded-xl p-3 flex flex-col items-center justify-center border-2 border-blue-500/30">
-                    <div className="text-2xl mb-1">🇨🇮</div>
-                    <div className="text-[10px] font-bold uppercase text-center">
-                      CIV
-                    </div>
-                  </div>
-
-                  {/* Row 1 - Ferguson */}
-                  <div className="bg-blue-900/80 backdrop-blur-md rounded-xl p-3 flex flex-col items-center justify-center border-2 border-blue-500/30">
-                    <div className="text-2xl mb-1">👨‍💼</div>
-                    <div className="text-[10px] font-bold uppercase text-center">
-                      Ferguson
-                    </div>
-                  </div>
-                  {[...Array(4)].map((_, i) => (
-                    <button
-                      key={`r1-${i}`}
-                      className="bg-purple-800/30 backdrop-blur-md rounded-xl p-6 hover:bg-purple-700/40 transition-all border-2 border-white/10 hover:border-white/30 group aspect-square"
-                    >
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-12 h-16 bg-purple-700/30 rounded-lg group-hover:scale-110 transition-transform"></div>
-                      </div>
-                    </button>
-                  ))}
-
-                  {/* Row 2 - LaLiga Golden Boot */}
-                  <div className="bg-blue-900/80 backdrop-blur-md rounded-xl p-3 flex flex-col items-center justify-center border-2 border-blue-500/30">
-                    <Trophy size={20} className="text-yellow-400 mb-1" />
-                    <div className="text-[10px] font-bold uppercase text-center">
-                      LaLiga Boot
-                    </div>
-                  </div>
-                  {[...Array(4)].map((_, i) => (
-                    <button
-                      key={`r2-${i}`}
-                      className="bg-purple-800/30 backdrop-blur-md rounded-xl p-6 hover:bg-purple-700/40 transition-all border-2 border-white/10 hover:border-white/30 group aspect-square"
-                    >
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-12 h-16 bg-purple-700/30 rounded-lg group-hover:scale-110 transition-transform"></div>
-                      </div>
-                    </button>
-                  ))}
-
-                  {/* Row 3 - Euros Winner */}
-                  <div className="bg-blue-900/80 backdrop-blur-md rounded-xl p-3 flex flex-col items-center justify-center border-2 border-blue-500/30">
-                    <Trophy size={20} className="text-blue-400 mb-1" />
-                    <div className="text-[10px] font-bold uppercase text-center">
-                      Euros
-                    </div>
-                  </div>
-                  {[...Array(4)].map((_, i) => (
-                    <button
-                      key={`r3-${i}`}
-                      className="bg-purple-800/30 backdrop-blur-md rounded-xl p-6 hover:bg-purple-700/40 transition-all border-2 border-white/10 hover:border-white/30 group aspect-square"
-                    >
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-12 h-16 bg-purple-700/30 rounded-lg group-hover:scale-110 transition-transform"></div>
-                      </div>
-                    </button>
-                  ))}
-
-                  {/* Row 4 - Greek/Cypriot League */}
-                  <div className="bg-blue-900/80 backdrop-blur-md rounded-xl p-3 flex flex-col items-center justify-center border-2 border-blue-500/30">
-                    <div className="text-2xl mb-1">🏛️</div>
-                    <div className="text-[10px] font-bold uppercase text-center">
-                      GR/CY
-                    </div>
-                  </div>
-                  {[...Array(4)].map((_, i) => (
-                    <button
-                      key={`r4-${i}`}
-                      className="bg-purple-800/30 backdrop-blur-md rounded-xl p-6 hover:bg-purple-700/40 transition-all border-2 border-white/10 hover:border-white/30 group aspect-square"
-                    >
-                      <div className="w-full h-full flex items-center justify-center">
-                        <div className="w-12 h-16 bg-purple-700/30 rounded-lg group-hover:scale-110 transition-transform"></div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Info */}
-                <div className="mt-6 p-4 bg-black/30 backdrop-blur-md rounded-xl border border-white/10">
-                  <p className="text-sm text-center text-gray-300">
-                    <span className="font-bold text-white">Click a square</span>{" "}
-                    to select a player that matches both the row and column
-                    criteria
-                  </p>
+                <div className="flex gap-3">
+                  <span className="text-purple-400 font-black shrink-0">3.</span>
+                  <span>Fill all 9 squares using only 9 guesses total</span>
                 </div>
               </div>
             </motion.div>
-          )}
+          </div>
         </div>
       </div>
+    );
+  }
+
+  // ── WIN / LOST SCREENS ─────────────────────────────────────────────────────
+  if (phase === "won" || phase === "lost") {
+    const won = phase === "won";
+    return (
+      <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center px-6">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className={`absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full blur-[150px] ${won ? "bg-green-900/20" : "bg-red-900/20"}`} />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative z-10 max-w-md w-full text-center"
+        >
+          <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${won ? "bg-green-500/20 border-2 border-green-500/50" : "bg-red-500/20 border-2 border-red-500/50"}`}>
+            {won ? <Trophy size={40} className="text-green-400" /> : <X size={40} className="text-red-400" />}
+          </div>
+
+          <h1 className="text-5xl font-black uppercase italic mb-2">
+            {won ? "You nailed it!" : "Game Over"}
+          </h1>
+          <p className="text-gray-400 mb-8">
+            {won
+              ? `Perfect! All 9 squares filled with ${9 - guessesLeft} wrong guesses.`
+              : `You ran out of guesses. ${filledCount}/9 squares filled.`}
+          </p>
+
+          {/* Mini result grid */}
+          <div className="grid grid-cols-3 gap-2 mb-8 max-w-[240px] mx-auto">
+            {grid.map((row, r) =>
+              row.map((cell, c) => (
+                <div
+                  key={`${r}-${c}`}
+                  className={`aspect-square rounded-xl flex items-center justify-center text-xs font-bold ${
+                    cell ? "bg-green-500/30 border border-green-500/50 text-green-300" : "bg-white/5 border border-white/10 text-gray-600"
+                  }`}
+                >
+                  {cell ? <Check size={16} /> : "✗"}
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={shareResult}
+              className="flex items-center gap-2 px-5 py-3 bg-white/10 border border-white/20 rounded-xl font-bold text-sm hover:bg-white/20 transition-colors"
+            >
+              <Share2 size={16} /> Share
+            </button>
+            <button
+              onClick={resetGame}
+              className="flex items-center gap-2 px-5 py-3 bg-purple-600 rounded-xl font-bold text-sm hover:bg-purple-500 transition-colors"
+            >
+              <RefreshCw size={16} /> Play Again
+            </button>
+            <Link
+              href="/arena"
+              className="flex items-center gap-2 px-5 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors"
+            >
+              <ArrowLeft size={16} /> Arena
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // ── PLAYING ────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-[#050505] text-white">
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-purple-900/20 rounded-full blur-[150px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-indigo-900/20 rounded-full blur-[150px]" />
+      </div>
+
+      <div className="relative z-10 pt-24 pb-20 px-4">
+        <div className="max-w-2xl mx-auto">
+
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <Link href="/arena" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-bold">
+              <ArrowLeft size={18} />
+              Arena
+            </Link>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
+              <span className="text-xs text-gray-400 uppercase font-bold tracking-widest">Guesses</span>
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-3 h-3 rounded-full transition-all ${
+                    i < (9 - guessesLeft)
+                      ? "bg-red-500"
+                      : "bg-green-400"
+                  }`}
+                />
+              ))}
+            </div>
+            <div className="text-sm font-black text-gray-300">
+              {filledCount}<span className="text-gray-600">/9</span>
+            </div>
+          </div>
+
+          {/* Grid */}
+          <div className="bg-gradient-to-br from-[#0e0b1f] to-[#0a0a1a] rounded-3xl p-4 border border-white/10 shadow-2xl">
+            <div className="grid grid-cols-4 gap-2">
+
+              {/* Top-left corner */}
+              <div className="flex items-center justify-center p-2">
+                <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-xl">
+                  ⚽
+                </div>
+              </div>
+
+              {/* Column headers */}
+              {COL_CLUBS.map((club) => (
+                <div
+                  key={club.id}
+                  className={`flex flex-col items-center justify-center p-2 rounded-xl ${club.bg} border ${club.ring}`}
+                >
+                  <ClubLogo src={club.logo} alt={club.short} size={36} />
+                  <span className="text-[9px] font-black uppercase tracking-wider text-gray-300 mt-1.5 text-center leading-tight">
+                    {club.short}
+                  </span>
+                </div>
+              ))}
+
+              {/* Rows */}
+              {ROW_CLUBS.map((rowClub, r) => (
+                <>
+                  {/* Row header */}
+                  <div
+                    key={`row-${rowClub.id}`}
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl ${rowClub.bg} border ${rowClub.ring}`}
+                  >
+                    <ClubLogo src={rowClub.logo} alt={rowClub.short} size={36} />
+                    <span className="text-[9px] font-black uppercase tracking-wider text-gray-300 mt-1.5 text-center leading-tight">
+                      {rowClub.short}
+                    </span>
+                  </div>
+
+                  {/* Game cells */}
+                  {COL_CLUBS.map((colClub, c) => {
+                    const key = `${r}-${c}`;
+                    const cell = grid[r][c];
+                    const isActive = activeCell?.[0] === r && activeCell?.[1] === c;
+                    const isWrong = wrongFlash === key;
+
+                    return (
+                      <motion.button
+                        key={`cell-${r}-${c}`}
+                        onClick={() => handleCellClick(r, c)}
+                        animate={isWrong ? { x: [-4, 4, -4, 4, 0] } : { x: 0 }}
+                        transition={{ duration: 0.3 }}
+                        disabled={cell !== null}
+                        className={`aspect-square rounded-xl border-2 flex flex-col items-center justify-center p-1.5 transition-all relative overflow-hidden
+                          ${cell
+                            ? "bg-green-500/20 border-green-500/60 cursor-default"
+                            : isWrong
+                            ? "bg-red-500/30 border-red-500/60"
+                            : isActive
+                            ? "bg-purple-500/20 border-purple-400/80 ring-2 ring-purple-500/30"
+                            : "bg-white/5 border-white/10 hover:bg-purple-900/30 hover:border-purple-500/40 cursor-pointer"
+                          }`}
+                      >
+                        {cell ? (
+                          <>
+                            <Check size={14} className="text-green-400 mb-1 shrink-0" />
+                            <span className="text-[9px] font-bold text-green-300 leading-tight text-center line-clamp-2">
+                              {cell.player}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-2xl opacity-20">?</span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </>
+              ))}
+            </div>
+          </div>
+
+          {/* Hint display */}
+          <AnimatePresence>
+            {shownHint && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mt-3 px-4 py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl flex items-start gap-2"
+              >
+                <Lightbulb size={14} className="text-yellow-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-yellow-200">{shownHint}</p>
+                <button onClick={() => setShownHint(null)} className="ml-auto text-gray-500 hover:text-white">
+                  <X size={14} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Footer info */}
+          <p className="text-center text-xs text-gray-600 mt-4">
+            Click a square → name a player who played for <span className="text-gray-400">both clubs</span>
+          </p>
+        </div>
+      </div>
+
+      {/* ── SEARCH MODAL ──────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {activeCell && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveCell(null)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:-translate-y-1/2 md:left-1/2 md:-translate-x-1/2 z-50 md:max-w-md w-full md:w-full"
+            >
+              <div className="bg-[#0f0f1a] border border-white/20 rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden">
+                {/* Modal header */}
+                <div className="px-5 pt-5 pb-3 border-b border-white/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <ClubLogo
+                        src={ROW_CLUBS[activeCell[0]].logo}
+                        alt={ROW_CLUBS[activeCell[0]].short}
+                        size={28}
+                      />
+                      <span className="text-gray-400 text-sm font-bold">×</span>
+                      <ClubLogo
+                        src={COL_CLUBS[activeCell[1]].logo}
+                        alt={COL_CLUBS[activeCell[1]].short}
+                        size={28}
+                      />
+                      <div className="ml-2">
+                        <p className="text-xs font-bold text-white leading-tight">
+                          {ROW_CLUBS[activeCell[0]].name} × {COL_CLUBS[activeCell[1]].name}
+                        </p>
+                        <p className="text-[10px] text-gray-500">Name a player who played for both</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setActiveCell(null)}
+                      className="p-2 hover:bg-white/10 rounded-xl transition-colors text-gray-400 hover:text-white"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  {/* Wrong guess feedback */}
+                  <AnimatePresence>
+                    {wrongGuess && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mb-3 px-3 py-2 bg-red-500/20 border border-red-500/40 rounded-xl flex items-center gap-2"
+                      >
+                        <X size={12} className="text-red-400 shrink-0" />
+                        <span className="text-xs text-red-300">
+                          <strong>{wrongGuess}</strong> didn't play for both clubs
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Search input */}
+                  <div className="flex items-center gap-3 bg-white/5 border border-white/15 rounded-2xl px-4 py-3 focus-within:border-purple-500/60 transition-colors">
+                    <Search size={16} className="text-gray-400 shrink-0" />
+                    <input
+                      ref={inputRef}
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setWrongGuess(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && search.trim()) {
+                          // Try exact match first, else first suggestion
+                          const exactMatch = ALL_PLAYERS.find(
+                            (p) => normalize(p) === normalize(search.trim())
+                          );
+                          handleGuess(exactMatch ?? search.trim());
+                        }
+                        if (e.key === "Escape") setActiveCell(null);
+                      }}
+                      placeholder="Type player name..."
+                      className="bg-transparent flex-1 text-white placeholder-gray-500 text-sm outline-none font-medium"
+                      autoComplete="off"
+                    />
+                    {search && (
+                      <button onClick={() => setSearch("")} className="text-gray-500 hover:text-white">
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Suggestions */}
+                <div className="max-h-60 overflow-y-auto">
+                  {suggestions.length > 0 ? (
+                    <ul className="py-2">
+                      {suggestions.map((player) => (
+                        <li key={player}>
+                          <button
+                            onClick={() => handleGuess(player)}
+                            className="w-full text-left px-5 py-3 hover:bg-white/5 transition-colors flex items-center gap-3 group"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-gray-800 border border-white/10 flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
+                              {player.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </div>
+                            <span className="text-sm font-medium text-gray-200 group-hover:text-white">
+                              {player}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : search.length >= 2 ? (
+                    <div className="px-5 py-6 text-center">
+                      <p className="text-sm text-gray-500">No player found — try a different spelling</p>
+                      {search.length >= 4 && (
+                        <button
+                          onClick={() => handleGuess(search.trim())}
+                          className="mt-3 px-4 py-2 bg-purple-600/40 border border-purple-500/40 rounded-xl text-sm text-purple-300 font-bold hover:bg-purple-600/60 transition-colors"
+                        >
+                          Submit "{search.trim()}" anyway
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="px-5 py-6 text-center text-sm text-gray-600">
+                      Start typing a player name...
+                    </div>
+                  )}
+                </div>
+
+                {/* Hint button */}
+                <div className="px-5 py-3 border-t border-white/10 flex items-center justify-between">
+                  <button
+                    onClick={handleHint}
+                    className="flex items-center gap-2 text-xs text-yellow-400 hover:text-yellow-300 font-bold transition-colors"
+                  >
+                    <Lightbulb size={14} />
+                    {usedHints.has(`${activeCell[0]}-${activeCell[1]}`) ? "Show hint again" : "Get hint"}
+                  </button>
+                  <span className="text-xs text-gray-500">
+                    {guessesLeft} guess{guessesLeft !== 1 ? "es" : ""} left
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
