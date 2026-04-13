@@ -40,8 +40,9 @@ export interface AuctionDto {
   description: string;
 
   // Category & Type
-  category: string;
-  itemType: string;
+  category: string;   // stores sport: "football" | "basketball" | etc.
+  itemType: string;   // stores item category: "jersey_shirt" | "boots_cleats" | etc.
+  league: string | null; // competition/league: "Premier League" | "NBA" | etc.
   listingType: AuctionListingType;
   status: AuctionStatus;
 
@@ -137,7 +138,9 @@ export interface AuctionListDto {
 export interface AuctionFilters {
   page?: number;
   limit?: number;
-  category?: string;
+  category?: string;    // sport: "football" | "basketball" | etc.
+  itemType?: string;    // item category: "jersey_shirt" | "boots_cleats" | etc.
+  league?: string;      // "Premier League" | "NBA" | etc.
   team?: string;
   status?: AuctionStatus | "all";
   listingType?: AuctionListingType;
@@ -160,6 +163,7 @@ export interface CreateAuctionDto {
   // Category
   category: string;
   itemType: string;
+  league?: string;
   listingType: AuctionListingType;
 
   // Item details

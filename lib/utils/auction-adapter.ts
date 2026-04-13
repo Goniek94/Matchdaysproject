@@ -30,6 +30,7 @@ export interface AuctionDisplayDto {
   sport: string;
   category: string;
   itemType: string;
+  league?: string;
   seller: {
     name: string;
     avatar?: string;
@@ -88,6 +89,7 @@ export const adaptAuctionForDisplay = (
   sport: auction.category || "other",
   category: auction.category || "other",
   itemType: auction.itemType || "shirt",
+  league: auction.league ?? undefined,
   seller: {
     name: auction.seller?.username || "Unknown",
     avatar: auction.seller?.avatar,
@@ -187,9 +189,11 @@ export const mapFormDataToCreateAuctionDto = (
     title: data.title || `${data.brand} ${data.model} ${data.club}`.trim(),
     description: data.description || "No description provided",
 
-    // Category: use AI-detected sport as category (e.g. "football"), itemType is the item kind (e.g. "shirts_jerseys")
-    category: data.sport || data.aiData?.sport || "other",
-    itemType: data.category || data.categorySlug || "shirt",
+    // Taxonomy: AI detects → sport (DB: category), item type (DB: itemType), league (DB: league)
+    // AI result overrides user selection; user selection is the fallback
+    category: data.aiData?.sport || data.sport || "other",
+    itemType: data.aiData?.itemCategory || data.itemCategory || data.categorySlug || "jersey_shirt",
+    league: data.aiData?.league || data.league || undefined,
     listingType,
 
     // Item details

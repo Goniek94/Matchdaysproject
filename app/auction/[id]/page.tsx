@@ -430,13 +430,39 @@ export default function AuctionDetailPage() {
     other: "Other",
   };
 
-  // category field in DB now stores the sport (e.g. "football")
+  const ITEM_CATEGORY_LABELS: Record<string, string> = {
+    jersey_shirt: "Jersey / Shirt",
+    shorts_pants: "Shorts / Pants",
+    boots_cleats: "Boots / Cleats",
+    sneakers: "Sneakers / Shoes",
+    jacket_hoodie: "Jacket / Hoodie",
+    tracksuit: "Tracksuit",
+    race_suit: "Race Suit",
+    helmet: "Helmet",
+    racing_gloves: "Racing Gloves",
+    goalkeeper_gloves: "Goalkeeper Gloves",
+    gloves: "Gloves",
+    stick: "Stick",
+    racket: "Racket",
+    bat: "Bat",
+    pads: "Pads / Protection",
+    cap: "Cap / Hat",
+    accessories: "Accessories",
+    equipment: "Equipment",
+  };
+
+  // DB: category = sport ("football"), itemType = item category ("jersey_shirt")
   const sportDisplay = SPORT_LABELS[auction.category?.toLowerCase()] || null;
 
   const categoryDisplay = (() => {
     const itemSlug = auction.itemType?.toLowerCase() || "";
-    return CATEGORY_LABELS[itemSlug] || auction.itemType || null;
+    return ITEM_CATEGORY_LABELS[itemSlug] || CATEGORY_LABELS[itemSlug] || auction.itemType || null;
   })();
+
+  // Full breadcrumb: "Football / Jersey" shown as a badge
+  const taxonomyBreadcrumb = sportDisplay && categoryDisplay
+    ? `${sportDisplay} / ${categoryDisplay}`
+    : sportDisplay || categoryDisplay || null;
 
   const getConditionLabel = (raw: string | null | undefined): string => {
     if (!raw) return "Unknown";
@@ -524,8 +550,7 @@ export default function AuctionDetailPage() {
     const category = typeMap[itemType] || "shirts";
 
     const common: DetailEntry[] = [
-      ...(sportDisplay ? [{ label: "Sport", value: sportDisplay, icon: "⚽" }] : []),
-      { label: "Category", value: categoryDisplay || "—", icon: "📂" },
+      ...(taxonomyBreadcrumb ? [{ label: "Category", value: taxonomyBreadcrumb, icon: "🏷️" }] : []),
       { label: "Brand", value: val(auction.manufacturer) || "—", icon: "🏷️" },
       { label: "Condition", value: conditionLabel, icon: "✨" },
     ];

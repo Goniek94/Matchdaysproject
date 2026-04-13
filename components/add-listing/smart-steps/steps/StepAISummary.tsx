@@ -87,7 +87,10 @@ export default function StepAISummary({ data, update }: StepProps) {
         // Write AI results to SmartFormData fields
         update("title", ai.title);
         update("description", ai.description);
+        // AI overrides user-selected sport + itemCategory with what it detected from photos
         update("sport", ai.sport || "");
+        update("itemCategory", ai.itemCategory || "");
+        update("league", ai.league || "");
         update("brand", ai.brand);
         update("club", ai.team);
         update("season", ai.season);

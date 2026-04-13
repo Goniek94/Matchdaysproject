@@ -1,14 +1,28 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import AuctionCard from "@/components/home/AuctionCard";
 import { mockAuctions } from "@/lib/mockData";
 import { getAuctions } from "@/lib/api/auctions.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
+import type { AuctionDisplayDto } from "@/lib/utils/auction-adapter";
 import { Search, Filter, X } from "lucide-react";
 import AuctionsSidebar, {
   FilterState,
+  EMPTY_FILTERS,
 } from "@/components/auctions/AuctionsSidebar";
+import {
+  SPORTS,
+  ITEM_CATEGORIES,
+} from "@/lib/constants/listing/taxonomy.constants";
+
+// Label lookups for filter tags
+const SPORT_LABELS: Record<string, string> = Object.fromEntries(
+  SPORTS.map((s) => [s.id, s.label]),
+);
+const ITEM_LABELS: Record<string, string> = Object.fromEntries(
+  ITEM_CATEGORIES.map((c) => [c.id, c.label]),
+);
 
 const parseTimeLeft = (timeStr: string): number => {
   let totalMinutes = 0;
@@ -21,132 +35,97 @@ const parseTimeLeft = (timeStr: string): number => {
   return totalMinutes || 999999;
 };
 
-const sortOptions = [
-  { id: "recommended", label: "Recommended" },
-  { id: "ending_soon", label: "Ending Soon" },
-  { id: "buy_now", label: "Buy Now Only" },
-  { id: "auction", label: "Auctions Only" },
-];
-
 export default function AuctionsPage(): JSX.Element {
-  const [filters, setFilters] = useState<FilterState>({
-    search: "",
-    sport: "all",
-    category: "all",
-    country: "",
-    sort: "recommended",
-    itemType: "all",
-  });
+  const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  const [auctions, setAuctions] = useState<any[]>([]);
-  const [_isLoading, setIsLoading] = useState(true);
+  const [auctions, setAuctions] = useState<AuctionDisplayDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    async function fetchAuctions() {
-      try {
-        setIsLoading(true);
-        const result = await getAuctions({ page: 1, limit: 50 });
-        if (result.success && result.data) {
-          console.log("✅ Pobrano aukcje z API:", result.data.auctions.length);
-          const adaptedAuctions = adaptAuctionsForDisplay(result.data.auctions);
-          setAuctions(adaptedAuctions);
-        } else {
-          console.warn("⚠️ Brak aukcji z API, używam mock data");
-          setAuctions(mockAuctions);
-        }
-      } catch (err) {
-        console.error("❌ Błąd pobierania aukcji:", err);
-        setAuctions(mockAuctions);
-      } finally {
-        setIsLoading(false);
+  // Fetch from API whenever server-side filters change
+  const fetchAuctions = useCallback(async (f: FilterState) => {
+    try {
+      setIsLoading(true);
+      const result = await getAuctions({
+        page: 1,
+        limit: 60,
+        category: f.sport !== "all" ? f.sport : undefined,
+        itemType: f.itemCategory !== "all" ? f.itemCategory : undefined,
+        league: f.league || undefined,
+        listingType:
+          f.listingType !== "all" ? (f.listingType as "auction" | "buy_now") : undefined,
+      });
+
+      if (result.success && result.data) {
+        const adapted = adaptAuctionsForDisplay(result.data.auctions);
+        setAuctions(adapted);
+        setTotalCount(result.data.total);
+      } else {
+        setAuctions(mockAuctions as AuctionDisplayDto[]);
+        setTotalCount(mockAuctions.length);
       }
+    } catch {
+      setAuctions(mockAuctions as AuctionDisplayDto[]);
+      setTotalCount(mockAuctions.length);
+    } finally {
+      setIsLoading(false);
     }
-    fetchAuctions();
   }, []);
 
+  // Re-fetch when server-side filters change (sport, itemCategory, league, listingType)
+  useEffect(() => {
+    fetchAuctions(filters);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.sport, filters.itemCategory, filters.league, filters.listingType]);
+
+  // Client-side: search text + sort (no extra API call)
   const filteredAuctions = useMemo(() => {
-    const sourceAuctions = auctions.length > 0 ? auctions : mockAuctions;
-    let result = [...sourceAuctions];
+    let result = [...auctions];
 
     if (filters.search) {
       const q = filters.search.toLowerCase();
       result = result.filter(
         (item) =>
           item.title.toLowerCase().includes(q) ||
-          (item.team && item.team.toLowerCase().includes(q)) ||
           item.seller.name.toLowerCase().includes(q),
       );
     }
 
-    if (filters.sport !== "all") {
-      result = result.filter((item) => item.sport === filters.sport);
-    }
-
-    if (filters.category !== "all") {
-      result = result.filter((item) => item.category === filters.category);
-    }
-
-    if (filters.country) {
-      result = result.filter(
-        (item) =>
-          item.country?.name.toLowerCase() === filters.country.toLowerCase(),
-      );
-    }
-
-    if (filters.itemType !== "all") {
-      result = result.filter((item) => item.itemType === filters.itemType);
-    }
-
-    if (filters.sort === "buy_now") {
-      result = result.filter((item) => item.type === "buy_now");
-    } else if (filters.sort === "auction") {
-      result = result.filter((item) => item.type === "auction");
-    } else if (filters.sort === "ending_soon") {
-      result.sort(
-        (a, b) => parseTimeLeft(a.endTime) - parseTimeLeft(b.endTime),
-      );
+    if (filters.sort === "ending_soon") {
+      result.sort((a, b) => parseTimeLeft(a.endTime) - parseTimeLeft(b.endTime));
+    } else if (filters.sort === "newest") {
+      // already newest-first from API (orderBy createdAt desc)
     }
 
     return result;
-  }, [auctions, filters]);
+  }, [auctions, filters.search, filters.sort]);
 
+  // Active filter tags
   const activeTags: { label: string; onRemove: () => void }[] = [];
   if (filters.sport !== "all")
     activeTags.push({
-      label: filters.sport,
-      onRemove: () =>
-        setFilters((f) => ({
-          ...f,
-          sport: "all",
-          category: "all",
-          country: "",
-        })),
+      label: SPORT_LABELS[filters.sport] ?? filters.sport,
+      onRemove: () => setFilters((f) => ({ ...f, sport: "all", itemCategory: "all" })),
     });
-  if (filters.category !== "all")
+  if (filters.itemCategory !== "all")
     activeTags.push({
-      label: filters.category,
-      onRemove: () =>
-        setFilters((f) => ({ ...f, category: "all", country: "" })),
+      label: ITEM_LABELS[filters.itemCategory] ?? filters.itemCategory,
+      onRemove: () => setFilters((f) => ({ ...f, itemCategory: "all" })),
     });
-  if (filters.country)
+  if (filters.league)
     activeTags.push({
-      label: filters.country,
-      onRemove: () => setFilters((f) => ({ ...f, country: "" })),
+      label: filters.league,
+      onRemove: () => setFilters((f) => ({ ...f, league: "" })),
     });
-  if (filters.itemType !== "all")
+  if (filters.listingType !== "all")
     activeTags.push({
-      label: filters.itemType,
-      onRemove: () => setFilters((f) => ({ ...f, itemType: "all" })),
+      label: filters.listingType === "buy_now" ? "Buy Now" : "Auction",
+      onRemove: () => setFilters((f) => ({ ...f, listingType: "all" })),
     });
-
-  const clearAll = () =>
-    setFilters({
-      search: "",
-      sport: "all",
-      category: "all",
-      country: "",
-      sort: "recommended",
-      itemType: "all",
+  if (filters.search)
+    activeTags.push({
+      label: `"${filters.search}"`,
+      onRemove: () => setFilters((f) => ({ ...f, search: "" })),
     });
 
   return (
@@ -163,40 +142,21 @@ export default function AuctionsPage(): JSX.Element {
             />
 
             <div className="flex-1 w-full">
+              {/* Header */}
               <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
                 <div>
                   <h1 className="text-4xl font-black text-black tracking-tighter mb-2">
                     Marketplace
                   </h1>
                   <p className="text-gray-500">
-                    Discover {filteredAuctions.length} rare items across all
-                    categories.
+                    {isLoading
+                      ? "Loading..."
+                      : `Showing ${filteredAuctions.length} of ${totalCount} items`}
                   </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-gray-400">
-                    Sort by:
-                  </span>
-                  <select
-                    value={filters.sort}
-                    onChange={(e) =>
-                      setFilters((f) => ({
-                        ...f,
-                        sort: e.target.value as FilterState["sort"],
-                      }))
-                    }
-                    className="bg-gray-50 border border-gray-200 text-sm font-bold rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black cursor-pointer"
-                  >
-                    {sortOptions.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
               </div>
 
+              {/* Active filter tags */}
               <div className="mb-6 flex items-center gap-3 flex-wrap">
                 <button
                   onClick={() => setIsMobileFiltersOpen(true)}
@@ -212,10 +172,7 @@ export default function AuctionsPage(): JSX.Element {
                     className="bg-black text-white px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-2"
                   >
                     {tag.label}
-                    <button
-                      onClick={tag.onRemove}
-                      className="hover:text-gray-300"
-                    >
+                    <button onClick={tag.onRemove} className="hover:text-gray-300">
                       <X size={13} />
                     </button>
                   </span>
@@ -223,7 +180,7 @@ export default function AuctionsPage(): JSX.Element {
 
                 {activeTags.length > 1 && (
                   <button
-                    onClick={clearAll}
+                    onClick={() => setFilters(EMPTY_FILTERS)}
                     className="text-sm text-gray-400 hover:text-black font-medium transition-colors"
                   >
                     Clear all
@@ -231,23 +188,27 @@ export default function AuctionsPage(): JSX.Element {
                 )}
               </div>
 
-              {filteredAuctions.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+              {/* Grid */}
+              {isLoading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-2xl bg-gray-100 animate-pulse h-72"
+                    />
+                  ))}
+                </div>
+              ) : filteredAuctions.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredAuctions.map((auction) => (
                     <AuctionCard
                       key={auction.id}
                       auction={auction}
                       badge={
                         auction.type === "buy_now"
-                          ? {
-                              text: "BUY NOW",
-                              colors: "bg-blue-600 text-white",
-                            }
+                          ? { text: "BUY NOW", colors: "bg-blue-600 text-white" }
                           : auction.rare
-                            ? {
-                                text: "RARE",
-                                colors: "bg-purple-600 text-white",
-                              }
+                            ? { text: "RARE", colors: "bg-purple-600 text-white" }
                             : undefined
                       }
                     />
@@ -262,11 +223,10 @@ export default function AuctionsPage(): JSX.Element {
                     No items found
                   </h3>
                   <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                    We couldn&apos;t find any items matching your current
-                    filters.
+                    We couldn&apos;t find any items matching your current filters.
                   </p>
                   <button
-                    onClick={clearAll}
+                    onClick={() => setFilters(EMPTY_FILTERS)}
                     className="px-6 py-3 bg-black text-white rounded-lg font-bold hover:bg-gray-800 transition-colors"
                   >
                     Clear All Filters

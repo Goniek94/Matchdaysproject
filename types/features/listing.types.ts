@@ -97,6 +97,10 @@ export interface AIAnalysisResult {
   title: string;
   description: string;
   sport: string;
+  /** Item category within the sport, e.g. "jersey_shirt", "boots_cleats", "race_suit" */
+  itemCategory: string;
+  /** League/competition/brand line, e.g. "Premier League", "La Liga", "NBA", "Jordan", "Nike Mercurial" */
+  league: string;
   brand: string;
   team: string;
   season: string;
@@ -124,7 +128,14 @@ export interface AIAnalysisResult {
 // ============================================
 
 export interface SmartFormData {
-  // Step 1: Category Selection
+  // Step 1: Category Selection — sport + item type within that sport
+  /** User-selected sport: "football", "f1", "basketball", etc. */
+  sport: string;
+  /** User-selected item category within the sport: "jersey_shirt", "boots_cleats", etc. */
+  itemCategory: string;
+  /** League/competition detected by AI: "Premier League", "La Liga", "NBA", "Jordan", etc. */
+  league: string;
+  /** Legacy fields kept for adapter compatibility */
   category: string;
   categorySlug: string;
 
@@ -146,7 +157,6 @@ export interface SmartFormData {
   // Step 4: Product Details
   title: string;
   description: string;
-  sport: string;
   brand: string;
   model: string;
   club: string;
@@ -203,6 +213,9 @@ export interface SmartFormData {
 // ============================================
 
 export const INITIAL_FORM_STATE: SmartFormData = {
+  sport: "",
+  itemCategory: "",
+  league: "",
   category: "",
   categorySlug: "",
   completionMode: null,
@@ -216,7 +229,6 @@ export const INITIAL_FORM_STATE: SmartFormData = {
   photos: [],
   title: "",
   description: "",
-  sport: "",
   brand: "",
   model: "",
   club: "",

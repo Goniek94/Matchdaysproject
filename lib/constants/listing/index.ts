@@ -11,6 +11,17 @@
 export { CATEGORIES } from "./categories.constants";
 
 export {
+  SPORTS,
+  ITEM_CATEGORIES,
+  ALL_SPORT_IDS,
+  ALL_ITEM_CATEGORY_IDS,
+  getItemCategoriesForSport,
+  getCategoryBreadcrumb,
+} from "./taxonomy.constants";
+
+export type { Sport, SportId, ItemCategory, ItemCategoryId } from "./taxonomy.constants";
+
+export {
   CONDITIONS,
   SHIRT_SIZES,
   DEFECT_TYPES,
