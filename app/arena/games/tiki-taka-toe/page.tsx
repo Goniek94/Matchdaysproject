@@ -526,7 +526,7 @@ export default function TikiTakaToe() {
                   </div>
 
                   {/* Game cells */}
-                  {COL_CLUBS.map((colClub, c) => {
+                  {COL_CLUBS.map((_colClub, c) => {
                     const key = `${r}-${c}`;
                     const cell = grid[r][c];
                     const isActive = activeCell?.[0] === r && activeCell?.[1] === c;

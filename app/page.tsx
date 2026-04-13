@@ -95,7 +95,7 @@ export default function HomePage() {
 
         // 🔥 HOT OFFERS — top-9 by score, pick 3 randomly once on load
         const hotPool = [...data]
-          .sort((a, b) =>
+          .sort((a: any, b: any) =>
             ((b.rare ? 10 : 0) + (b.views ?? 0) * 0.5 + (b.bidCount ?? 0) * 2) -
             ((a.rare ? 10 : 0) + (a.views ?? 0) * 0.5 + (a.bidCount ?? 0) * 2)
           )
@@ -121,7 +121,7 @@ export default function HomePage() {
         const hotIds = new Set(hotPool.map((a: any) => a.id));
         const forYouRaw = [...data]
           .filter((a) => !hotIds.has(a.id))
-          .sort((a, b) =>
+          .sort((a: any, b: any) =>
             ((b.rare ? 8 : 0) + (b.verified ? 5 : 0) + (b.bidCount ?? 0) * 1.5) -
             ((a.rare ? 8 : 0) + (a.verified ? 5 : 0) + (a.bidCount ?? 0) * 1.5)
           )
