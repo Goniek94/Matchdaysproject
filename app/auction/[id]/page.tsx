@@ -830,6 +830,77 @@ export default function AuctionDetailPage() {
               </div>
             </div>
 
+            {/* ─── Mobile: action area (hidden on lg+) ───────────────────────── */}
+            <div className="lg:hidden space-y-4">
+              {/* Winner banner */}
+              {auctionEnded && (
+                <div className="px-5 py-4 bg-black text-white rounded-2xl text-center">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">
+                    Auction Ended
+                  </p>
+                  {realtime.winner ? (
+                    <>
+                      <p className="text-lg font-black">🏆 {realtime.winner}</p>
+                      <p className="text-xs text-gray-400 mt-1">won this auction</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400">No bids placed</p>
+                  )}
+                </div>
+              )}
+              {/* Bid feedback toast */}
+              {bidFeedback && (
+                <div className={`px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 ${
+                  bidFeedback.type === "success"
+                    ? "bg-green-50 text-green-800 border border-green-200"
+                    : "bg-red-50 text-red-800 border border-red-200"
+                }`}>
+                  <span>{bidFeedback.type === "success" ? "✓" : "✕"}</span>
+                  <span>{bidFeedback.message}</span>
+                </div>
+              )}
+              {/* Bid / Buy Now panel */}
+              <div className="overflow-hidden">
+                {auction.listingType === "auction" ? (
+                  <BidPanel
+                    auctionId={auction.id}
+                    auctionTitle={auction.title}
+                    auctionImage={auction.images?.[0] || ""}
+                    auctionEndTime={auction.endTime}
+                    currentBid={currentBid}
+                    bidCount={bidCount}
+                    highestBidder={highestBidder}
+                    initialSeconds={secondsRemaining}
+                    onPlaceBid={handlePlaceBid}
+                    disabled={bidding || auctionEnded}
+                  />
+                ) : (
+                  <BuyNowPanel
+                    price={Number(auction.buyNowPrice || auction.currentBid)}
+                    currency="EUR"
+                    auctionId={auction.id}
+                    title={auction.title}
+                    image={auction.images?.[0] || ""}
+                    endTime={auction.endTime}
+                    seller={auction.seller}
+                  />
+                )}
+              </div>
+              {/* Seller card */}
+              {auction.seller && (
+                <div className="bg-white rounded-[2px] border border-gray-200 overflow-hidden">
+                  <div className="px-6 pt-5 pb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+                      Sold by
+                    </p>
+                  </div>
+                  <div className="px-6 pb-6">
+                    <SellerInfo seller={auction.seller} auctionId={auction.id} />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Description */}
             <div className="bg-white rounded-[2px] p-6 border border-gray-200">
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
@@ -884,11 +955,21 @@ export default function AuctionDetailPage() {
             {/* Bids */}
             {auction.listingType === "auction" && (
               <div className="bg-white rounded-[2px] border border-gray-200 overflow-hidden">
-                <CollapsibleHeader
-                  title={`Bid History (${isRealAuction ? realtime.bidCount : bids.length})`}
-                  open={bidsOpen}
-                  onToggle={() => setBidsOpen((o) => !o)}
-                />
+                <div className="flex items-center justify-between pr-4">
+                  <div className="flex-1">
+                    <CollapsibleHeader
+                      title={`Bid History (${isRealAuction ? realtime.bidCount : bids.length})`}
+                      open={bidsOpen}
+                      onToggle={() => setBidsOpen((o) => !o)}
+                    />
+                  </div>
+                  {isRealAuction && (
+                    <span className={`flex-shrink-0 flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full ${realtime.wsConnected ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${realtime.wsConnected ? "bg-green-500 animate-pulse" : "bg-gray-400"}`} />
+                      {realtime.wsConnected ? "Live" : "Polling"}
+                    </span>
+                  )}
+                </div>
                 {bidsOpen && (
                   <div className="border-t border-gray-100 p-5">
                     <BidHistory bids={displayBids} />
@@ -902,35 +983,13 @@ export default function AuctionDetailPage() {
               <InfoCards />
             </div>
 
-            {/* Mobile floating "Place Bid" bar — hidden on desktop */}
-            {auction.listingType === "auction" && !auctionEnded && (
-              <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 bg-white/95 backdrop-blur-sm border-t border-gray-200 shadow-lg">
-                <div className="flex items-center gap-3 max-w-lg mx-auto">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">
-                      Current Bid
-                    </p>
-                    <p className="text-lg font-black text-gray-900 leading-tight">
-                      €{currentBid.toLocaleString()}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setBidModalOpen(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-black text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-gray-800 active:scale-[0.98] transition-all shadow-lg"
-                  >
-                    <Gavel size={14} />
-                    Place Bid
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Column */}
           <div className="space-y-4 lg:sticky lg:top-8">
-            {/* Winner Banner */}
+            {/* Winner Banner — desktop only (mobile version is in left col) */}
             {auctionEnded && (
-              <div className="px-5 py-4 bg-black text-white rounded-2xl text-center">
+              <div className="hidden lg:block px-5 py-4 bg-black text-white rounded-2xl text-center">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">
                   Auction Ended
                 </p>
@@ -947,10 +1006,10 @@ export default function AuctionDetailPage() {
               </div>
             )}
 
-            {/* Bid Feedback Toast */}
+            {/* Bid Feedback Toast — desktop only */}
             {bidFeedback && (
               <div
-                className={`px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 ${
+                className={`hidden lg:flex px-4 py-3 rounded-xl text-sm font-medium items-center gap-2 ${
                   bidFeedback.type === "success"
                     ? "bg-green-50 text-green-800 border border-green-200"
                     : "bg-red-50 text-red-800 border border-red-200"
@@ -961,7 +1020,8 @@ export default function AuctionDetailPage() {
               </div>
             )}
 
-            <div className="overflow-hidden">
+            {/* Bid / Buy Now panel — desktop only */}
+            <div className="hidden lg:block overflow-hidden">
               {auction.listingType === "auction" ? (
                 <BidPanel
                   auctionId={auction.id}
@@ -988,9 +1048,9 @@ export default function AuctionDetailPage() {
               )}
             </div>
 
-            {/* Seller Card */}
+            {/* Seller Card — desktop only */}
             {auction.seller && (
-              <div className="bg-white rounded-[2px] border border-gray-200 overflow-hidden">
+              <div className="hidden lg:block bg-white rounded-[2px] border border-gray-200 overflow-hidden">
                 <div className="px-6 pt-5 pb-1">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
                     Sold by

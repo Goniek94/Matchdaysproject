@@ -337,6 +337,77 @@ export const updateMyAddress = async (address: Partial<UserAddress>): Promise<Ap
   return response.data;
 };
 
+// ─── Public Profile ───────────────────────────────────────────────────────────
+
+export interface PublicReview {
+  id: string;
+  rating: number;
+  sentiment: string; // "positive" | "neutral" | "negative"
+  comment: string | null;
+  role: string;      // "buyer" | "seller" — role of the reviewer
+  createdAt: string;
+  reviewer: { id: string; username: string; avatar?: string };
+  auction: { id: string; title: string } | null;
+}
+
+export interface PublicAuction {
+  id: string;
+  title: string;
+  currentPrice: number;
+  currency: string;
+  status: string;
+  listingType: string;
+  images: string[];
+  endTime: string | null;
+  bidsCount: number;
+  seller: { id: string; username: string; rating: number; reviews: number };
+}
+
+export interface PublicCollectionItem {
+  id: string;
+  title: string;
+  images: string[];
+  team: string | null;
+  season: string | null;
+  rarity: string;
+  isVintage: boolean;
+  estimatedValue: number | null;
+}
+
+export interface PublicUserProfile {
+  id: string;
+  username: string;
+  name: string | null;
+  avatar: string | null;
+  country: string | null;
+  isVerified: boolean;
+  rating: number;
+  reviews: number;
+  sales: number;
+  positivePercentage: number | null;
+  avgShippingTime: string | null;
+  level: number;
+  experience: number;
+  totalPoints: number;
+  reputationScore: number;
+  subscriptionTier: string;
+  memberSince: string;
+  warningCount: number;
+  banCount: number;
+  activeListings: PublicAuction[];
+  collectionPreview: PublicCollectionItem[];
+  recentReviews: PublicReview[];
+}
+
+export const getPublicUserProfile = async (
+  username: string,
+): Promise<ApiResponse<PublicUserProfile>> => {
+  const res = await apiClient.get<ApiResponse<PublicUserProfile>>(
+    `/users/public/${username}`,
+  );
+  return res.data;
+};
+
 /**
  * Delete user account
  * @param password - User password for confirmation

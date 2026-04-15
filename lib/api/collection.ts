@@ -138,3 +138,44 @@ export const deleteCollectionItem = async (
   );
   return res.data;
 };
+
+// ─── Comments ───────────────────────────────────────────────────────��─────────
+
+export interface CommentDto {
+  id: string;
+  content: string;
+  collectionItemId: string;
+  authorId: string;
+  author: { id: string; username: string; avatar?: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getComments = async (
+  itemId: string,
+): Promise<ApiResponse<CommentDto[]>> => {
+  const res = await apiClient.get<ApiResponse<CommentDto[]>>(
+    `/collection/item/${itemId}/comments`,
+  );
+  return res.data;
+};
+
+export const addComment = async (
+  itemId: string,
+  content: string,
+): Promise<ApiResponse<CommentDto>> => {
+  const res = await apiClient.post<ApiResponse<CommentDto>>(
+    `/collection/item/${itemId}/comments`,
+    { content },
+  );
+  return res.data;
+};
+
+export const deleteComment = async (
+  commentId: string,
+): Promise<ApiResponse<{ message: string }>> => {
+  const res = await apiClient.delete<ApiResponse<{ message: string }>>(
+    `/collection/comments/${commentId}`,
+  );
+  return res.data;
+};

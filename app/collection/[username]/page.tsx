@@ -186,8 +186,8 @@ export default function CollectionPage() {
     <div className="min-h-screen bg-gray-50">
       {/* ── Hero banner ── */}
       <div className="bg-black text-white">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6 text-center sm:text-left">
             {/* Avatar */}
             <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center text-3xl font-black flex-shrink-0 overflow-hidden">
               {collection.avatar ? (
@@ -213,7 +213,7 @@ export default function CollectionPage() {
                   <Shield size={20} className="text-blue-400" />
                 )}
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-white/60 text-sm">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-white/60 text-sm">
                 {collection.country && (
                   <span className="flex items-center gap-1">
                     <Globe size={13} /> {collection.country}
@@ -270,7 +270,7 @@ export default function CollectionPage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="max-w-6xl mx-auto px-6 py-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         {/* Filter tabs */}
         {items.length > 0 && (
           <div className="flex gap-2 mb-8 overflow-x-auto pb-1">

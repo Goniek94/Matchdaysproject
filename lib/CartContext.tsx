@@ -12,6 +12,7 @@ interface CartItem {
     name: string;
     rating: number;
   };
+  sellerCountry?: string;
 }
 
 interface CartContextType {

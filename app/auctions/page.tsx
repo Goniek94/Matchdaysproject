@@ -131,7 +131,7 @@ export default function AuctionsPage(): JSX.Element {
   return (
     <div className="bg-white min-h-screen flex flex-col font-sans">
       <div className="flex-1 bg-white">
-        <div className="w-full max-w-[1600px] mx-auto px-6 lg:px-10 py-8">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8">
           <div className="flex flex-col lg:flex-row gap-8 items-start">
             <AuctionsSidebar
               filters={filters}
@@ -145,7 +145,7 @@ export default function AuctionsPage(): JSX.Element {
               {/* Header */}
               <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
                 <div>
-                  <h1 className="text-4xl font-black text-black tracking-tighter mb-2">
+                  <h1 className="text-3xl sm:text-4xl font-black text-black tracking-tighter mb-2">
                     Marketplace
                   </h1>
                   <p className="text-gray-500">

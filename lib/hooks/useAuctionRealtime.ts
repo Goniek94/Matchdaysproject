@@ -1,25 +1,33 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { io, Socket } from "socket.io-client";
 import { getAuctionById } from "@/lib/api/auctions.api";
 import type { AuctionBidDto } from "@/types/api/auction.types";
+
+interface BidDisplay {
+  id: string;
+  username: string;
+  amount: number;
+  time: string;
+  isWinning: boolean;
+}
 
 interface AuctionRealtimeState {
   currentBid: number;
   bidCount: number;
   status: string;
-  bids: Array<{
-    id: string;
-    username: string;
-    amount: number;
-    time: string;
-    isWinning: boolean;
-  }>;
+  bids: BidDisplay[];
   highestBidder: string | undefined;
   secondsRemaining: number;
   isEnded: boolean;
   winner: string | undefined;
+  wsConnected: boolean;
 }
+
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ||
+  "http://localhost:3001";
 
 const formatTimeAgo = (dateString: string) => {
   if (!dateString) return "Unknown";
@@ -47,13 +55,15 @@ export function useAuctionRealtime(
     secondsRemaining: 0,
     isEnded: false,
     winner: undefined,
+    wsConnected: false,
   });
 
   const endTimeRef = useRef(initialEndTime);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Countdown timer — ticks every second locally
+  // ── Countdown timer ──────────────────────────────────────────────────────────
   const startCountdown = useCallback((endTimeStr: string) => {
     if (countdownRef.current) clearInterval(countdownRef.current);
 
@@ -70,7 +80,7 @@ export function useAuctionRealtime(
     }, 1000);
   }, []);
 
-  // Fetch latest data from backend
+  // ── Fetch latest data from backend ───────────────────────────────────────────
   const fetchLatest = useCallback(async () => {
     if (!auctionId || !isRealAuction) return;
 
@@ -79,7 +89,7 @@ export function useAuctionRealtime(
       if (!result.success || !result.data) return;
 
       const d = result.data;
-      const newBids = Array.isArray(d.bids)
+      const newBids: BidDisplay[] = Array.isArray(d.bids)
         ? d.bids.map((bid: AuctionBidDto, index: number) => ({
             id: bid.id,
             username: bid.bidder?.username || "Anonymous",
@@ -107,7 +117,6 @@ export function useAuctionRealtime(
         winner: isEnded && newBids.length > 0 ? newBids[0].username : undefined,
       }));
 
-      // Restart countdown if endTime changed
       if (endTimeStr && !isEnded) {
         startCountdown(endTimeStr);
       }
@@ -116,49 +125,105 @@ export function useAuctionRealtime(
     }
   }, [auctionId, isRealAuction, startCountdown]);
 
-  // Start polling — fast when active, slow when ended
+  // ── WebSocket connection ─────────────────────────────────────────────────────
   useEffect(() => {
     if (!auctionId || !isRealAuction) return;
 
-    // Initial fetch
+    // Initial data fetch
     fetchLatest();
 
     // Start countdown with initial endTime
     if (initialEndTime) {
-      startCountdown(initialEndTime);
       const remaining = Math.max(
         0,
         Math.floor((new Date(initialEndTime).getTime() - Date.now()) / 1000),
       );
       setState((prev) => ({ ...prev, secondsRemaining: remaining }));
+      startCountdown(initialEndTime);
     }
 
-    // Poll every 3s when active, every 30s when ended
-    const scheduleNext = () => {
-      intervalRef.current = setTimeout(
-        async () => {
-          await fetchLatest();
-          const isEnded = ["ended", "sold", "cancelled"].includes(state.status);
-          scheduleNext();
-          // If ended, slow down polling significantly
-          if (isEnded && intervalRef.current) {
-            clearTimeout(intervalRef.current);
-            intervalRef.current = setTimeout(fetchLatest, 30000);
-          }
-        },
-        state.isEnded ? 30000 : 3000,
-      );
-    };
+    // Connect WebSocket
+    const socket = io(BACKEND_URL, {
+      transports: ["websocket", "polling"],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 10,
+    });
 
-    scheduleNext();
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("[WS] Connected, joining auction:", auctionId);
+      setState((prev) => ({ ...prev, wsConnected: true }));
+      socket.emit("join-auction", auctionId);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("[WS] Disconnected");
+      setState((prev) => ({ ...prev, wsConnected: false }));
+    });
+
+    socket.on(
+      "bid:placed",
+      (payload: {
+        bidId: string;
+        amount: number;
+        bidderUsername: string;
+        bidderId: string;
+        bidCount: number;
+        endTime: string;
+        createdAt: string;
+      }) => {
+        console.log("[WS] bid:placed", payload);
+
+        const newBid: BidDisplay = {
+          id: payload.bidId,
+          username: payload.bidderUsername,
+          amount: payload.amount,
+          time: "Just now",
+          isWinning: true,
+        };
+
+        setState((prev) => ({
+          ...prev,
+          currentBid: payload.amount,
+          bidCount: payload.bidCount,
+          bids: [
+            newBid,
+            ...prev.bids.map((b) => ({ ...b, isWinning: false })),
+          ],
+          highestBidder: payload.bidderUsername,
+        }));
+
+        // Update countdown if endTime was extended (anti-snipe)
+        if (payload.endTime && payload.endTime !== endTimeRef.current) {
+          endTimeRef.current = payload.endTime;
+          startCountdown(payload.endTime);
+        }
+      },
+    );
+
+    // Slow fallback poll (30s) — catches missed WS events
+    const schedulePoll = () => {
+      pollRef.current = setTimeout(async () => {
+        await fetchLatest();
+        schedulePoll();
+      }, 30000);
+    };
+    schedulePoll();
 
     return () => {
-      if (intervalRef.current) clearTimeout(intervalRef.current);
+      socket.emit("leave-auction", auctionId);
+      socket.disconnect();
+      socketRef.current = null;
       if (countdownRef.current) clearInterval(countdownRef.current);
+      if (pollRef.current) clearTimeout(pollRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auctionId, isRealAuction]);
 
-  // Force refresh — call this after placing a bid
+  // Force refresh — call this after placing a bid (ensures our own bid appears immediately)
   const refresh = useCallback(() => {
     fetchLatest();
   }, [fetchLatest]);

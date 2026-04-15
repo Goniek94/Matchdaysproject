@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
@@ -22,20 +23,77 @@ import {
   MessageCircle,
   Trophy,
   Bell,
+  Search,
+  AlertTriangle,
 } from "lucide-react";
 import { useNotifications } from "@/lib/context/NotificationContext";
+import { getAuctions } from "@/lib/api/auctions.api";
+import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 
 export default function Navbar() {
   const { itemCount } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const { count: watchlistCount } = useWatchlist();
   const { unreadCount } = useNotifications();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // ── Search state ──
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (!q.trim()) { setSuggestions([]); return; }
+    setSearchLoading(true);
+    try {
+      const res = await getAuctions({ q: q.trim(), limit: 5 });
+      if (res.success && res.data) {
+        setSuggestions(adaptAuctionsForDisplay(res.data.auctions ?? []).slice(0, 5));
+      }
+    } catch { setSuggestions([]); }
+    finally { setSearchLoading(false); }
+  }, []);
+
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(val), 300);
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSuggestions([]);
+  };
+
+  const openSearch = () => {
+    setSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+  };
+
+  // Close search on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const handleLoginSuccess = () => {
     setIsLoginModalOpen(false);
@@ -114,6 +172,59 @@ export default function Navbar() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          {/* ── Search bar (desktop) ── */}
+          <div ref={searchRef} className="hidden lg:block relative">
+            {searchOpen ? (
+              <form onSubmit={handleSearchSubmit} className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={e => handleSearchChange(e.target.value)}
+                  placeholder="Search listings…"
+                  className="w-72 pl-9 pr-9 py-2 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 placeholder:text-gray-300"
+                />
+                <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery(""); setSuggestions([]); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
+                  <X size={14}/>
+                </button>
+
+                {/* Suggestions dropdown */}
+                {(suggestions.length > 0 || searchLoading) && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-50">
+                    {searchLoading && (
+                      <div className="px-4 py-3 text-sm text-gray-400">Searching…</div>
+                    )}
+                    {!searchLoading && suggestions.map(s => (
+                      <Link key={s.id} href={`/auction/${s.id}`}
+                        onClick={() => { setSearchOpen(false); setSearchQuery(""); setSuggestions([]); }}
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 relative">
+                          {s.image && <img src={s.image} alt="" className="w-full h-full object-cover" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{s.title}</p>
+                          <p className="text-xs text-gray-400">€{Number(s.price ?? 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}</p>
+                        </div>
+                      </Link>
+                    ))}
+                    {!searchLoading && searchQuery.trim() && (
+                      <button type="submit"
+                        className="w-full text-left px-4 py-2.5 text-sm text-black font-semibold hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100">
+                        <Search size={14}/> See all results for "{searchQuery}"
+                      </button>
+                    )}
+                  </div>
+                )}
+              </form>
+            ) : (
+              <button onClick={openSearch}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-black hover:bg-gray-100 rounded-xl transition-colors font-medium">
+                <Search size={18}/> <span className="hidden xl:inline">Search</span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 md:gap-4 justify-end z-50">
@@ -261,6 +372,11 @@ export default function Navbar() {
                           href="/history"
                           icon={<History size={20} />}
                           text="Transaction History"
+                        />
+                        <DropdownItem
+                          href="/disputes"
+                          icon={<AlertTriangle size={20} />}
+                          text="Disputes & Reports"
                         />
                         <DropdownItem
                           href="/settings"

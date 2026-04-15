@@ -212,7 +212,7 @@ export default function MyCollectionPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-6 pt-8 pb-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-20">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -229,7 +229,7 @@ export default function MyCollectionPage() {
               </Link>
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <Link
               href={`/collection/${user?.username}`}
               className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:border-gray-400 transition-colors"
@@ -247,7 +247,7 @@ export default function MyCollectionPage() {
 
         {/* Filter tabs */}
         {items.length > 0 && (
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
             {(["all", "public", "private"] as const).map((f) => (
               <button
                 key={f}

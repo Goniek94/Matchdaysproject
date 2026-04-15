@@ -10,19 +10,10 @@ export default function CartPage() {
   const { items, removeFromCart, clearCart, totalPrice, itemCount } = useCart();
   const router = useRouter();
 
-  const shippingCost = items.length > 0 ? 25 : 0;
-  const finalTotal = totalPrice + shippingCost;
+  const finalTotal = totalPrice;
 
   const handleCheckout = () => {
-    if (items.length === 1) {
-      // If only one item, go directly to checkout with that item
-      router.push(`/checkout?id=${items[0].id}`);
-    } else {
-      // For multiple items, you could create a multi-item checkout
-      alert(
-        "Multi-item checkout coming soon! For now, please checkout items individually.",
-      );
-    }
+    router.push("/checkout");
   };
 
   if (items.length === 0) {
@@ -33,13 +24,13 @@ export default function CartPage() {
             <ShoppingBag size={80} className="mx-auto text-gray-300 mb-6" />
             <h1 className="text-4xl font-light mb-4">Your cart is empty</h1>
             <p className="text-gray-600 mb-8">
-              Start adding items to your cart to see them here
+              Add items to your cart to see them here
             </p>
             <Link
               href="/auctions"
               className="inline-flex items-center gap-2 px-8 py-4 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-all"
             >
-              Browse Auctions
+              Browse auctions
               <ArrowRight size={20} />
             </Link>
           </div>
@@ -55,9 +46,9 @@ export default function CartPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-4xl font-light mb-2">Shopping Cart</h1>
+              <h1 className="text-4xl font-light mb-2">Cart</h1>
               <p className="text-gray-600">
-                {itemCount} {itemCount === 1 ? "item" : "items"} in your cart
+                {itemCount} {itemCount === 1 ? "item" : "items"} in cart
               </p>
             </div>
             <button
@@ -65,7 +56,7 @@ export default function CartPage() {
               className="text-red-600 hover:text-red-700 font-medium flex items-center gap-2"
             >
               <Trash2 size={18} />
-              Clear Cart
+              Clear cart
             </button>
           </div>
 
@@ -127,7 +118,7 @@ export default function CartPage() {
                     <div className="mt-4 pt-4 border-t flex justify-between items-center">
                       <span className="text-sm text-gray-600">Price</span>
                       <span className="text-2xl font-bold">
-                        {item.price.toLocaleString()} {item.currency}
+                        €{item.price.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </span>
                     </div>
                   </div>
@@ -138,29 +129,26 @@ export default function CartPage() {
             {/* Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-sm p-6 sticky top-32">
-                <h2 className="text-xl font-semibold mb-6">Order Summary</h2>
+                <h2 className="text-xl font-semibold mb-6">Summary</h2>
 
                 {/* Price Breakdown */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">
-                      Subtotal ({itemCount} {itemCount === 1 ? "item" : "items"}
-                      )
+                      Items ({itemCount} {itemCount === 1 ? "item" : "items"})
                     </span>
                     <span className="font-medium">
-                      {totalPrice.toLocaleString()} zł
+                      €{totalPrice.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Shipping</span>
-                    <span className="font-medium">
-                      {shippingCost.toLocaleString()} zł
-                    </span>
+                    <span className="font-medium text-gray-400 italic">calculated at checkout</span>
                   </div>
                   <div className="border-t pt-3 flex justify-between">
-                    <span className="font-semibold text-lg">Total</span>
+                    <span className="font-semibold text-lg">Subtotal</span>
                     <span className="font-bold text-2xl">
-                      {finalTotal.toLocaleString()} zł
+                      €{finalTotal.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </div>
@@ -170,7 +158,7 @@ export default function CartPage() {
                   onClick={handleCheckout}
                   className="w-full py-4 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-all hover:shadow-lg flex items-center justify-center gap-2 mb-4"
                 >
-                  Proceed to Checkout
+                  Proceed to checkout
                   <ArrowRight size={20} />
                 </button>
 
@@ -178,14 +166,14 @@ export default function CartPage() {
                   href="/auctions"
                   className="block text-center text-sm text-gray-600 hover:text-black transition-colors"
                 >
-                  Continue Shopping
+                  Continue shopping
                 </Link>
 
                 {/* Trust Badges */}
                 <div className="mt-6 pt-6 border-t space-y-3">
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <Shield size={16} className="text-emerald-600" />
-                    <span>Buyer Protection Included</span>
+                    <span>Buyer protection</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <svg
@@ -201,7 +189,7 @@ export default function CartPage() {
                         d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    <span>Secure Payment</span>
+                    <span>Secure payment</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <svg
@@ -217,7 +205,7 @@ export default function CartPage() {
                         d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                       />
                     </svg>
-                    <span>14-Day Returns</span>
+                    <span>Returns within 14 days</span>
                   </div>
                 </div>
               </div>

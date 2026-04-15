@@ -144,7 +144,8 @@ export interface AuctionFilters {
   team?: string;
   status?: AuctionStatus | "all";
   listingType?: AuctionListingType;
-  search?: string;
+  q?: string;           // server-side full-text search (title, description, team, league)
+  search?: string;      // client-side local filter (used in /auctions page)
   sortBy?: "endDate" | "price" | "bids" | "createdAt";
   order?: "asc" | "desc";
   minPrice?: number;

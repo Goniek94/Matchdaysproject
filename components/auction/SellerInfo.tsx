@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Seller } from "@/types";
 import { MessageCircle, Flag, Send, X } from "lucide-react";
 import * as messagesApi from "@/lib/api/messages";
@@ -60,27 +61,27 @@ export default function SellerInfo({ seller, auctionId }: SellerInfoProps) {
   };
 
   const handleReport = () => {
-    // TODO: Implement report functionality
-    console.log("Report seller:", seller.name);
-    alert(`Report feature coming soon! Seller: ${seller.name}`);
+    const params = new URLSearchParams({ type: "report_user" });
+    if (auctionId) params.set("auctionId", auctionId);
+    router.push(`/disputes/new?${params.toString()}`);
   };
 
   return (
     <div className="space-y-4">
       {/* Seller Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-gray-800 to-gray-600 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black text-white uppercase">
+      <Link href={`/profile/${seller.name}`} className="flex items-center gap-4 group">
+        <div className="w-12 h-12 bg-gradient-to-br from-gray-800 to-gray-600 rounded-full flex-shrink-0 flex items-center justify-center text-lg font-black text-white uppercase group-hover:opacity-80 transition-opacity">
           {seller.name?.charAt(0) || "?"}
         </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-bold text-gray-900 truncate">
+          <p className="text-sm font-bold text-gray-900 truncate group-hover:underline">
             {seller.name}
-          </h3>
+          </p>
           <div className="text-xs text-gray-500">
             ★★★★★ ({seller.reviews} reviews)
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 pt-3 border-t border-gray-100">

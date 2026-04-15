@@ -113,7 +113,7 @@ export default function AddCollectionItemPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto px-4 py-8 pb-20 sm:pb-8">
         <Link
           href="/collection/mine"
           className="inline-flex items-center gap-2 text-gray-500 hover:text-black mb-6 transition-colors text-sm"
@@ -158,7 +158,7 @@ export default function AddCollectionItemPage() {
                 className={inputClass + " resize-none"}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Team / Club</label>
                 <input
@@ -180,7 +180,7 @@ export default function AddCollectionItemPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Manufacturer</label>
                 <input
@@ -202,7 +202,7 @@ export default function AddCollectionItemPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Condition</label>
                 <select
@@ -230,7 +230,7 @@ export default function AddCollectionItemPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Acquired from</label>
                 <input
