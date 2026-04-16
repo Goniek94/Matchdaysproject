@@ -188,42 +188,13 @@ export default function Navbar() {
                         <p className="text-sm text-gray-500">{user?.email}</p>
                       </div>
                       <div className="py-2">
-                        <DropdownItem
-                          href="/dashboard"
-                          icon={<LayoutDashboard size={20} />}
-                          text="Dashboard"
-                        />
-                        <DropdownItem
-                          href="/my-listings"
-                          icon={<List size={20} />}
-                          text="Your Listings"
-                        />
-                        <DropdownItem
-                          href="/notifications"
-                          icon={<Bell size={20} />}
-                          text="Notifications"
-                          badge={unreadCount > 0 ? unreadCount : undefined}
-                        />
-                        <DropdownItem
-                          href="/messages"
-                          icon={<MessageCircle size={20} />}
-                          text="Messages"
-                        />
-                        <DropdownItem
-                          href="/history"
-                          icon={<History size={20} />}
-                          text="Transaction History"
-                        />
-                        <DropdownItem
-                          href="/disputes"
-                          icon={<AlertTriangle size={20} />}
-                          text="Disputes & Reports"
-                        />
-                        <DropdownItem
-                          href="/contact"
-                          icon={<Mail size={20} />}
-                          text="Contact"
-                        />
+                        <DropdownItem href="/dashboard" icon={<LayoutDashboard size={20} />} text="Dashboard" onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/my-listings" icon={<List size={20} />} text="Your Listings" onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/notifications" icon={<Bell size={20} />} text="Notifications" badge={unreadCount > 0 ? unreadCount : undefined} onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/messages" icon={<MessageCircle size={20} />} text="Messages" onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/history" icon={<History size={20} />} text="Transaction History" onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/disputes" icon={<AlertTriangle size={20} />} text="Disputes & Reports" onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/contact" icon={<Mail size={20} />} text="Contact" onClick={() => setIsProfileOpen(false)} />
                       </div>
                       <div className="border-t border-gray-100 mt-2 py-2">
                         <button
@@ -455,16 +426,19 @@ function DropdownItem({
   text,
   badge,
   className = "",
+  onClick,
 }: {
   href: string;
   icon: React.ReactNode;
   text: string;
   badge?: number;
   className?: string;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={`flex items-center gap-3 px-5 py-3 text-base text-gray-700 hover:bg-gray-50 hover:text-black transition-colors ${className}`}
     >
       <span className="text-gray-400 group-hover:text-black">{icon}</span>

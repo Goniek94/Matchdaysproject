@@ -79,6 +79,12 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
   const ending = isLastCall(auction.endTime);
   const isBuyNow = auction.type === "buy_now";
 
+  // Live likes: optimistically update when user toggles watchlist
+  const baseLikes = auction.likes ?? 0;
+  const wasInitiallyFaved = useRef(isFav);
+  const [likeDelta, setLikeDelta] = useState(0);
+  const displayLikes = Math.max(0, baseLikes + likeDelta);
+
   useEffect(() => {
     const next = auction.price || (auction as any).currentBid || 0;
     if (next !== prevPrice.current) {
@@ -101,7 +107,14 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
       image: auction.image,
       listingType: isBuyNow ? "buy_now" : "auction",
     });
-    setFeedbackMsg(added ? "Added!" : "Removed");
+    // Optimistically update visible count
+    // Don't count the initial state (user was already faved on load)
+    if (added) {
+      setLikeDelta((d) => d + (wasInitiallyFaved.current ? 0 : 1));
+    } else {
+      setLikeDelta((d) => d - (wasInitiallyFaved.current ? 0 : 1));
+    }
+    setFeedbackMsg(added ? "❤️ Added!" : "Removed");
     setTimeout(() => setFeedbackMsg(null), 1500);
   };
 
@@ -223,22 +236,37 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
                 </div>
               </div>
 
-              {/* Bids / Likes */}
-              <div className={`flex flex-col items-center rounded-xl px-3 py-2 min-w-[48px] border ${
-                ending ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"
-              }`}>
-                {isBuyNow ? (
-                  <>
-                    <Heart size={13} className="text-rose-400 fill-rose-400 mb-1" />
-                    <span className="text-sm font-black text-gray-800 leading-none">{auction.likes ?? 0}</span>
-                    <span className="text-[9px] text-gray-400 mt-0.5">likes</span>
-                  </>
-                ) : (
-                  <>
-                    <Gavel size={13} className={`mb-1 ${ending ? "text-red-400" : "text-gray-500"}`} />
+              {/* Bids + Likes */}
+              <div className="flex items-center gap-2">
+                {/* Likes — always visible */}
+                <div
+                  className={`flex flex-col items-center rounded-xl px-2.5 py-1.5 min-w-[44px] border transition-all ${
+                    isFav
+                      ? "bg-rose-50 border-rose-200"
+                      : ending
+                      ? "bg-red-50 border-red-100"
+                      : "bg-gray-50 border-gray-100"
+                  }`}
+                >
+                  <Heart
+                    size={12}
+                    className={`mb-0.5 transition-colors ${isFav ? "text-rose-500 fill-rose-500" : "text-rose-300 fill-rose-300"}`}
+                  />
+                  <span className={`text-sm font-black leading-none transition-all ${isFav ? "text-rose-600" : "text-gray-800"}`}>
+                    {displayLikes}
+                  </span>
+                  <span className="text-[9px] text-gray-400 mt-0.5">likes</span>
+                </div>
+
+                {/* Bids — only for auctions */}
+                {!isBuyNow && (
+                  <div className={`flex flex-col items-center rounded-xl px-2.5 py-1.5 min-w-[44px] border ${
+                    ending ? "bg-red-50 border-red-100" : "bg-gray-50 border-gray-100"
+                  }`}>
+                    <Gavel size={12} className={`mb-0.5 ${ending ? "text-red-400" : "text-gray-500"}`} />
                     <span className="text-sm font-black text-gray-800 leading-none">{auction.bids}</span>
                     <span className="text-[9px] text-gray-400 mt-0.5">bids</span>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -295,17 +323,29 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg shrink-0">
-                <Image
-                  src={flagUrl}
-                  width={14}
-                  height={10}
-                  alt={auction.country?.name || ""}
-                  className="rounded-sm"
-                />
-                <span className="text-[10px] font-semibold text-gray-500">
-                  {auction.country?.code?.toUpperCase() || "PL"}
-                </span>
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Views */}
+                {(auction.views ?? 0) > 0 && (
+                  <div className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold">
+                    <Eye size={11} className="text-gray-300" />
+                    {auction.views! >= 1000
+                      ? `${(auction.views! / 1000).toFixed(1)}k`
+                      : auction.views}
+                  </div>
+                )}
+                {/* Country flag */}
+                <div className="flex items-center gap-1 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg">
+                  <Image
+                    src={flagUrl}
+                    width={14}
+                    height={10}
+                    alt={auction.country?.name || ""}
+                    className="rounded-sm"
+                  />
+                  <span className="text-[10px] font-semibold text-gray-500">
+                    {auction.country?.code?.toUpperCase() || "PL"}
+                  </span>
+                </div>
               </div>
             </div>
 

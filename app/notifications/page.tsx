@@ -47,6 +47,11 @@ const TYPE_CONFIG: Record<
     color: "text-blue-500 bg-blue-50",
     label: "New Bid",
   },
+  bid_outbid: {
+    icon: <Gavel size={18} />,
+    color: "text-red-500 bg-red-50",
+    label: "Outbid",
+  },
   listing_published: {
     icon: <Tag size={18} />,
     color: "text-green-500 bg-green-50",
@@ -233,87 +238,104 @@ export default function NotificationsPage() {
             {notifications.map((notification) => {
               const config = getTypeConfig(notification.type);
               const time = formatTime(notification.createdAt);
-              return (
+              const hasLink = !!notification.link;
+
+              const cardContent = (
+                <div className="flex items-start gap-5 p-5">
+                  {/* Icon */}
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${config.color}`}
+                  >
+                    {config.icon}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 py-0.5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className={`text-base font-semibold leading-snug ${
+                            notification.read ? "text-gray-700" : "text-gray-900"
+                          }`}
+                        >
+                          {notification.title}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                          {notification.message}
+                        </p>
+                        {hasLink && (
+                          <p className="text-xs text-blue-500 mt-1.5 font-medium">
+                            Click to view →
+                          </p>
+                        )}
+                      </div>
+                      {/* Time */}
+                      <div className="text-right flex-shrink-0">
+                        {time.relative && (
+                          <p className="text-sm font-medium text-gray-500 whitespace-nowrap">
+                            {time.relative}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-400 whitespace-nowrap mt-0.5">
+                          {time.full}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions — stop propagation so delete/read don't also navigate */}
+                  <div
+                    className="flex items-center gap-1.5 flex-shrink-0 pt-0.5"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {!notification.read && (
+                      <button
+                        onClick={() => handleMarkAsRead(notification.id)}
+                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
+                        title="Mark as read"
+                      >
+                        <Check size={18} />
+                      </button>
+                    )}
+                    {hasLink && (
+                      <ChevronRight size={18} className="text-gray-300" />
+                    )}
+                    <button
+                      onClick={() => handleDelete(notification.id)}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              );
+
+              return hasLink ? (
+                <Link
+                  key={notification.id}
+                  href={notification.link!}
+                  onClick={() =>
+                    !notification.read && handleMarkAsRead(notification.id)
+                  }
+                  className={`block rounded-2xl border transition-all ${
+                    notification.read
+                      ? "bg-white border-gray-100 shadow-sm hover:shadow-md hover:border-gray-300"
+                      : "bg-blue-50/60 border-l-4 border-l-black border-blue-100 shadow-md hover:shadow-lg"
+                  } cursor-pointer`}
+                >
+                  {cardContent}
+                </Link>
+              ) : (
                 <div
                   key={notification.id}
                   className={`rounded-2xl border transition-all ${
                     notification.read
-                      ? "bg-white border-gray-100 shadow-sm hover:shadow-md"
-                      : "bg-blue-50/60 border-l-4 border-l-black border-blue-100 shadow-md hover:shadow-lg"
+                      ? "bg-white border-gray-100 shadow-sm"
+                      : "bg-blue-50/60 border-l-4 border-l-black border-blue-100 shadow-md"
                   }`}
                 >
-                  <div className="flex items-start gap-5 p-5">
-                    {/* Icon */}
-                    <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${config.color}`}
-                    >
-                      {config.icon}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 py-0.5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className={`text-base font-semibold leading-snug ${
-                              notification.read
-                                ? "text-gray-700"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {notification.title}
-                          </p>
-                          <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                            {notification.message}
-                          </p>
-                        </div>
-                        {/* Time */}
-                        <div className="text-right flex-shrink-0">
-                          {time.relative && (
-                            <p className="text-sm font-medium text-gray-500 whitespace-nowrap">
-                              {time.relative}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-400 whitespace-nowrap mt-0.5">
-                            {time.full}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
-                      {!notification.read && (
-                        <button
-                          onClick={() => handleMarkAsRead(notification.id)}
-                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors"
-                          title="Mark as read"
-                        >
-                          <Check size={18} />
-                        </button>
-                      )}
-                      {notification.link && (
-                        <Link
-                          href={notification.link}
-                          onClick={() =>
-                            !notification.read &&
-                            handleMarkAsRead(notification.id)
-                          }
-                          className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-colors"
-                          title="View"
-                        >
-                          <ChevronRight size={18} />
-                        </Link>
-                      )}
-                      <button
-                        onClick={() => handleDelete(notification.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
+                  {cardContent}
                 </div>
               );
             })}

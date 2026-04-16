@@ -19,6 +19,8 @@ import {
   ChevronRight,
   MessageCircle,
   Layers,
+  Crown,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import type { DashboardTab } from "./DashboardSidebar";
@@ -97,6 +99,22 @@ function getTierProgress(points: number) {
   if (tier.max === Infinity) return 100;
   const range = tier.max - tier.min + 1;
   return Math.min(100, Math.round(((points - tier.min) / range) * 100));
+}
+
+// ─── Subscription helpers ─────────────────────────────────────────────────────
+
+const SUB_CONFIG: Record<string, { label: string; icon: React.ReactNode; color: string; bg: string; border: string; glow: string }> = {
+  free:    { label: "Free",    icon: <Star size={11} />,  color: "text-gray-300",   bg: "rgba(255,255,255,0.06)", border: "rgba(255,255,255,0.1)", glow: "transparent" },
+  basic:   { label: "Basic",   icon: <Star size={11} />,  color: "text-blue-300",   bg: "rgba(96,165,250,0.12)",  border: "rgba(96,165,250,0.3)",  glow: "rgba(96,165,250,0.15)" },
+  premium: { label: "Premium", icon: <Crown size={11} />, color: "text-amber-300",  bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.35)", glow: "rgba(251,191,36,0.15)" },
+  vip:     { label: "VIP",     icon: <Crown size={11} />, color: "text-purple-300", bg: "rgba(167,139,250,0.15)",border: "rgba(167,139,250,0.4)", glow: "rgba(167,139,250,0.2)" },
+};
+
+function getDaysLeft(expiry: string | null | undefined): number | null {
+  if (!expiry) return null;
+  const diff = new Date(expiry).getTime() - Date.now();
+  if (diff <= 0) return 0;
+  return Math.ceil(diff / 86_400_000);
 }
 
 function formatCountdown(endTime: string): { label: string; urgent: boolean } {
@@ -273,6 +291,80 @@ export function DashboardOverview({
                     </span>
                   </div>
                 </div>
+
+                {/* Subscription banner */}
+                {(() => {
+                  const tier = (user?.subscriptionTier ?? "free").toLowerCase();
+                  const expiry = user?.subscriptionExpiry ?? null;
+                  const daysLeft = getDaysLeft(expiry);
+                  const isPaid = tier !== "free";
+                  const isExpiringSoon = daysLeft !== null && daysLeft <= 7;
+
+                  if (isPaid) {
+                    // Premium / VIP — show plan + days left
+                    const cfg = SUB_CONFIG[tier] ?? SUB_CONFIG.premium;
+                    return (
+                      <div
+                        className="flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 mb-4"
+                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, boxShadow: `0 0 16px ${cfg.glow}` }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span style={{ color: cfg.color }}>{cfg.icon}</span>
+                          <span className="text-sm font-black" style={{ color: cfg.color }}>
+                            {cfg.label} Plan
+                          </span>
+                        </div>
+                        {daysLeft !== null && (
+                          <span
+                            className="text-xs font-bold px-2.5 py-1 rounded-lg"
+                            style={{
+                              background: isExpiringSoon ? "rgba(252,165,165,0.15)" : "rgba(255,255,255,0.06)",
+                              color: isExpiringSoon ? "#FCA5A5" : "rgba(255,255,255,0.4)",
+                              border: `1px solid ${isExpiringSoon ? "rgba(252,165,165,0.3)" : "rgba(255,255,255,0.08)"}`,
+                            }}
+                          >
+                            {daysLeft === 0 ? "⚠ Expired" : isExpiringSoon ? `⚠ ${daysLeft} days left` : `${daysLeft} days remaining`}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Free plan — prominent upgrade banner
+                  return (
+                    <Link
+                      href="/pricing"
+                      className="group flex items-center justify-between gap-3 rounded-xl px-4 py-3 mb-4 transition-all hover:scale-[1.01] active:scale-[0.99]"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(251,191,36,0.12) 0%, rgba(245,158,11,0.06) 100%)",
+                        border: "1px solid rgba(251,191,36,0.3)",
+                        boxShadow: "0 0 20px rgba(251,191,36,0.08)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                          style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.3)" }}
+                        >
+                          <Crown size={13} className="text-amber-400" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black text-white leading-none">Free Plan</p>
+                          <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                            Upgrade to unlock premium features
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black transition-all group-hover:scale-105"
+                        style={{ background: "rgba(251,191,36,0.2)", color: "#FBBF24", border: "1px solid rgba(251,191,36,0.4)" }}
+                      >
+                        <Zap size={11} className="fill-current" />
+                        Upgrade
+                      </div>
+                    </Link>
+                  );
+                })()}
 
                 {/* CTA */}
                 <Link

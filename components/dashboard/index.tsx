@@ -3,6 +3,7 @@ export { DashboardSidebar } from "./DashboardSidebar";
 export type { DashboardTab } from "./DashboardSidebar";
 export { DashboardOverview } from "./DashboardOverview";
 export { DashboardListings } from "./DashboardListings";
+export { DashboardBids } from "./DashboardBids";
 export { DashboardMessages } from "./DashboardMessages";
 export { DashboardAiTools } from "./DashboardAiTools";
 export { DashboardSettings } from "./DashboardSettings";

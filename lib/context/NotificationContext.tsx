@@ -45,6 +45,7 @@ const TOAST_ICONS: Record<string, string> = {
   auction_won: "🏆",
   auction_ended: "🔨",
   bid_placed: "🔨",
+  bid_outbid: "⚡",
   listing_published: "🏷️",
   listing_favorited: "❤️",
   payment_completed: "💳",

@@ -12,6 +12,7 @@ import {
   Trophy,
   AlertTriangle,
   Star,
+  Gavel,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +21,7 @@ import {
 export type DashboardTab =
   | "overview"
   | "listings"
+  | "bids"
   | "messages"
   | "aitools"
   | "collection"
@@ -49,6 +51,7 @@ interface DashboardSidebarProps {
 const NAV_ITEMS: NavItem[] = [
   { id: "overview",    icon: LayoutDashboard, label: "Overview" },
   { id: "listings",   icon: List,            label: "My Listings" },
+  { id: "bids",       icon: Gavel,           label: "My Bids" },
   { id: "messages",   icon: MessageCircle,   label: "Messages" },
   { id: "aitools",    icon: Sparkles,        label: "AI Tools" },
   { id: "collection", icon: Trophy,          label: "My Collection", separator: true },
