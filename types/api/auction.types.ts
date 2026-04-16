@@ -208,6 +208,9 @@ export interface CreateAuctionDto {
   verified?: boolean;
   rare?: boolean;
   featured?: boolean;
+
+  // Flow control (tells backend whether to start as PENDING_APPROVAL or active)
+  completionMode?: string;
 }
 
 export interface UpdateAuctionDto {

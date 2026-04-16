@@ -9,7 +9,7 @@ import {
   MapPin, Package, Zap, Building2, Clock, Edit2, CreditCard,
   Landmark, Wallet, ChevronDown,
 } from "lucide-react";
-import { useCart } from "@/lib/CartContext";
+import { useCart, type CartItem } from "@/lib/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
 import { buyNow } from "@/lib/api/auctions.api";
 import { getMyAddress } from "@/lib/api/users";
@@ -52,7 +52,14 @@ function getDeliveryOptions(sellerCountry: string, buyerCountry: string): Delive
 
 // ─── Address card ─────────────────────────────────────────────────────────────
 
-function AddressCard({ addr, name, email }: { addr: any; name: string; email: string }) {
+interface SavedAddress {
+  street: string;
+  postalCode: string;
+  city: string;
+  country: string;
+}
+
+function AddressCard({ addr, name, email }: { addr: SavedAddress | null; name: string; email: string }) {
   if (!addr) return (
     <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-800">
       <AlertCircle size={16} className="flex-shrink-0" />
@@ -87,7 +94,7 @@ function SellerDeliverySection({
   sellerName, items, options, selectedId, onSelect, buyerCountry, sellerCountry,
 }: {
   sellerName: string;
-  items: any[];
+  items: CartItem[];
   options: DeliveryOption[];
   selectedId: string;
   onSelect: (id: string) => void;
@@ -258,7 +265,7 @@ function CheckoutContent() {
   const { items, clearCart } = useCart();
   const { isAuthenticated, user } = useAuth();
 
-  const [address, setAddress]         = useState<any>(null);
+  const [address, setAddress]         = useState<SavedAddress | null>(null);
   const [loadingAddr, setLoadingAddr] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [cardNumber, setCardNumber]   = useState("");
@@ -275,7 +282,7 @@ function CheckoutContent() {
     const groups: Record<string, { sellerName: string; sellerCountry: string; items: typeof items }> = {};
     for (const item of items) {
       const key = item.seller.name;
-      if (!groups[key]) groups[key] = { sellerName: item.seller.name, sellerCountry: (item as any).sellerCountry ?? "Poland", items: [] };
+      if (!groups[key]) groups[key] = { sellerName: item.seller.name, sellerCountry: item.sellerCountry ?? "Poland", items: [] };
       groups[key].items.push(item);
     }
     return Object.values(groups);

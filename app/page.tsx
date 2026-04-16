@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import Hero from "@/components/home/Hero";
 import PricingSection from "@/components/home/PricingSection";
 import AuctionCard from "@/components/home/AuctionCard";
-import { mockAuctions } from "@/lib/mockData";
 import { getAuctions } from "@/lib/api/auctions.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
+import type { AuctionDisplayDto } from "@/lib/utils/auction-adapter";
+import type { AuctionDto } from "@/types/api/auction.types";
 import { useAuth } from "@/lib/context/AuthContext";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -69,7 +70,7 @@ function SkeletonCard() {
 
 // ─── Weighted random pick (stable per session, changes on refresh) ─────────────
 
-function pickWeighted(pool: any[], count: number): any[] {
+function pickWeighted<T>(pool: T[], count: number): T[] {
   if (pool.length <= count) return pool;
   // Shuffle using Math.random (changes on each page load/refresh)
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -81,32 +82,29 @@ function pickWeighted(pool: any[], count: number): any[] {
 export default function HomePage() {
   const { isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [hotAdapted, setHotAdapted] = useState<any[]>([]);
-  const [lastCall, setLastCall] = useState<any[]>([]);
-  const [forYou, setForYou] = useState<any[]>([]);
+  const [hotAdapted, setHotAdapted] = useState<AuctionDisplayDto[]>([]);
+  const [lastCall, setLastCall] = useState<AuctionDisplayDto[]>([]);
+  const [forYou, setForYou] = useState<AuctionDisplayDto[]>([]);
 
   useEffect(() => {
     async function fetchAuctions() {
       try {
         setIsLoading(true);
         const result = await getAuctions({ page: 1, limit: 24 });
-        const raw = result.success ? (result.data?.auctions ?? []) : [];
-        const data = raw.length > 0 ? raw : mockAuctions;
+        const data: AuctionDto[] = result.success ? (result.data?.auctions ?? []) : [];
 
         // 🔥 HOT OFFERS — top-9 by score, pick 3 randomly once on load
         const hotPool = [...data]
-          .sort((a: any, b: any) =>
+          .sort((a, b) =>
             ((b.rare ? 10 : 0) + (b.views ?? 0) * 0.5 + (b.bidCount ?? 0) * 2) -
             ((a.rare ? 10 : 0) + (a.views ?? 0) * 0.5 + (a.bidCount ?? 0) * 2)
           )
           .slice(0, 9);
         const hotPicked = pickWeighted(hotPool, 3);
-        setHotAdapted(adaptAuctionsForDisplay(hotPicked as any));
+        setHotAdapted(adaptAuctionsForDisplay(hotPicked));
 
         // ⏰ LAST CALL — auctions only (never buy_now), ending within 7h, sorted soonest first
-        const auctionsOnly = data.filter(
-          (a: any) => a.listingType !== "buy_now",
-        );
+        const auctionsOnly = data.filter((a) => a.listingType !== "buy_now");
         const in7h = Date.now() + 7 * 60 * 60 * 1000;
         const lastCallRaw = [...auctionsOnly]
           .filter((a) => new Date(a.endTime).getTime() <= in7h)
@@ -118,22 +116,22 @@ export default function HomePage() {
           : [...auctionsOnly]
               .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime())
               .slice(0, 6);
-        setLastCall(adaptAuctionsForDisplay(lastCallFinal as any));
+        setLastCall(adaptAuctionsForDisplay(lastCallFinal));
 
         // 💎 FOR YOU — rare + verified, exclude hot pool IDs
-        const hotIds = new Set(hotPool.map((a: any) => a.id));
+        const hotIds = new Set(hotPool.map((a) => a.id));
         const forYouRaw = [...data]
           .filter((a) => !hotIds.has(a.id))
-          .sort((a: any, b: any) =>
+          .sort((a, b) =>
             ((b.rare ? 8 : 0) + (b.verified ? 5 : 0) + (b.bidCount ?? 0) * 1.5) -
             ((a.rare ? 8 : 0) + (a.verified ? 5 : 0) + (a.bidCount ?? 0) * 1.5)
           )
           .slice(0, 4);
-        setForYou(adaptAuctionsForDisplay(forYouRaw as any));
+        setForYou(adaptAuctionsForDisplay(forYouRaw));
       } catch {
-        setHotAdapted(adaptAuctionsForDisplay(mockAuctions.slice(0, 3) as any));
-        setLastCall(adaptAuctionsForDisplay(mockAuctions.slice(0, 6) as any));
-        setForYou(adaptAuctionsForDisplay(mockAuctions.slice(2, 6) as any));
+        setHotAdapted([]);
+        setLastCall([]);
+        setForYou([]);
       } finally {
         setIsLoading(false);
       }

@@ -15,7 +15,6 @@ import InfoCards from "@/components/auction/InfoCards";
 import { getAuctionById } from "@/lib/api/auctions.api";
 import { placeBid } from "@/lib/api/bids.api";
 import type { AuctionDetailDto } from "@/types/api/auction.types";
-import { mockAuctions, mockBidHistory } from "@/lib/mockData";
 import { useAuctionRealtime } from "@/lib/hooks/useAuctionRealtime";
 import BidModal from "@/components/auction/BidModal";
 
@@ -89,14 +88,6 @@ const formatTimeAgo = (dateString: string): string => {
   if (diffMinutes < 60) return `${diffMinutes}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   return `${diffDays}d ago`;
-};
-
-const calculateDemoEndTime = (endTimeString: string | undefined): string => {
-  if (!endTimeString) return new Date(Date.now() + 86400000).toISOString();
-  if (endTimeString.includes("-") && endTimeString.includes(":"))
-    return endTimeString;
-  const days = parseInt(endTimeString) || 1;
-  return new Date(Date.now() + days * 86400000).toISOString();
 };
 
 /** Map backend AuctionDetailDto to the local display shape */
@@ -223,57 +214,6 @@ export default function AuctionDetailPage() {
           );
         }
 
-        setLoading(false);
-        return;
-      }
-
-      // Fallback to mock data for demo auctions
-      const foundMock = mockAuctions.find((a) => a.id === auctionId);
-      if (foundMock) {
-        setAuction({
-          id: foundMock.id,
-          title: foundMock.title || "",
-          description: "",
-          currentBid: foundMock.price,
-          bidCount: foundMock.bids,
-          listingType: foundMock.type as "auction" | "buy_now",
-          images:
-            foundMock.images || (foundMock.image ? [foundMock.image] : []),
-          status: "active",
-          endTime: calculateDemoEndTime(foundMock.endTime),
-          startTime: new Date().toISOString(),
-          verified: false,
-          rare: false,
-          featured: false,
-          buyNowPrice: null,
-          startingBid: foundMock.price,
-          bidIncrement: 5,
-          category: foundMock.category || "Other",
-          itemType: "shirt",
-          team: "N/A",
-          season: "N/A",
-          size: "N/A",
-          sizeEU: null,
-          sizeUK: null,
-          condition: "N/A",
-          manufacturer: null,
-          model: null,
-          productionYear: null,
-          countryOfProduction: null,
-          serialCode: null,
-          tagCondition: null,
-          hasAutograph: false,
-          autographDetails: null,
-          isVintage: false,
-          vintageYear: null,
-          playerName: null,
-          playerNumber: null,
-          shippingCost: 0,
-          shippingTime: "3-5 business days",
-          shippingFrom: "N/A",
-          seller: { name: "Demo Seller", rating: 5.0, reviews: 0 },
-        });
-        setBids(mockBidHistory);
         setLoading(false);
         return;
       }

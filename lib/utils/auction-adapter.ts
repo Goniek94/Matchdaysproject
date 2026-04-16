@@ -245,5 +245,5 @@ export const mapFormDataToCreateAuctionDto = (
 
     // Completion mode: tells backend whether to start as PENDING_APPROVAL (MANUAL) or active (AI)
     completionMode: data.completionMode ?? "MANUAL",
-  } as any;
+  };
 };

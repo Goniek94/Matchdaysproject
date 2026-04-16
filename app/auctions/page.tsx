@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import AuctionCard from "@/components/home/AuctionCard";
-import { mockAuctions } from "@/lib/mockData";
 import { getAuctions } from "@/lib/api/auctions.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import type { AuctionDisplayDto } from "@/lib/utils/auction-adapter";
@@ -61,12 +60,12 @@ export default function AuctionsPage(): JSX.Element {
         setAuctions(adapted);
         setTotalCount(result.data.total);
       } else {
-        setAuctions(mockAuctions as AuctionDisplayDto[]);
-        setTotalCount(mockAuctions.length);
+        setAuctions([]);
+        setTotalCount(0);
       }
     } catch {
-      setAuctions(mockAuctions as AuctionDisplayDto[]);
-      setTotalCount(mockAuctions.length);
+      setAuctions([]);
+      setTotalCount(0);
     } finally {
       setIsLoading(false);
     }
