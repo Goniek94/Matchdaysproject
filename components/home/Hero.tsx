@@ -64,6 +64,19 @@ export default function Hero() {
     },
     {
       id: 5,
+      title: "My Collection",
+      subtitle: "Your Personal Trophy Cabinet",
+      highlight: "TRACK. SHOWCASE. TRADE.",
+      description:
+        "Build your own digital cabinet of sports treasures. Organise every jersey, signed item and rare collectible you own — rank them by rarity, keep them private or show the world, and list anything for auction in one tap.",
+      image:
+        "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=2500&auto=format&fit=crop",
+      ctaText: "Open My Collection",
+      ctaLink: "/collection/mine",
+      color: "from-teal-500 to-cyan-600",
+    },
+    {
+      id: 6,
       title: "Play & Win",
       subtitle: "Matchdays Arena",
       highlight: "YOUR KNOWLEDGE PAYS OFF.",

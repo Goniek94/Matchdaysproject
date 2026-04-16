@@ -4,8 +4,8 @@ import {
   LayoutDashboard,
   List,
   MessageCircle,
-  Sparkles,
   Settings,
+  Trophy,
   type LucideIcon,
 } from "lucide-react";
 import type { DashboardTab } from "./DashboardSidebar";
@@ -26,11 +26,11 @@ interface NavItem {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "overview", icon: LayoutDashboard, label: "Home" },
-  { id: "listings", icon: List, label: "Listings" },
-  { id: "messages", icon: MessageCircle, label: "Messages" },
-  { id: "aitools", icon: Sparkles, label: "AI" },
-  { id: "settings", icon: Settings, label: "Settings" },
+  { id: "overview",    icon: LayoutDashboard, label: "Home" },
+  { id: "listings",   icon: List,            label: "Listings" },
+  { id: "messages",   icon: MessageCircle,   label: "Messages" },
+  { id: "collection", icon: Trophy,          label: "Collection" },
+  { id: "settings",   icon: Settings,        label: "Settings" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────

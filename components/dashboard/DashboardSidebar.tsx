@@ -6,10 +6,12 @@ import {
   List,
   MessageCircle,
   Sparkles,
-  Heart,
   Settings,
   PlusCircle,
   LogOut,
+  Trophy,
+  AlertTriangle,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,7 +22,9 @@ export type DashboardTab =
   | "listings"
   | "messages"
   | "aitools"
-  | "favorites"
+  | "collection"
+  | "disputes"
+  | "reviews"
   | "settings";
 
 interface NavItem {
@@ -28,6 +32,7 @@ interface NavItem {
   icon: LucideIcon;
   label: string;
   badge?: number;
+  separator?: boolean;
 }
 
 interface DashboardSidebarProps {
@@ -42,12 +47,14 @@ interface DashboardSidebarProps {
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "overview", icon: LayoutDashboard, label: "Overview" },
-  { id: "listings", icon: List, label: "My Listings" },
-  { id: "messages", icon: MessageCircle, label: "Messages" },
-  { id: "aitools", icon: Sparkles, label: "AI Tools" },
-  { id: "favorites", icon: Heart, label: "Favorites" },
-  { id: "settings", icon: Settings, label: "Settings" },
+  { id: "overview",    icon: LayoutDashboard, label: "Overview" },
+  { id: "listings",   icon: List,            label: "My Listings" },
+  { id: "messages",   icon: MessageCircle,   label: "Messages" },
+  { id: "aitools",    icon: Sparkles,        label: "AI Tools" },
+  { id: "collection", icon: Trophy,          label: "My Collection", separator: true },
+  { id: "disputes",   icon: AlertTriangle,   label: "My Cases" },
+  { id: "reviews",    icon: Star,            label: "Reviews", separator: true },
+  { id: "settings",   icon: Settings,        label: "Settings" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -77,39 +84,43 @@ export function DashboardSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ id, icon: Icon, label, badge }) => {
+        {NAV_ITEMS.map(({ id, icon: Icon, label, badge, separator }) => {
           const isActive = activeTab === id;
           return (
-            <button
-              key={id}
-              onClick={() => onTabChange(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all group ${
-                isActive
-                  ? "bg-gray-900 text-white"
-                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-              }`}
-            >
-              <Icon
-                size={17}
-                className={
-                  isActive
-                    ? "text-white"
-                    : "text-gray-400 group-hover:text-gray-700"
-                }
-              />
-              <span>{label}</span>
-              {badge !== undefined && badge > 0 && (
-                <span
-                  className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    isActive
-                      ? "bg-white/20 text-white"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {badge}
-                </span>
+            <div key={id}>
+              {separator && (
+                <div className="my-2 border-t border-gray-100" />
               )}
-            </button>
+              <button
+                onClick={() => onTabChange(id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all group ${
+                  isActive
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                }`}
+              >
+                <Icon
+                  size={17}
+                  className={
+                    isActive
+                      ? "text-white"
+                      : "text-gray-400 group-hover:text-gray-700"
+                  }
+                />
+                <span>{label}</span>
+                {badge !== undefined && badge > 0 && (
+                  <span
+                    className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {badge}
+                  </span>
+                )}
+              </button>
+            </div>
           );
         })}
       </nav>

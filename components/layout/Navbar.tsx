@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
@@ -22,78 +21,21 @@ import {
   ChevronDown,
   MessageCircle,
   Trophy,
-  Bell,
-  Search,
   AlertTriangle,
+  Bell,
 } from "lucide-react";
 import { useNotifications } from "@/lib/context/NotificationContext";
-import { getAuctions } from "@/lib/api/auctions.api";
-import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 
 export default function Navbar() {
   const { itemCount } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const { count: watchlistCount } = useWatchlist();
   const { unreadCount } = useNotifications();
-  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
-
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // ── Search state ──
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const fetchSuggestions = useCallback(async (q: string) => {
-    if (!q.trim()) { setSuggestions([]); return; }
-    setSearchLoading(true);
-    try {
-      const res = await getAuctions({ q: q.trim(), limit: 5 });
-      if (res.success && res.data) {
-        setSuggestions(adaptAuctionsForDisplay(res.data.auctions ?? []).slice(0, 5));
-      }
-    } catch { setSuggestions([]); }
-    finally { setSearchLoading(false); }
-  }, []);
-
-  const handleSearchChange = (val: string) => {
-    setSearchQuery(val);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchSuggestions(val), 300);
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    setSearchOpen(false);
-    setSearchQuery("");
-    setSuggestions([]);
-  };
-
-  const openSearch = () => {
-    setSearchOpen(true);
-    setTimeout(() => searchInputRef.current?.focus(), 50);
-  };
-
-  // Close search on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setSearchOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const handleLoginSuccess = () => {
     setIsLoginModalOpen(false);
@@ -134,6 +76,7 @@ export default function Navbar() {
     { name: "Auctions", href: "/auctions" },
     { name: "AI Tools", href: "/aitools" },
     { name: "Matchdays Arena", href: "/arena", highlight: true },
+    { name: "Contact", href: "/contact" },
   ];
 
   return (
@@ -163,7 +106,7 @@ export default function Navbar() {
                     href={link.href}
                     className={`nav-link uppercase transition-colors ${
                       link.highlight
-                        ? "text-indigo-600 font-extrabold hover:text-indigo-800"
+                        ? "font-extrabold hover:opacity-80 bg-gradient-to-r from-amber-500 to-yellow-400 bg-clip-text text-transparent"
                         : "hover:text-gray-600 text-black"
                     }`}
                   >
@@ -174,110 +117,8 @@ export default function Navbar() {
             </ul>
           </div>
 
-          {/* ── Search bar (desktop) ── */}
-          <div ref={searchRef} className="hidden lg:block relative">
-            {searchOpen ? (
-              <form onSubmit={handleSearchSubmit} className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                <input
-                  ref={searchInputRef}
-                  value={searchQuery}
-                  onChange={e => handleSearchChange(e.target.value)}
-                  placeholder="Search listings…"
-                  className="w-72 pl-9 pr-9 py-2 text-sm bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 placeholder:text-gray-300"
-                />
-                <button type="button" onClick={() => { setSearchOpen(false); setSearchQuery(""); setSuggestions([]); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700">
-                  <X size={14}/>
-                </button>
-
-                {/* Suggestions dropdown */}
-                {(suggestions.length > 0 || searchLoading) && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden z-50">
-                    {searchLoading && (
-                      <div className="px-4 py-3 text-sm text-gray-400">Searching…</div>
-                    )}
-                    {!searchLoading && suggestions.map(s => (
-                      <Link key={s.id} href={`/auction/${s.id}`}
-                        onClick={() => { setSearchOpen(false); setSearchQuery(""); setSuggestions([]); }}
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
-                        <div className="w-9 h-9 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 relative">
-                          {s.image && <img src={s.image} alt="" className="w-full h-full object-cover" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{s.title}</p>
-                          <p className="text-xs text-gray-400">€{Number(s.price ?? 0).toLocaleString("de-DE", { minimumFractionDigits: 2 })}</p>
-                        </div>
-                      </Link>
-                    ))}
-                    {!searchLoading && searchQuery.trim() && (
-                      <button type="submit"
-                        className="w-full text-left px-4 py-2.5 text-sm text-black font-semibold hover:bg-gray-50 flex items-center gap-2 border-t border-gray-100">
-                        <Search size={14}/> See all results for "{searchQuery}"
-                      </button>
-                    )}
-                  </div>
-                )}
-              </form>
-            ) : (
-              <button onClick={openSearch}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-black hover:bg-gray-100 rounded-xl transition-colors font-medium">
-                <Search size={18}/> <span className="hidden xl:inline">Search</span>
-              </button>
-            )}
-          </div>
-
           <div className="flex items-center gap-2 md:gap-4 justify-end z-50">
-            {isAuthenticated && (
-              <Link
-                href="/notifications"
-                title="Notifications"
-                className="relative p-2 md:p-3 hover:bg-gray-100 rounded-full transition-colors hidden lg:flex"
-              >
-                <Bell size={24} className="text-gray-700" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
-              </Link>
-            )}
 
-            {isAuthenticated && (
-              <Link
-                href="/favorites"
-                title="Favorites"
-                className="relative p-2 md:p-3 hover:bg-gray-100 rounded-full transition-colors hidden lg:flex"
-              >
-                <Heart
-                  size={24}
-                  className={
-                    watchlistCount > 0
-                      ? "text-red-500 fill-red-500"
-                      : "text-gray-700"
-                  }
-                />
-                {watchlistCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {watchlistCount > 99 ? "99+" : watchlistCount}
-                  </span>
-                )}
-              </Link>
-            )}
-
-            {isAuthenticated && (
-              <Link
-                href="/cart"
-                className="relative p-2 md:p-3 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <ShoppingCart size={24} className="text-gray-700" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {itemCount}
-                  </span>
-                )}
-              </Link>
-            )}
 
             <button
               onClick={() => setIsMobileMenuOpen(true)}
@@ -303,7 +144,7 @@ export default function Navbar() {
                   </Link>
                 </>
               ) : (
-                <div className="flex items-center gap-6" ref={dropdownRef}>
+                <div className="flex items-center gap-3">
                   <Link
                     href="/add-listing"
                     className="hidden md:flex items-center gap-2.5 px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-all shadow-md hover:shadow-lg font-bold text-base whitespace-nowrap uppercase"
@@ -311,13 +152,21 @@ export default function Navbar() {
                     <PlusCircle size={20} />
                     <span>Sell Item</span>
                   </Link>
+                  <div className="flex items-center gap-1" ref={dropdownRef}>
 
                   <button
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
                     className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors group whitespace-nowrap"
                   >
-                    <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center">
-                      <User size={20} />
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center">
+                        <User size={20} />
+                      </div>
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black rounded-full w-5 h-5 flex items-center justify-center leading-none">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
                     </div>
                     <span className="font-bold text-base uppercase">
                       Profile
@@ -395,7 +244,30 @@ export default function Navbar() {
                       </div>
                     </div>
                   )}
-                </div>
+                  </div>{/* end dropdownRef */}
+
+                {/* Cart */}
+                <Link
+                  href="/cart"
+                  className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <ShoppingCart size={22} className="text-gray-700" />
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {itemCount}
+                    </span>
+                  )}
+                </Link>
+
+                {/* Messages */}
+                <Link
+                  href="/messages"
+                  className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  title="Messages"
+                >
+                  <MessageCircle size={22} className="text-gray-700" />
+                </Link>
+              </div>
               )}
             </div>
           </div>

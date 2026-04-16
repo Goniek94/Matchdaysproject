@@ -13,6 +13,9 @@ import {
   DashboardAiTools,
   DashboardSettings,
   DashboardMobileNav,
+  DashboardCollection,
+  DashboardDisputes,
+  DashboardReviews,
 } from "@/components/dashboard";
 import type { DashboardTab } from "@/components/dashboard/DashboardSidebar";
 
@@ -119,8 +122,12 @@ export default function DashboardPage() {
         return <DashboardMessages />;
       case "aitools":
         return <DashboardAiTools />;
-      case "favorites":
-        return <FavoritesPlaceholder />;
+      case "collection":
+        return <DashboardCollection />;
+      case "disputes":
+        return <DashboardDisputes />;
+      case "reviews":
+        return <DashboardReviews />;
       case "settings":
         return <DashboardSettings />;
       default:
@@ -154,28 +161,3 @@ export default function DashboardPage() {
   );
 }
 
-// ─── Favorites placeholder ────────────────────────────────────────────────────
-
-function FavoritesPlaceholder() {
-  return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-black text-gray-900">Favorites</h2>
-        <p className="text-xs text-gray-400 mt-0.5">Items you&apos;ve saved</p>
-      </div>
-      <div className="bg-white rounded-2xl border border-gray-200/60 p-12 text-center">
-        <span className="text-5xl mb-4 block">❤️</span>
-        <p className="text-sm font-bold text-gray-400 mb-2">No favorites yet</p>
-        <p className="text-xs text-gray-400">
-          Browse auctions and save items you like
-        </p>
-        <Link
-          href="/auctions"
-          className="inline-flex items-center gap-2 mt-5 px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-black transition-colors"
-        >
-          Browse Auctions
-        </Link>
-      </div>
-    </div>
-  );
-}

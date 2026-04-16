@@ -7,6 +7,9 @@ export { DashboardMessages } from "./DashboardMessages";
 export { DashboardAiTools } from "./DashboardAiTools";
 export { DashboardSettings } from "./DashboardSettings";
 export { DashboardMobileNav } from "./DashboardMobileNav";
+export { DashboardCollection } from "./DashboardCollection";
+export { DashboardDisputes } from "./DashboardDisputes";
+export { DashboardReviews } from "./DashboardReviews";
 
 // ── Legacy section components (kept for backwards compatibility) ──────────────
 export { default as RankingSection } from "./RankingSection";
