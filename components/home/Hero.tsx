@@ -88,7 +88,7 @@ export default function Hero() {
       color: "from-indigo-500 to-blue-600",
     },
     {
-      id: 6,
+      id: 7,
       title: "Zero Fakes.",
       subtitle: "Buyer Protection Guaranteed",
       highlight: "100% AUTHENTIC OR MONEY BACK.",

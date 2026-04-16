@@ -7,6 +7,7 @@ import type {
   SpinPhase,
   SpinWheelState,
 } from "@/types/features/spin-wheel.types";
+import { awardSpinPoints } from "@/lib/api/users";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -155,6 +156,8 @@ export interface UseSpinWheelReturn extends SpinWheelState {
   dismissResult: () => void;
   /** Formatted countdown string e.g. "18:42:05" */
   countdown: string;
+  /** Points awarded in last spin (if loyalty prize) */
+  lastPointsAwarded: number | null;
 }
 
 export function useSpinWheel(): UseSpinWheelReturn {
@@ -170,6 +173,7 @@ export function useSpinWheel(): UseSpinWheelReturn {
   );
   const [cooldownMs, setCooldownMs] = useState<number>(0);
   const [countdown, setCountdown] = useState("00:00:00");
+  const [lastPointsAwarded, setLastPointsAwarded] = useState<number | null>(null);
 
   const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -225,6 +229,14 @@ export function useSpinWheel(): UseSpinWheelReturn {
       setLastResult(result);
       setPhase("result");
       saveToStorage({ lastSpinAt: now, lastResult: result });
+
+      // Award loyalty points via API if prize is loyalty category
+      if (prize.category === "loyalty" && prize.value) {
+        setLastPointsAwarded(prize.value);
+        awardSpinPoints(prize.value, "spin_wheel").catch(() => {});
+      } else {
+        setLastPointsAwarded(null);
+      }
     }, SPIN_DURATION_MS);
   }, [phase, cooldownMs]);
 
@@ -250,5 +262,6 @@ export function useSpinWheel(): UseSpinWheelReturn {
     countdown,
     spin,
     dismissResult,
+    lastPointsAwarded,
   };
 }

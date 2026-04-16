@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useCart } from "@/lib/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -20,13 +21,14 @@ import {
   PlusCircle,
   ChevronDown,
   MessageCircle,
-  Trophy,
   AlertTriangle,
   Bell,
+  Mail,
 } from "lucide-react";
 import { useNotifications } from "@/lib/context/NotificationContext";
 
 export default function Navbar() {
+  const router = useRouter();
   const { itemCount } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const { count: watchlistCount } = useWatchlist();
@@ -45,7 +47,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     await logout();
     setIsProfileOpen(false);
-    window.location.href = "/";
+    router.push("/");
   };
 
   useEffect(() => {
@@ -106,7 +108,7 @@ export default function Navbar() {
                     href={link.href}
                     className={`nav-link uppercase transition-colors ${
                       link.highlight
-                        ? "font-extrabold hover:opacity-80 bg-gradient-to-r from-amber-500 to-yellow-400 bg-clip-text text-transparent"
+                        ? "font-extrabold hover:opacity-80 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent"
                         : "hover:text-gray-600 text-black"
                     }`}
                   >
@@ -208,16 +210,6 @@ export default function Navbar() {
                           text="Messages"
                         />
                         <DropdownItem
-                          href="/favorites"
-                          icon={<Heart size={20} />}
-                          text="Favorites"
-                        />
-                        <DropdownItem
-                          href="/collection/mine"
-                          icon={<Trophy size={20} />}
-                          text="My Collection"
-                        />
-                        <DropdownItem
                           href="/history"
                           icon={<History size={20} />}
                           text="Transaction History"
@@ -228,9 +220,9 @@ export default function Navbar() {
                           text="Disputes & Reports"
                         />
                         <DropdownItem
-                          href="/settings"
-                          icon={<Settings size={20} />}
-                          text="Settings"
+                          href="/contact"
+                          icon={<Mail size={20} />}
+                          text="Contact"
                         />
                       </div>
                       <div className="border-t border-gray-100 mt-2 py-2">
@@ -259,14 +251,6 @@ export default function Navbar() {
                   )}
                 </Link>
 
-                {/* Messages */}
-                <Link
-                  href="/messages"
-                  className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  title="Messages"
-                >
-                  <MessageCircle size={22} className="text-gray-700" />
-                </Link>
               </div>
               )}
             </div>
@@ -358,13 +342,13 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-base uppercase tracking-wide transition-all active:scale-95 ${
                   link.highlight
-                    ? "bg-amber-400/10 text-amber-400 hover:bg-amber-400/20"
+                    ? "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"
                     : "text-white/80 hover:bg-white/[0.08] hover:text-white"
                 }`}
               >
                 {link.name}
                 {link.highlight && (
-                  <span className="ml-auto text-[10px] font-black tracking-widest text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                  <span className="ml-auto text-[10px] font-black tracking-widest text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
                     NEW
                   </span>
                 )}

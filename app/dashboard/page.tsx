@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
-import { useMyListings } from "@/lib/hooks/useMyListings";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -26,12 +25,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
   const [greeting, setGreeting] = useState("Good day");
-
-  const {
-    listings,
-    stats: listingStats,
-    loading: listingsLoading,
-  } = useMyListings();
 
   // Set greeting based on time of day
   useEffect(() => {
@@ -108,11 +101,6 @@ export default function DashboardPage() {
           <DashboardOverview
             greeting={greeting}
             displayName={displayName}
-            activeListings={listingStats.active}
-            soldListings={listingStats.sold}
-            totalListings={listingStats.total}
-            listings={listings}
-            listingsLoading={listingsLoading}
             onTabChange={handleTabChange}
           />
         );

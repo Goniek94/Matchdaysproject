@@ -103,7 +103,7 @@ export const updateMyProfile = async (
 ): Promise<ApiResponse<UserProfile>> => {
   try {
     const response = await apiClient.patch<ApiResponse<UserProfile>>(
-      "/users/me",
+      "/users/profile",
       profileData
     );
 
@@ -398,6 +398,16 @@ export interface PublicUserProfile {
   collectionPreview: PublicCollectionItem[];
   recentReviews: PublicReview[];
 }
+
+export const awardSpinPoints = async (
+  points: number,
+  source: string = "spin_wheel",
+): Promise<ApiResponse<{ pointsAwarded: number; totalPoints: number; level: number }>> => {
+  const res = await apiClient.post<
+    ApiResponse<{ pointsAwarded: number; totalPoints: number; level: number }>
+  >("/users/me/award-points", { points, source });
+  return res.data;
+};
 
 export const getPublicUserProfile = async (
   username: string,
