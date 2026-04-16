@@ -18,6 +18,10 @@ interface SmartFormStepsProps {
   onBack: () => void;
 }
 
+// Steps: 1 Category → 2 Photos → 3 Mode Selection
+// AI path:     4 AI Analysis → 5 Summary (in SmartForm)
+// Manual path: 4 Details → 5 Pricing → 6 Summary (in SmartForm)
+
 export default function SmartFormSteps({
   step,
   data,
@@ -29,8 +33,6 @@ export default function SmartFormSteps({
     case 1:
       return <StepCategory data={data} update={update} onNext={onNext} />;
     case 2:
-      return <StepCompletionMode data={data} update={update} onNext={onNext} />;
-    case 3:
       return (
         <PhotoStepRouter
           data={data}
@@ -39,13 +41,16 @@ export default function SmartFormSteps({
           onBack={onBack}
         />
       );
+    case 3:
+      return <StepCompletionMode data={data} update={update} onNext={onNext} />;
     case 4:
-      if (data.completionMode === "AI") {
-        return <StepAISummary data={data} update={update} />;
-      }
+      if (data.completionMode === "AI")
+        return <StepAISummary data={data} update={update} onNext={onNext} />;
       return <StepProductDetailsManual data={data} update={update} />;
     case 5:
-      return <StepPricing data={data} update={update} />;
+      if (data.completionMode === "MANUAL")
+        return <StepPricing data={data} update={update} />;
+      return null;
     default:
       return null;
   }

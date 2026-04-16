@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SmartFormData, Photo } from "@/types/features/listing.types";
 import type { PhotoGroup } from "@/lib/constants/listing.constants";
@@ -15,9 +15,15 @@ interface TagsFormProps {
   removePhoto: (photoType: string) => void;
 }
 
+const SERIAL_MISSING_REASONS = [
+  { value: "pre_2005", label: "Pre-2005 jersey", desc: "Era item — no serial tag" },
+  { value: "faded", label: "Faded / Unreadable", desc: "Code worn off" },
+  { value: "cut_out", label: "Cut out / Removed", desc: "Tag was removed" },
+] as const;
+
 /**
  * Tags & labels form section.
- * Handles combined tag toggle, serial code input, vintage toggle, and tag condition.
+ * Serial code tag is REQUIRED unless user explicitly marks it as missing with a reason.
  */
 export function TagsForm({
   data,
@@ -30,6 +36,9 @@ export function TagsForm({
   const updateVerification = (field: string, value: any) => {
     update("verification", { ...data.verification, [field]: value });
   };
+
+  const serialMissing = !!(data.verification as any).serialMissing;
+  const serialMissingReason = (data.verification as any).serialMissingReason ?? "";
 
   return (
     <div className="space-y-6">
@@ -54,7 +63,7 @@ export function TagsForm({
           )}
         >
           {data.verification.tagsCombined && (
-            <CheckCircle2 size={13} className="text-white" />
+            <span className="text-white text-xs font-black">✓</span>
           )}
         </div>
         <div>
@@ -62,7 +71,7 @@ export function TagsForm({
             All tag info is on one label
           </p>
           <p className="text-xs text-gray-500 mt-0.5">
-            Puma / Adidas / Nike often combine size, country and serial code on
+            Nike / Adidas / Puma often combine size, country and serial code on
             a single tag
           </p>
         </div>
@@ -74,42 +83,117 @@ export function TagsForm({
           <PhotoSlot
             typeKey="combined_tag"
             label="Combined Tag Photo"
-            desc="One photo — size, country & serial code"
+            desc="One photo — size, country & serial code all in frame"
             existingPhoto={getPhotoByType("combined_tag")}
             onUpload={(files) => handleFileUpload(files, "combined_tag")}
             onRemove={() => removePhoto("combined_tag")}
           />
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-4">
-          {currentGroup.photos.map((photoConfig) => {
-            const typeKey = photoConfig.type ?? photoConfig.label;
-            return (
-              <PhotoSlot
-                key={typeKey}
-                typeKey={typeKey}
-                label={photoConfig.label}
-                desc={photoConfig.desc}
-                isOptional={photoConfig.desc.includes("optional")}
-                existingPhoto={getPhotoByType(typeKey)}
-                onUpload={(files) => handleFileUpload(files, typeKey)}
-                onRemove={() => removePhoto(typeKey)}
-              />
-            );
-          })}
+        <div className="space-y-5">
+          <div className="grid sm:grid-cols-2 gap-4">
+            {currentGroup.photos
+              .filter((p) => {
+                // Hide serial_code slot if user has declared it missing
+                if (p.type === "serial_code" && serialMissing) return false;
+                return true;
+              })
+              .map((photoConfig) => {
+                const typeKey = photoConfig.type ?? photoConfig.label;
+                const isRequired = !photoConfig.desc.toLowerCase().includes("optional");
+                return (
+                  <PhotoSlot
+                    key={typeKey}
+                    typeKey={typeKey}
+                    label={photoConfig.label}
+                    desc={photoConfig.desc}
+                    isOptional={!isRequired}
+                    existingPhoto={getPhotoByType(typeKey)}
+                    onUpload={(files) => handleFileUpload(files, typeKey)}
+                    onRemove={() => removePhoto(typeKey)}
+                  />
+                );
+              })}
+          </div>
+
+          {/* Serial code missing section */}
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+            <div
+              className="flex items-center justify-between cursor-pointer gap-4"
+              onClick={() => {
+                const next = !serialMissing;
+                updateVerification("serialMissing", next);
+                if (!next) updateVerification("serialMissingReason", "");
+              }}
+            >
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-amber-800">
+                    Serial code tag is missing
+                  </p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Check this only if the tag physically doesn't exist
+                  </p>
+                </div>
+              </div>
+              {/* Toggle */}
+              <div
+                className={cn(
+                  "w-11 h-6 rounded-full transition-colors relative flex-shrink-0",
+                  serialMissing ? "bg-amber-500" : "bg-gray-300",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+                    serialMissing ? "left-6" : "left-1",
+                  )}
+                />
+              </div>
+            </div>
+
+            {serialMissing && (
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                {SERIAL_MISSING_REASONS.map((reason) => (
+                  <button
+                    key={reason.value}
+                    type="button"
+                    onClick={() =>
+                      updateVerification(
+                        "serialMissingReason",
+                        serialMissingReason === reason.value ? "" : reason.value,
+                      )
+                    }
+                    className={cn(
+                      "text-left p-2.5 rounded-xl border text-xs transition-all",
+                      serialMissingReason === reason.value
+                        ? "border-amber-500 bg-amber-500 text-white"
+                        : "border-amber-200 bg-white text-gray-700 hover:border-amber-400",
+                    )}
+                  >
+                    <p className="font-bold leading-tight">{reason.label}</p>
+                    <p className={cn("mt-0.5 text-[10px]", serialMissingReason === reason.value ? "text-amber-100" : "text-gray-400")}>
+                      {reason.desc}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Serial code manual input */}
+      {/* Manual serial code input (always visible as fallback) */}
       <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200">
         <div className="flex items-center gap-2 mb-1">
-          <label className="font-bold text-gray-900 text-sm">Serial Code</label>
+          <label className="font-bold text-gray-900 text-sm">Serial Code — manual entry</label>
           <span className="text-[10px] text-gray-400 font-medium bg-gray-200 px-1.5 py-0.5 rounded-full">
             optional
           </span>
         </div>
         <p className="text-xs text-gray-500 mb-3">
-          Can&apos;t read the tag? Type the product code manually — e.g.{" "}
+          Can&apos;t read the tag clearly? Type the product code manually — e.g.{" "}
           <span className="font-mono text-gray-700 bg-gray-200 px-1 rounded">
             GH7252
           </span>
@@ -123,68 +207,29 @@ export function TagsForm({
         />
       </div>
 
-      {/* Tag info section */}
-      <div className="space-y-3 pt-2 border-t border-gray-100">
-        <h3 className="font-bold text-base text-gray-900">Tag Information</h3>
-
-        {/* Vintage toggle */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-          <div>
-            <p className="font-medium text-gray-900 text-sm">
-              Vintage item? (Pre-2005)
-            </p>
-            <p className="text-xs text-gray-500">
-              Items manufactured before 2005
-            </p>
-          </div>
-          <button
-            onClick={() =>
-              updateVerification("isVintage", !data.verification.isVintage)
-            }
-            className={cn(
-              "relative inline-flex h-7 w-12 items-center rounded-full transition-colors",
-              data.verification.isVintage ? "bg-black" : "bg-gray-200",
-            )}
-          >
-            <span
-              className={cn(
-                "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
-                data.verification.isVintage ? "translate-x-6" : "translate-x-1",
-              )}
-            />
-          </button>
-        </div>
-
-        {/* Tag condition */}
-        <div className="p-4 bg-gray-50 rounded-xl">
-          <p className="font-medium text-gray-900 text-sm mb-3">
-            Tag Condition
+      {/* Vintage toggle */}
+      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-200">
+        <div>
+          <p className="font-bold text-gray-900 text-sm">Vintage / Pre-2005 item</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Items manufactured before 2005 — may lack serial tags
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {[
-              { value: "intact", label: "Intact", emoji: "✓" },
-              { value: "cut", label: "Cut Out", emoji: "✂️" },
-              { value: "washed_out", label: "Washed Out", emoji: "💧" },
-              { value: "missing", label: "Missing", emoji: "❌" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => updateVerification("tagCondition", option.value)}
-                className={cn(
-                  "p-3 rounded-xl border-2 text-center transition-all",
-                  data.verification.tagCondition === option.value
-                    ? "border-black bg-white shadow-md"
-                    : "border-gray-200 hover:border-gray-300 bg-white",
-                )}
-              >
-                <div className="text-lg mb-1">{option.emoji}</div>
-                <div className="text-xs font-semibold text-gray-700">
-                  {option.label}
-                </div>
-              </button>
-            ))}
-          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => updateVerification("isVintage", !data.verification.isVintage)}
+          className={cn(
+            "relative inline-flex h-7 w-12 items-center rounded-full transition-colors flex-shrink-0",
+            data.verification.isVintage ? "bg-black" : "bg-gray-200",
+          )}
+        >
+          <span
+            className={cn(
+              "inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform",
+              data.verification.isVintage ? "translate-x-6" : "translate-x-1",
+            )}
+          />
+        </button>
       </div>
     </div>
   );

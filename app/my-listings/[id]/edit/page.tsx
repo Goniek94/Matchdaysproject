@@ -35,7 +35,7 @@ function formatPrice(value: number | null | undefined): string {
   if (!value) return "—";
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "GBP",
+    currency: "EUR",
     minimumFractionDigits: 0,
   }).format(value);
 }

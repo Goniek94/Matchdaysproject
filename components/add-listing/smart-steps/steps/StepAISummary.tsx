@@ -1,13 +1,14 @@
 "use client";
 
 import { SmartFormData } from "../types";
-import { Edit2, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import { Edit2, CheckCircle, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { analyzeListing, AIAnalysisResult } from "@/lib/api/ai";
 
 interface StepProps {
   data: SmartFormData;
   update: (field: keyof SmartFormData, val: any) => void;
+  onNext?: () => void;
 }
 
 /**
@@ -36,7 +37,7 @@ function normalizeCondition(raw: string): string {
   return "good";
 }
 
-export default function StepAISummary({ data, update }: StepProps) {
+export default function StepAISummary({ data, update, onNext }: StepProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -379,6 +380,18 @@ export default function StepAISummary({ data, update }: StepProps) {
             items in our database.
           </p>
         </div>
+
+        {/* Continue button */}
+        {onNext && (
+          <div className="mt-8 flex justify-end">
+            <button
+              onClick={onNext}
+              className="flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white bg-black hover:bg-gray-800 shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-95"
+            >
+              Continue to Summary <ArrowRight size={18} />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

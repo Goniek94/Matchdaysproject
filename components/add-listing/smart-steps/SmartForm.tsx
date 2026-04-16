@@ -6,8 +6,13 @@ import { SmartFormData, INITIAL_STATE, Photo } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
 import { SuccessView } from "./steps";
 import { SmartFormSummary } from "./summary";
-import { createAuctionFromForm } from "@/lib/api/auctions.api";
+import { createAuctionFromForm, updateListingVerification } from "@/lib/api/auctions.api";
 import { uploadPhotos } from "@/lib/supabase";
+import { analyzeListing } from "@/lib/api/ai";
+
+// AI path: 4 steps (Category → Photos → Mode → AI Analysis)
+// Manual path: 5 steps (Category → Photos → Mode → Details → Pricing)
+// Defaults to 5 (MANUAL) until user picks AI at step 3
 
 export default function SmartForm({ onBack }: { onBack?: () => void }) {
   const [step, setStep] = useState(1);
@@ -142,6 +147,33 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
         setPublishedPhotos(photosWithIds);
         setData(dataWithPhotos);
         setIsPublished(true);
+
+        // Background AI verification — runs for ALL modes, silent, no UI.
+        // AI mode: re-verifies with uploaded URLs (more reliable than base64).
+        // Manual mode: first verification — determines auto-live vs manual review.
+        // Score >= 90% → AI_VERIFIED_HIGH (auto-live)
+        // Score 60–89% → AI_VERIFIED_MEDIUM (manual review)
+        // Score < 60%  → FLAGGED (manual review)
+        const photoGroupKey = data.itemCategory || data.category || "shirts";
+        const bgPhotos = photosWithIds
+          .filter((p) => p.url?.startsWith("http"))
+          .slice(0, 6)
+          .map((p) => ({ url: p.url, typeHint: p.typeHint || "front_far" }));
+
+        if (bgPhotos.length > 0 && result.data?.id) {
+          const listingId = result.data.id;
+          analyzeListing(photoGroupKey, bgPhotos)
+            .then((aiResult) => {
+              if (aiResult.success && aiResult.data) {
+                updateListingVerification(
+                  listingId,
+                  aiResult.data.authenticityScore,
+                  aiResult.data as unknown as Record<string, any>,
+                );
+              }
+            })
+            .catch(() => {});
+        }
       } else {
         console.error("❌ [Publish] FAILED:", result.message);
         alert(`Failed to create listing: ${result.message}`);
@@ -155,6 +187,8 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       console.log("🏁 [Publish] END");
     }
   };
+
+  const totalSteps = data.completionMode === "AI" ? 4 : 5;
 
   // --- SPECIAL VIEWS ---
   if (isPublished) {
@@ -175,8 +209,8 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
     );
   }
 
-  // --- STEP 6: FINAL SUMMARY + PUBLISH ---
-  if (step === 6) {
+  // --- FINAL SUMMARY + PUBLISH (step after last) ---
+  if (step === totalSteps + 1) {
     return (
       <div className="min-h-screen pb-24 pt-24 px-4 max-w-4xl mx-auto">
         <SmartFormSummary
@@ -189,9 +223,15 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
     );
   }
 
-  // --- MAIN RENDER (steps 1-5) ---
-  const isStep4AI = step === 4 && data.completionMode === "AI";
-  const isPhotoStep = step === 3;
+  // --- MAIN RENDER (steps 1–N) ---
+  // Steps with their own navigation (no outer nav buttons):
+  //   2 = Photos (PhotoStepRouter has its own buttons)
+  //   3 = Mode selection (auto-advances on card click)
+  //   4 = AI Analysis (StepAISummary has its own Continue button)
+  const hideNavButtons =
+    step === 2 ||
+    step === 3 ||
+    (step === 4 && data.completionMode === "AI");
 
   return (
     <div className="min-h-screen pb-24 pt-24">
@@ -201,11 +241,11 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
           <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-black transition-all duration-500 ease-out"
-              style={{ width: `${(step / 5) * 100}%` }}
+              style={{ width: `${(step / totalSteps) * 100}%` }}
             />
           </div>
           <span className="text-xs font-bold font-mono text-gray-400">
-            STEP {step}/5
+            STEP {step}/{totalSteps}
           </span>
         </div>
       </div>
@@ -219,7 +259,8 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
           onBack={handleBackNavigation}
         />
 
-        {!isPhotoStep && !isStep4AI && (
+        {/* Navigation buttons — hidden on steps that manage their own nav */}
+        {!hideNavButtons && (
           <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
             <button
               onClick={handleBackNavigation}
@@ -237,28 +278,6 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
               className="flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white bg-black hover:bg-gray-800 shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-95"
             >
               Next <ArrowRight size={18} />
-            </button>
-          </div>
-        )}
-
-        {isStep4AI && data.aiData && (
-          <div className="mt-12 pt-8 border-t border-gray-100 flex items-center justify-between">
-            <button
-              onClick={handleBackNavigation}
-              className="group flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft
-                size={18}
-                className="transition-transform group-hover:-translate-x-1"
-              />
-              Back
-            </button>
-
-            <button
-              onClick={handleNext}
-              className="flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg shadow-blue-200 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              Continue <ArrowRight size={18} />
             </button>
           </div>
         )}

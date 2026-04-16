@@ -103,16 +103,19 @@ export default function HomePage() {
         const hotPicked = pickWeighted(hotPool, 3);
         setHotAdapted(adaptAuctionsForDisplay(hotPicked as any));
 
-        // ⏰ LAST CALL — ending within 7 hours, sorted by soonest, max 6
+        // ⏰ LAST CALL — auctions only (never buy_now), ending within 7h, sorted soonest first
+        const auctionsOnly = data.filter(
+          (a: any) => a.listingType !== "buy_now",
+        );
         const in7h = Date.now() + 7 * 60 * 60 * 1000;
-        const lastCallRaw = [...data]
+        const lastCallRaw = [...auctionsOnly]
           .filter((a) => new Date(a.endTime).getTime() <= in7h)
           .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime())
           .slice(0, 6);
-        // Fallback: if nothing ending in 7h, show 6 soonest overall
+        // Fallback: if nothing ending in 7h, show 6 soonest auctions overall
         const lastCallFinal = lastCallRaw.length > 0
           ? lastCallRaw
-          : [...data]
+          : [...auctionsOnly]
               .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime())
               .slice(0, 6);
         setLastCall(adaptAuctionsForDisplay(lastCallFinal as any));

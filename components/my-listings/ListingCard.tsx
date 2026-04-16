@@ -121,7 +121,7 @@ interface ListingCardProps {
 function formatPrice(value: number): string {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "GBP",
+    currency: "EUR",
     minimumFractionDigits: 0,
   }).format(value);
 }

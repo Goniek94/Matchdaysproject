@@ -218,7 +218,7 @@ export const INITIAL_FORM_STATE: SmartFormData = {
   league: "",
   category: "",
   categorySlug: "",
-  completionMode: null,
+  completionMode: "MANUAL",
   aiFeatures: {
     autoTitle: true,
     autoDescription: true,

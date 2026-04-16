@@ -26,6 +26,28 @@ interface PhotoStepRouterProps {
   onBack?: () => void;
 }
 
+// Maps taxonomy itemCategory IDs → photo group category IDs used by getPhotoGroupsForCategory
+const ITEM_TO_PHOTO_GROUP: Record<string, string> = {
+  jersey_shirt: "shirts",
+  shorts_pants: "pants",
+  boots_cleats: "footwear",
+  sneakers: "footwear",
+  jacket_hoodie: "jackets",
+  tracksuit: "jackets",
+  race_suit: "jackets",
+  helmet: "accessories",
+  racing_gloves: "accessories",
+  goalkeeper_gloves: "accessories",
+  gloves: "accessories",
+  stick: "equipment",
+  racket: "equipment",
+  bat: "equipment",
+  pads: "equipment",
+  cap: "accessories",
+  accessories: "accessories",
+  equipment: "equipment",
+};
+
 /**
  * Universal photo step router for all categories.
  * Reads photo groups from listing.constants and renders the appropriate
@@ -41,10 +63,14 @@ export default function PhotoStepRouter({
 }: PhotoStepRouterProps) {
   const [showExitModal, setShowExitModal] = useState(false);
 
+  // Resolve correct photo group key: itemCategory takes priority over legacy category (sport ID)
+  const photoGroupKey =
+    ITEM_TO_PHOTO_GROUP[data.itemCategory ?? ""] ?? data.category;
+
   // Get photo groups config for the selected category
   const photoGroups = useMemo(
-    () => getPhotoGroupsForCategory(data.category),
-    [data.category],
+    () => getPhotoGroupsForCategory(photoGroupKey),
+    [photoGroupKey],
   );
 
   // Hooks

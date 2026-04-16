@@ -213,3 +213,35 @@ export const getFavoriteIds = async (): Promise<string[]> => {
   const response = await apiClient.get<{ success: boolean; data: string[] }>('/auctions/favorites/ids');
   return response.data.data ?? [];
 };
+
+// ─── AI Verification Update ───────────────────────────────────────────────────
+
+/**
+ * Called after background AI scan completes (silent, no UI).
+ * Updates listing verification status based on authenticity score:
+ *   >= 90  → AI_VERIFIED_HIGH  → auto-live
+ *   60–89  → AI_VERIFIED_MEDIUM → manual review queue
+ *   < 60   → FLAGGED           → manual review queue
+ */
+export const updateListingVerification = async (
+  id: string,
+  authenticityScore: number,
+  aiData: Record<string, any>,
+): Promise<void> => {
+  const verificationStatus =
+    authenticityScore >= 90
+      ? "AI_VERIFIED_HIGH"
+      : authenticityScore >= 60
+        ? "AI_VERIFIED_MEDIUM"
+        : "FLAGGED";
+
+  await apiClient
+    .patch(`/auctions/${id}/verification`, {
+      verificationStatus,
+      authenticityScore,
+      aiData,
+    })
+    .catch(() => {
+      // Silent fail — background task, never interrupt the user
+    });
+};

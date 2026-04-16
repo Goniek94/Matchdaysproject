@@ -428,7 +428,7 @@ function PaymentSection() {
         <Info size={15} className="text-blue-500 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-blue-700">
           Your bank account is used for payouts when you sell items.
-          We support IBAN for EU/EEA countries and UK sort code + account number for GBP accounts.
+          We support IBAN for EU/EEA countries. All payouts are processed in EUR.
           Funds are transferred within 2–5 business days after a transaction is completed.
         </p>
       </div>

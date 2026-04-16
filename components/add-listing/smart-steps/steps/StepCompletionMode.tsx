@@ -1,7 +1,10 @@
+"use client";
+
 import { SmartFormData } from "../types";
 import { Sparkles, PenTool, Coins, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAuth } from "@/lib/context/AuthContext";
 
 interface StepProps {
   data: SmartFormData;
@@ -15,10 +18,12 @@ export default function StepCompletionMode({
   onNext,
 }: StepProps) {
   const [showCreditModal, setShowCreditModal] = useState(false);
-  const [userCredits] = useState(10); // Mock - should come from user context/API
+  const { user, isAdmin } = useAuth();
+  const userCredits = (user as any)?.aiCredits ?? 0;
+  const canUseAI = isAdmin || userCredits > 0;
 
   const handleModeSelect = (mode: "AI" | "MANUAL") => {
-    if (mode === "AI" && userCredits < 1) {
+    if (mode === "AI" && !canUseAI) {
       setShowCreditModal(true);
       return;
     }
@@ -36,10 +41,10 @@ export default function StepCompletionMode({
         {/* Header */}
         <div className="mb-6">
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter mb-2">
-            How would you like to continue?
+            Photos uploaded. What's next?
           </h2>
           <p className="text-base text-gray-500 font-medium">
-            Choose AI assistance or fill in details manually
+            Let AI generate the listing for you — or fill in details manually
           </p>
         </div>
 

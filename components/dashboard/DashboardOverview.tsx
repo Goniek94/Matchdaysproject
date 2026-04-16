@@ -43,7 +43,7 @@ interface DashboardOverviewProps {
 function formatPrice(value: number): string {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "GBP",
+    currency: "EUR",
     minimumFractionDigits: 0,
   }).format(value);
 }
@@ -174,77 +174,119 @@ export function DashboardOverview({
       {/* ── Hero: Welcome + Daily Spin ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
         {/* Welcome panel */}
-        <div className="sm:col-span-3 bg-gray-900 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between min-h-[140px]">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(99,102,241,0.25),transparent_60%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_rgba(236,72,153,0.12),transparent_60%)]" />
+        {(() => {
+          const pts = user?.totalPoints ?? 0;
+          const tier = getTier(pts);
+          const progress = getTierProgress(pts);
+          const nextTierIdx = TIERS.findIndex((t) => t.name === tier.name) + 1;
+          const nextTier = nextTierIdx < TIERS.length ? TIERS[nextTierIdx] : null;
+          const ptsToNext = nextTier ? nextTier.min - pts : 0;
 
-          <div className="relative z-10 flex items-start justify-between gap-4">
-            {/* Left: greeting */}
-            <div>
-              <p className="text-gray-400 text-sm font-medium">{greeting}</p>
-              <h1 className="text-2xl font-black text-white mt-0.5 tracking-tight">
-                {displayName} 👋
-              </h1>
-              <p className="text-gray-500 text-xs mt-1.5">
-                {new Date().toLocaleDateString("en-GB", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                })}
-              </p>
-            </div>
+          // Tier-specific accent colours for the card
+          const tierAccents: Record<string, { glow: string; line: string; dot: string }> = {
+            Rookie:     { glow: "rgba(148,163,184,0.18)", line: "rgba(148,163,184,0.5)", dot: "#94A3B8" },
+            Collector:  { glow: "rgba(96,165,250,0.18)",  line: "rgba(96,165,250,0.5)",  dot: "#60A5FA" },
+            Enthusiast: { glow: "rgba(52,211,153,0.18)",  line: "rgba(52,211,153,0.5)",  dot: "#34D399" },
+            Veteran:    { glow: "rgba(167,139,250,0.18)", line: "rgba(167,139,250,0.5)", dot: "#A78BFA" },
+            Legend:     { glow: "rgba(251,191,36,0.22)",  line: "rgba(251,191,36,0.6)",  dot: "#FBBF24" },
+          };
+          const accent = tierAccents[tier.name] ?? tierAccents.Rookie;
 
-            {/* Right: loyalty points badge */}
-            {(() => {
-              const pts = user?.totalPoints ?? 0;
-              const tier = getTier(pts);
-              const progress = getTierProgress(pts);
-              const nextTierIdx = TIERS.findIndex((t) => t.name === tier.name) + 1;
-              const nextTier = nextTierIdx < TIERS.length ? TIERS[nextTierIdx] : null;
-              return (
-                <div className="flex-shrink-0 min-w-[140px]">
-                  {/* Tier badge */}
-                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black ${tier.badge} mb-2`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
-                    {tier.name}
+          return (
+            <div
+              className="sm:col-span-3 rounded-2xl relative overflow-hidden flex flex-col justify-between"
+              style={{
+                background: "linear-gradient(145deg, #0f0f14 0%, #141420 50%, #0d0d18 100%)",
+                border: `1px solid ${accent.line}`,
+                minHeight: 180,
+              }}
+            >
+              {/* Background glows */}
+              <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 80% 0%, ${accent.glow}, transparent 55%)` }} />
+              <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 0% 100%, rgba(99,102,241,0.10), transparent 50%)" }} />
+
+              {/* Subtle grid texture */}
+              <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+
+              <div className="relative z-10 p-6">
+                {/* Top row: greeting + date */}
+                <div className="flex items-start justify-between gap-4 mb-5">
+                  <div>
+                    <p className="text-xs font-semibold tracking-[0.15em] uppercase mb-1" style={{ color: "rgba(255,255,255,0.35)" }}>
+                      {greeting}
+                    </p>
+                    <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none">
+                      {displayName} <span className="text-2xl">👋</span>
+                    </h1>
+                    <p className="text-xs mt-1.5" style={{ color: "rgba(255,255,255,0.28)" }}>
+                      {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+                    </p>
                   </div>
-                  {/* Points */}
-                  <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-xl font-black text-white tabular-nums">
-                      {pts.toLocaleString()}
-                    </span>
-                    <span className="text-xs text-gray-400 font-medium">pts</span>
+
+                  {/* Tier badge pill */}
+                  <div
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black tracking-wide"
+                    style={{ background: "rgba(255,255,255,0.07)", border: `1px solid ${accent.line}`, color: accent.dot }}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ background: accent.dot, boxShadow: `0 0 6px ${accent.dot}` }} />
+                    {tier.name.toUpperCase()}
                   </div>
+                </div>
+
+                {/* Loyalty points row */}
+                <div className="mb-4">
+                  <div className="flex items-end justify-between mb-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl font-black text-white tabular-nums leading-none" style={{ letterSpacing: "-0.04em" }}>
+                        {pts.toLocaleString()}
+                      </span>
+                      <span className="text-sm font-bold mb-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        loyalty pts
+                      </span>
+                    </div>
+                    {nextTier ? (
+                      <span className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.3)" }}>
+                        {ptsToNext.toLocaleString()} to <span style={{ color: accent.dot }}>{nextTier.name}</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs font-bold" style={{ color: accent.dot }}>Max rank ✦</span>
+                    )}
+                  </div>
+
                   {/* Progress bar */}
-                  <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
                     <div
                       className={`h-full rounded-full bg-gradient-to-r ${tier.color} transition-all duration-700`}
-                      style={{ width: `${progress}%` }}
+                      style={{ width: `${progress}%`, boxShadow: `0 0 8px ${accent.dot}` }}
                     />
                   </div>
-                  {nextTier ? (
-                    <p className="text-[10px] text-gray-500 mt-1">
-                      {(nextTier.min - pts).toLocaleString()} pts to{" "}
-                      <span className="text-gray-400 font-bold">{nextTier.name}</span>
-                    </p>
-                  ) : (
-                    <p className="text-[10px] text-amber-500 mt-1 font-bold">Max rank achieved!</p>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
 
-          <div className="relative z-10 mt-5">
-            <Link
-              href="/add-listing"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-xl font-bold text-sm hover:bg-gray-100 transition-colors"
-            >
-              <PlusCircle size={15} />
-              New Listing
-            </Link>
-          </div>
-        </div>
+                  {/* Tier steps */}
+                  <div className="flex justify-between mt-1.5">
+                    {TIERS.filter((t) => t.max !== Infinity).map((t) => (
+                      <span key={t.name} className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: pts >= t.min ? accent.dot : "rgba(255,255,255,0.18)" }}>
+                        {t.name}
+                      </span>
+                    ))}
+                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: tier.name === "Legend" ? accent.dot : "rgba(255,255,255,0.18)" }}>
+                      Legend
+                    </span>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <Link
+                  href="/add-listing"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-95"
+                  style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.85)", backdropFilter: "blur(8px)" }}
+                >
+                  <PlusCircle size={15} />
+                  New Listing
+                </Link>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Daily Spin — hero treatment */}
         <button
@@ -604,6 +646,53 @@ export function DashboardOverview({
               </button>
             </div>
           </div>
+
+          {/* AI Credits widget */}
+          {(() => {
+            const aiCredits = (user as any)?.aiCredits ?? 0;
+            return (
+              <div className="bg-white rounded-2xl border border-gray-200/60 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                      <Sparkles size={13} className="text-indigo-600" />
+                    </div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                      AI Credits
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onTabChange("aitools")}
+                    className="text-[11px] font-bold text-indigo-500 hover:text-indigo-700 transition-colors"
+                  >
+                    Buy more
+                  </button>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-gray-900 tabular-nums">
+                      {aiCredits}
+                    </span>
+                    <span className="text-xs text-gray-400 font-medium">credits</span>
+                  </div>
+                  <Zap size={20} className={aiCredits === 0 ? "text-gray-200" : "text-amber-400"} />
+                </div>
+                {aiCredits === 0 ? (
+                  <p className="text-[11px] text-amber-600 font-bold mt-2">
+                    No credits — buy to use AI tools
+                  </p>
+                ) : aiCredits < 3 ? (
+                  <p className="text-[11px] text-amber-500 font-bold mt-2">
+                    Running low — consider topping up
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-gray-400 mt-2">
+                    Credits never expire
+                  </p>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Arena shortcut */}
           <Link

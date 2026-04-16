@@ -136,11 +136,11 @@ const PHOTO_TIPS: Record<string, { title: string; tips: string[] }> = {
     ],
   },
   detail: {
-    title: "Detail Shot",
+    title: "Toe / Front View",
     tips: [
-      "Close-up of key details",
-      "Show material quality",
-      "Focus on unique features",
+      "Shoot from directly in front of both shoes",
+      "Toe box shape must be fully visible",
+      "Any front-facing branding or stitching in frame",
     ],
   },
   box: {
@@ -204,9 +204,13 @@ export function PhotoSlot({
             <h3 className="font-bold text-gray-900 text-sm leading-tight">
               {label}
             </h3>
-            {isOptional && (
+            {isOptional ? (
               <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-1.5 py-0.5 rounded-full">
                 optional
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded-full">
+                required
               </span>
             )}
           </div>
