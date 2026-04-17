@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return response;
     } catch (err: any) {
-      const message = err?.message || "Nie udało się zalogować";
+      const message = err?.message || "Login failed. Please try again.";
       setError(message);
       throw err;
     } finally {
@@ -158,7 +158,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return response;
     } catch (err: any) {
-      const message = err?.message || "Nie udało się zarejestrować";
+      const message = err?.message || "Registration failed. Please try again.";
       setError(message);
       throw err;
     } finally {

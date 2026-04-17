@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { getAuctionById } from "@/lib/api/auctions.api";
 import type { AuctionBidDto } from "@/types/api/auction.types";
+import { logger } from "@/lib/logger";
 
 interface BidDisplay {
   id: string;
@@ -25,9 +26,18 @@ interface AuctionRealtimeState {
   wsConnected: boolean;
 }
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ||
-  "http://localhost:3001";
+// Derived at module initialisation — fail-fast if the env var is absent.
+// The WebSocket server lives on the same host as the REST API.
+const _rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+if (!_rawApiUrl && typeof window !== "undefined") {
+  logger.error(
+    "NEXT_PUBLIC_API_URL is not set — auction realtime will not connect.",
+    "useAuctionRealtime",
+  );
+}
+const BACKEND_URL = _rawApiUrl
+  ? _rawApiUrl.replace("/api/v1", "")
+  : "";
 
 const formatTimeAgo = (dateString: string) => {
   if (!dateString) return "Unknown";
@@ -120,8 +130,8 @@ export function useAuctionRealtime(
       if (endTimeStr && !isEnded) {
         startCountdown(endTimeStr);
       }
-    } catch {
-      // Silently fail — don't disrupt UI on polling error
+    } catch (err) {
+      logger.warn("Polling fetch failed", "useAuctionRealtime", err);
     }
   }, [auctionId, isRealAuction, startCountdown]);
 
@@ -142,6 +152,9 @@ export function useAuctionRealtime(
       startCountdown(initialEndTime);
     }
 
+    // Guard: skip socket setup if ENV was missing at init
+    if (!BACKEND_URL) return;
+
     // Connect WebSocket
     const socket = io(BACKEND_URL, {
       transports: ["websocket", "polling"],
@@ -154,13 +167,17 @@ export function useAuctionRealtime(
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("[WS] Connected, joining auction:", auctionId);
+      logger.info(`Connected, joining auction ${auctionId}`, "useAuctionRealtime");
       setState((prev) => ({ ...prev, wsConnected: true }));
       socket.emit("join-auction", auctionId);
     });
 
-    socket.on("disconnect", () => {
-      console.log("[WS] Disconnected");
+    socket.on("connect_error", (err) => {
+      logger.warn("WebSocket connection error", "useAuctionRealtime", err);
+    });
+
+    socket.on("disconnect", (reason) => {
+      logger.info(`Disconnected: ${reason}`, "useAuctionRealtime");
       setState((prev) => ({ ...prev, wsConnected: false }));
     });
 
@@ -175,7 +192,7 @@ export function useAuctionRealtime(
         endTime: string;
         createdAt: string;
       }) => {
-        console.log("[WS] bid:placed", payload);
+        logger.debug(`bid:placed €${payload.amount} by ${payload.bidderUsername}`, "useAuctionRealtime");
 
         const newBid: BidDisplay = {
           id: payload.bidId,

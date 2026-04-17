@@ -3,10 +3,27 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Message, MessageUser } from "@/types/features/messages.types";
 import * as messagesApi from "@/lib/api/messages";
+import { logger } from "@/lib/logger";
 
-/**
- * Hook for managing messages within a conversation
- */
+/** Extract a human-readable message from an unknown error */
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (
+    err &&
+    typeof err === "object" &&
+    "response" in err &&
+    err.response &&
+    typeof err.response === "object" &&
+    "data" in err.response &&
+    err.response.data &&
+    typeof err.response.data === "object" &&
+    "message" in err.response.data &&
+    typeof (err.response.data as Record<string, unknown>).message === "string"
+  ) {
+    return (err.response.data as { message: string }).message;
+  }
+  return fallback;
+}
+
 export function useMessages(conversationId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [otherUser, setOtherUser] = useState<MessageUser | null>(null);
@@ -17,7 +34,6 @@ export function useMessages(conversationId: string | null) {
   const [error, setError] = useState<string | null>(null);
   const offsetRef = useRef(0);
 
-  // Fetch messages for the conversation
   const fetchMessages = useCallback(async () => {
     if (!conversationId) return;
 
@@ -30,11 +46,11 @@ export function useMessages(conversationId: string | null) {
       setAuctionId(data.auctionId);
       setHasMore(data.hasMore);
       offsetRef.current = data.messages.length;
-
-      // Mark as read
       await messagesApi.markConversationAsRead(conversationId);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to load messages");
+    } catch (err: unknown) {
+      const msg = extractErrorMessage(err, "Failed to load messages");
+      setError(msg);
+      logger.warn("fetchMessages failed", "useMessages", err);
     } finally {
       setLoading(false);
     }
@@ -50,7 +66,6 @@ export function useMessages(conversationId: string | null) {
     }
   }, [conversationId, fetchMessages]);
 
-  // Send a message
   const sendMessage = useCallback(
     async (content: string) => {
       if (!otherUser) return;
@@ -62,8 +77,10 @@ export function useMessages(conversationId: string | null) {
           auctionId: auctionId || undefined,
         });
         setMessages((prev) => [...prev, newMessage]);
-      } catch (err: any) {
-        setError(err?.response?.data?.message || "Failed to send message");
+      } catch (err: unknown) {
+        const msg = extractErrorMessage(err, "Failed to send message");
+        setError(msg);
+        logger.error("sendMessage failed", "useMessages", err);
         throw err;
       } finally {
         setSending(false);
@@ -72,7 +89,6 @@ export function useMessages(conversationId: string | null) {
     [otherUser, auctionId],
   );
 
-  // Load more (older) messages
   const loadMore = useCallback(async () => {
     if (!conversationId || !hasMore) return;
 
@@ -85,34 +101,27 @@ export function useMessages(conversationId: string | null) {
       setMessages((prev) => [...data.messages, ...prev]);
       setHasMore(data.hasMore);
       offsetRef.current += data.messages.length;
-    } catch (err) {
-      console.error("Failed to load more messages:", err);
+    } catch (err: unknown) {
+      logger.warn("loadMore failed", "useMessages", err);
     }
   }, [conversationId, hasMore]);
 
-  // Edit a message
-  const editMessage = useCallback(
-    async (messageId: string, newContent: string) => {
-      try {
-        const updated = await messagesApi.editMessage(messageId, newContent);
-        setMessages((prev) =>
-          prev.map((m) => (m.id === messageId ? updated : m)),
-        );
-      } catch (err) {
-        console.error("Failed to edit message:", err);
-        throw err;
-      }
-    },
-    [],
-  );
+  const editMessage = useCallback(async (messageId: string, newContent: string) => {
+    try {
+      const updated = await messagesApi.editMessage(messageId, newContent);
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? updated : m)));
+    } catch (err: unknown) {
+      logger.error("editMessage failed", "useMessages", err);
+      throw err;
+    }
+  }, []);
 
-  // Delete a message
   const deleteMessage = useCallback(async (messageId: string) => {
     try {
       await messagesApi.deleteMessage(messageId);
       setMessages((prev) => prev.filter((m) => m.id !== messageId));
-    } catch (err) {
-      console.error("Failed to delete message:", err);
+    } catch (err: unknown) {
+      logger.error("deleteMessage failed", "useMessages", err);
     }
   }, []);
 

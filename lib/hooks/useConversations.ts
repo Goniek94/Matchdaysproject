@@ -1,15 +1,28 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type {
-  Conversation,
-  MessageFolder,
-} from "@/types/features/messages.types";
+import type { Conversation, MessageFolder } from "@/types/features/messages.types";
 import * as messagesApi from "@/lib/api/messages";
+import { logger } from "@/lib/logger";
 
-/**
- * Hook for managing conversations list
- */
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (
+    err &&
+    typeof err === "object" &&
+    "response" in err &&
+    err.response &&
+    typeof err.response === "object" &&
+    "data" in err.response &&
+    err.response.data &&
+    typeof err.response.data === "object" &&
+    "message" in err.response.data &&
+    typeof (err.response.data as Record<string, unknown>).message === "string"
+  ) {
+    return (err.response.data as { message: string }).message;
+  }
+  return fallback;
+}
+
 export function useConversations(initialFolder: MessageFolder = "inbox") {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [folder, setFolder] = useState<MessageFolder>(initialFolder);
@@ -22,8 +35,10 @@ export function useConversations(initialFolder: MessageFolder = "inbox") {
       setError(null);
       const data = await messagesApi.getConversations(folder);
       setConversations(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to load conversations");
+    } catch (err: unknown) {
+      const msg = extractErrorMessage(err, "Failed to load conversations");
+      setError(msg);
+      logger.warn("fetchConversations failed", "useConversations", err);
     } finally {
       setLoading(false);
     }
@@ -37,12 +52,10 @@ export function useConversations(initialFolder: MessageFolder = "inbox") {
     try {
       await messagesApi.toggleConversationStar(conversationId);
       setConversations((prev) =>
-        prev.map((c) =>
-          c.id === conversationId ? { ...c, isStarred: !c.isStarred } : c,
-        ),
+        prev.map((c) => (c.id === conversationId ? { ...c, isStarred: !c.isStarred } : c)),
       );
-    } catch (err) {
-      console.error("Failed to toggle star:", err);
+    } catch (err: unknown) {
+      logger.error("toggleStar failed", "useConversations", err);
     }
   }, []);
 
@@ -51,8 +64,8 @@ export function useConversations(initialFolder: MessageFolder = "inbox") {
       try {
         await messagesApi.moveConversation(conversationId, targetFolder);
         setConversations((prev) => prev.filter((c) => c.id !== conversationId));
-      } catch (err) {
-        console.error("Failed to move conversation:", err);
+      } catch (err: unknown) {
+        logger.error("moveToFolder failed", "useConversations", err);
       }
     },
     [],

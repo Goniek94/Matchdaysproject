@@ -181,15 +181,6 @@ export const compressImage = async (
               { type: `image/${outputFormat}`, lastModified: Date.now() },
             );
 
-            const ratio = (
-              ((file.size - compressedFile.size) / file.size) *
-              100
-            ).toFixed(1);
-
-            console.log(
-              `✅ Compressed ${file.name}: ${formatFileSize(file.size)} → ${formatFileSize(compressedFile.size)} (${ratio}% reduction, ${width}x${height})`,
-            );
-
             URL.revokeObjectURL(img.src);
             resolve(compressedFile);
           },

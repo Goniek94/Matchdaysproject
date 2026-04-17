@@ -7,13 +7,11 @@ export default function DangerZone() {
 
   const handleDeactivate = () => {
     if (confirm("Are you sure you want to deactivate your account?")) {
-      console.log("Account deactivation requested");
     }
   };
 
   const handleDelete = () => {
     if (deleteConfirmText === "DELETE") {
-      console.log("Account deletion requested");
       setShowDeleteConfirm(false);
       setDeleteConfirmText("");
     }

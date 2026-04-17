@@ -12,6 +12,7 @@ import { io, Socket } from "socket.io-client";
 import toast from "react-hot-toast";
 import { useAuth } from "./AuthContext";
 import { getUnreadCount } from "@/lib/api/notifications";
+import { logger } from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,25 @@ const NotificationContext = createContext<NotificationContextType>({
 
 export const useNotifications = () => useContext(NotificationContext);
 
+// ─── URL safety ───────────────────────────────────────────────────────────────
+
+/**
+ * Only allow safe relative paths (starting with /) or explicitly trusted origins.
+ * Blocks javascript:, data:, vbscript: and any external URLs we don't control.
+ */
+function isSafeLink(link: string | null | undefined): link is string {
+  if (!link) return false;
+  // Relative path — safe
+  if (link.startsWith("/")) return true;
+  // Absolute URL on the same origin — safe
+  try {
+    const url = new URL(link);
+    return url.origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Toast per notification type ─────────────────────────────────────────────
 
 const TOAST_ICONS: Record<string, string> = {
@@ -60,7 +80,7 @@ function showNotificationToast(notification: IncomingNotification) {
     <div
       className="cursor-pointer"
       onClick={() => {
-        if (notification.link) window.location.href = notification.link;
+        if (isSafeLink(notification.link)) window.location.href = notification.link;
       }}
     >
       <p className="font-semibold text-sm text-gray-900">{notification.title}</p>
@@ -90,8 +110,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     try {
       const res = await getUnreadCount();
       setUnreadCount(res.count ?? 0);
-    } catch {
-      // Silently fail
+    } catch (err) {
+      logger.warn("Failed to fetch unread count", "NotificationContext", err);
     }
   }, [isAuthenticated]);
 
@@ -104,10 +124,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // Strip /api/v1 from the API URL to get the base WebSocket URL
-    const apiUrl =
-      process.env.NEXT_PUBLIC_API_URL?.replace("/api/v1", "") ||
-      "http://localhost:5000";
+    // Derive WebSocket base URL from the API URL env var (fail-fast if missing)
+    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!rawApiUrl) {
+      logger.error(
+        "NEXT_PUBLIC_API_URL is not set — notification socket will not connect.",
+        "NotificationContext",
+      );
+      return;
+    }
+    const apiUrl = rawApiUrl.replace("/api/v1", "");
 
     const socket = io(`${apiUrl}/notifications`, {
       withCredentials: true,         // sends HttpOnly cookie automatically
@@ -120,11 +146,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     socketRef.current = socket;
 
     socket.on("connect", () => {
-      console.log("[Notifications] Socket connected, transport:", socket.io.engine.transport.name);
+      logger.info(
+        `Socket connected (${socket.io.engine.transport.name})`,
+        "NotificationContext",
+      );
     });
 
     socket.on("connect_error", (err) => {
-      console.warn("[Notifications] Connection error:", err.message);
+      logger.warn("Socket connection error", "NotificationContext", err);
     });
 
     socket.on("notification", (notification: IncomingNotification) => {
@@ -133,7 +162,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     });
 
     socket.on("disconnect", (reason) => {
-      console.log("[Notifications] Socket disconnected:", reason);
+      logger.info(`Socket disconnected: ${reason}`, "NotificationContext");
     });
 
     return () => {

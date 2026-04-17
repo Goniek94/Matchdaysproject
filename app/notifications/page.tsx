@@ -238,7 +238,13 @@ export default function NotificationsPage() {
             {notifications.map((notification) => {
               const config = getTypeConfig(notification.type);
               const time = formatTime(notification.createdAt);
-              const hasLink = !!notification.link;
+              // Only treat as a link if it's a safe relative path
+              const isSafeLink = (link: string | null | undefined): link is string => {
+                if (!link) return false;
+                if (link.startsWith("/")) return true;
+                try { return new URL(link).origin === window.location.origin; } catch { return false; }
+              };
+              const hasLink = isSafeLink(notification.link);
 
               const cardContent = (
                 <div className="flex items-start gap-5 p-5">
@@ -314,7 +320,7 @@ export default function NotificationsPage() {
               return hasLink ? (
                 <Link
                   key={notification.id}
-                  href={notification.link!}
+                  href={notification.link as string}
                   onClick={() =>
                     !notification.read && handleMarkAsRead(notification.id)
                   }

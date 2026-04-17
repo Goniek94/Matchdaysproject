@@ -8,7 +8,7 @@ import {
   Lock,
   Loader2,
 } from "lucide-react";
-import { upgradeSubscription } from "@/lib/api/subscription";
+import { initiateSubscription, confirmSubscription } from "@/lib/api/subscription";
 import { useAuth } from "@/lib/context/AuthContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -84,7 +84,11 @@ export function UpgradeModal({ plan, onClose, onSuccess }: UpgradeModalProps) {
     setError(null);
     setLoading(true);
     try {
-      const res = await upgradeSubscription(plan.id, selectedMonths);
+      // Step 1: get a signed payment-intent token from the backend
+      const { paymentToken } = await initiateSubscription(plan.id, selectedMonths);
+
+      // Step 2: confirm the upgrade — backend verifies the token before applying
+      const res = await confirmSubscription(paymentToken);
       if (res.success) {
         await refreshUser();
         onSuccess(res.data.subscriptionTier, res.data.subscriptionExpiry ?? null);

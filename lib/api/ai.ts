@@ -78,7 +78,7 @@ export const analyzeListing = async (
     .slice(0, 8);
 
   if (validPhotos.length === 0) {
-    throw new Error("Brak zdjęć do analizy");
+    throw new Error("No images provided for analysis");
   }
 
   const compressedPhotos = await Promise.all(

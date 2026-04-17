@@ -13,7 +13,6 @@ export default function ProfileSettings() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle form submission
-    console.log("Profile updated:", formData);
   };
 
   return (

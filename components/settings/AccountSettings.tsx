@@ -11,7 +11,6 @@ export default function AccountSettings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Account settings updated:", settings);
   };
 
   return (

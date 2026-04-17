@@ -22,7 +22,6 @@ export default function NotificationSettings() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Notification settings updated:", notifications);
   };
 
   const NotificationToggle = ({

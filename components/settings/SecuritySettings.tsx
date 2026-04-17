@@ -12,7 +12,6 @@ export default function SecuritySettings() {
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Password change requested");
     // Reset form
     setPasswordData({
       currentPassword: "",

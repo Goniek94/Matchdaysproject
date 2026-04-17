@@ -9,6 +9,7 @@ import axios, {
   AxiosInstance,
   InternalAxiosRequestConfig,
 } from "axios";
+import { logger } from "@/lib/logger";
 import { API_URL, REQUEST_TIMEOUT, clearAuthData, getUserData } from "./config";
 
 // Create axios instance
@@ -121,7 +122,7 @@ apiClient.interceptors.response.use(
 
     // ── Handle 431 Request Header Fields Too Large ──
     if (error.response?.status === 431) {
-      console.error("Request headers too large. Clearing auth data.");
+      logger.error("Request headers too large — clearing auth data", "apiClient");
       clearAuthData();
     }
 
@@ -129,7 +130,7 @@ apiClient.interceptors.response.use(
     if (!error.response) {
       return Promise.reject({
         success: false,
-        message: "Błąd połączenia z serwerem. Sprawdź połączenie internetowe.",
+        message: "Connection error. Please check your internet connection.",
         error: error.message,
         status: 0,
       });
@@ -140,18 +141,20 @@ apiClient.interceptors.response.use(
   },
 );
 
-/**
- * Build a consistent error object from AxiosError
- */
-function buildError(error: any) {
-  const responseData = error?.response?.data as any;
+interface ApiErrorShape {
+  message?: string;
+  error?: string;
+}
+
+function buildError(error: AxiosError) {
+  const responseData = error.response?.data as ApiErrorShape | undefined;
   return {
     success: false,
-    message:
-      responseData?.message || error?.message || "Wystąpił nieoczekiwany błąd",
-    error: responseData?.error || error?.message,
-    status: error?.response?.status,
+    message: responseData?.message ?? error.message ?? "An unexpected error occurred",
+    error: responseData?.error ?? error.message,
+    status: error.response?.status,
   };
 }
+
 
 export default apiClient;

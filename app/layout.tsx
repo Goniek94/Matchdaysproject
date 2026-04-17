@@ -11,7 +11,13 @@ import { Toaster } from "react-hot-toast";
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",           // renders immediately with fallback, swaps when loaded
+  fallback: ["system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+  preload: true,
+});
 
 export const metadata: Metadata = {
   title: "Matchdays - Sports Memorabilia Marketplace",

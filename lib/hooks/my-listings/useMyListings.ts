@@ -7,6 +7,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { logger } from "@/lib/logger";
 import {
   getMyAuctions,
   updateAuction,
@@ -170,7 +171,8 @@ export function useMyListings(): UseMyListingsReturn {
     try {
       const result = await updateMutation.mutateAsync({ id, payload });
       return result.success;
-    } catch {
+    } catch (err) {
+      logger.error("Failed to update listing", "useMyListings", err);
       return false;
     }
   };
@@ -179,7 +181,8 @@ export function useMyListings(): UseMyListingsReturn {
     try {
       const result = await deleteMutation.mutateAsync(id);
       return result.success;
-    } catch {
+    } catch (err) {
+      logger.error("Failed to delete listing", "useMyListings", err);
       return false;
     }
   };
@@ -188,7 +191,8 @@ export function useMyListings(): UseMyListingsReturn {
     try {
       const result = await cancelMutation.mutateAsync(id);
       return result.success;
-    } catch {
+    } catch (err) {
+      logger.error("Failed to cancel listing", "useMyListings", err);
       return false;
     }
   };
@@ -200,7 +204,8 @@ export function useMyListings(): UseMyListingsReturn {
     try {
       const result = await relistMutation.mutateAsync({ id, payload });
       return result.success;
-    } catch {
+    } catch (err) {
+      logger.error("Failed to relist listing", "useMyListings", err);
       return false;
     }
   };

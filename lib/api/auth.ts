@@ -109,9 +109,8 @@ export const logout = async (): Promise<ApiResponse> => {
   try {
     const response = await apiClient.post<ApiResponse>("/auth/logout");
     return response.data;
-  } catch (error: any) {
-    // Ignore errors during logout - we always clean up locally
-    console.error("Logout API error (ignored):", error?.message);
+  } catch {
+    // Ignore errors during logout — local cleanup always happens in finally
     return { success: false, message: "Logout API error" };
   } finally {
     // Always clear local data, regardless of API result
