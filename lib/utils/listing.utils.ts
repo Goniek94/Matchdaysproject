@@ -5,6 +5,19 @@ import type {
 } from "@/types/features/listing.types";
 import { CATEGORIES } from "@/lib/constants/listing.constants";
 
+// Definiujemy kształt danych, których spodziewamy się w formularzu
+// Partial sprawia, że wszystkie pola są opcjonalne, co pasuje do formularza krok po kroku
+interface ListingFormData {
+  category?: string;
+  completionMode?: string;
+  photos?: Photo[];
+  title?: string;
+  description?: string;
+  listingType?: string;
+  price?: number;
+  startPrice?: number;
+}
+
 export const getCategoryById = (id: string): Category | undefined => {
   return CATEGORIES.find((cat) => cat.id === id);
 };
@@ -29,7 +42,9 @@ export const hasRequiredPhotos = (
 ): boolean => {
   const required = getRequiredPhotosForCategory(categoryId);
   const photoTypes = photos.map((p) => p.typeHint).filter(Boolean);
-  return required.every((reqType) => photoTypes.includes(reqType));
+  return required.every((reqType) =>
+    photoTypes.includes(reqType as PhotoTypeHint),
+  );
 };
 
 export const getMissingRequiredPhotos = (
@@ -38,7 +53,9 @@ export const getMissingRequiredPhotos = (
 ): PhotoTypeHint[] => {
   const required = getRequiredPhotosForCategory(categoryId);
   const photoTypes = photos.map((p) => p.typeHint).filter(Boolean);
-  return required.filter((reqType) => !photoTypes.includes(reqType));
+  return required.filter(
+    (reqType) => !photoTypes.includes(reqType as PhotoTypeHint),
+  );
 };
 
 export const getPublicationStatus = (
@@ -49,18 +66,29 @@ export const getPublicationStatus = (
   return "FLAGGED";
 };
 
-export const isStepValid = (step: number, data: Record<string, unknown>): boolean => {
+/**
+ * Walidacja kroków formularza bez użycia 'any'
+ * Używamy bezpiecznego rzutowania na zdefiniowany interfejs.
+ */
+export const isStepValid = (
+  step: number,
+  data: Record<string, unknown>,
+): boolean => {
+  // Rzutujemy dane na nasz interfejs, aby TS wiedział jakie pola mogą tam być
+  const form = data as ListingFormData;
+
   switch (step) {
     case 1:
-      return !!data.category;
+      return !!form.category;
     case 2:
-      return !!data.completionMode;
+      return !!form.completionMode;
     case 3:
-      return data.photos.length >= 5;
+      // Teraz TS wie, że photos to Photo[] i posiada właściwość .length
+      return Array.isArray(form.photos) && form.photos.length >= 5;
     case 4:
-      return !!data.title && !!data.description;
+      return !!form.title && !!form.description;
     case 5:
-      return !!data.listingType && (!!data.price || !!data.startPrice);
+      return !!form.listingType && (!!form.price || !!form.startPrice);
     default:
       return false;
   }
