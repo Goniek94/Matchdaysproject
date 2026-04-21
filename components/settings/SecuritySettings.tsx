@@ -112,7 +112,7 @@ export default function SecuritySettings() {
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <p className="text-sm text-gray-700 mb-3">
               Add an extra layer of security to your account. When enabled,
-              you'll need to enter a code from your phone in addition to your
+              you&apos;ll need to enter a code from your phone in addition to your
               password.
             </p>
             <div className="flex items-center justify-between">

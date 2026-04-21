@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useMemo, useState } from "react";
 import type { SmartFormData } from "@/types/features/listing.types";

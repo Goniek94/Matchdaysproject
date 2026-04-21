@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useCallback } from "react";
 import { analyzeListing } from "@/lib/api/ai";

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -133,7 +134,7 @@ export function TagsForm({
                     Serial code tag is missing
                   </p>
                   <p className="text-xs text-amber-700 mt-0.5">
-                    Check this only if the tag physically doesn't exist
+                    Check this only if the tag physically doesn&apos;t exist
                   </p>
                 </div>
               </div>

@@ -226,7 +226,7 @@ export const getFavoriteIds = async (): Promise<string[]> => {
 export const updateListingVerification = async (
   id: string,
   authenticityScore: number,
-  aiData: Record<string, any>,
+  aiData: Record<string, unknown>,
 ): Promise<void> => {
   const verificationStatus =
     authenticityScore >= 90

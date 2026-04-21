@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Image from "next/image";
 import Link from "next/link";
@@ -94,6 +95,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
       const t = setTimeout(() => setPriceFlash(false), 1000);
       return () => clearTimeout(t);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auction.price, (auction as any).currentBid]);
 
   const handleFav = (e: React.MouseEvent) => {

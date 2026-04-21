@@ -141,7 +141,7 @@ export function UpgradeModal({ plan, onClose, onSuccess }: UpgradeModalProps) {
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
               <Check size={28} className="text-emerald-400" />
             </div>
-            <h3 className="text-xl font-black text-white mb-2">You're all set!</h3>
+            <h3 className="text-xl font-black text-white mb-2">You&apos;re all set!</h3>
             <p className="text-sm text-white/50 mb-6">
               Welcome to <span style={{ color: plan.badgeText }}>{plan.name}</span>. Your subscription is now active.
             </p>

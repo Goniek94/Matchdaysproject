@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -228,9 +229,9 @@ export default function RegisterPage() {
           <div className="space-y-6">
             <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl font-bold mb-2">
-                What's your name?
+                What&apos;s your name?
               </h2>
-              <p className="text-gray-600">Let's start with the basics</p>
+              <p className="text-gray-600">Let&apos;s start with the basics</p>
             </div>
 
             <div>

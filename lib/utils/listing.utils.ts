@@ -49,7 +49,7 @@ export const getPublicationStatus = (
   return "FLAGGED";
 };
 
-export const isStepValid = (step: number, data: any): boolean => {
+export const isStepValid = (step: number, data: Record<string, unknown>): boolean => {
   switch (step) {
     case 1:
       return !!data.category;

@@ -15,8 +15,9 @@ import React, {
 } from "react";
 import { authApi } from "@/lib/api";
 import { clearAuthData, setAuthData } from "@/lib/api/config";
-import type { UserData } from "@/lib/api/config";
+import type { UserData, ApiResponse } from "@/lib/api/config";
 import type { RegisterData } from "@/lib/api/auth";
+import { logger } from "@/lib/logger";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,8 +27,8 @@ interface AuthContextValue {
   isLoading: boolean;
   error: string | null;
 
-  login: (emailOrUsername: string, password: string) => Promise<any>;
-  register: (userData: RegisterData) => Promise<any>;
+  login: (emailOrUsername: string, password: string) => Promise<ApiResponse<UserData>>;
+  register: (userData: RegisterData) => Promise<ApiResponse<UserData>>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<UserData | null>;
 
@@ -94,10 +95,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         handleLogoutCleanup();
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const status = (err as { status?: number; response?: { status?: number } })?.status
+        ?? (err as { response?: { status?: number } })?.response?.status;
       // Silently ignore 401 - user is simply not logged in
-      if (err?.status !== 401 && err?.response?.status !== 401) {
-        console.error("Auth initialization failed:", err);
+      if (status !== 401) {
+        logger.warn("Auth initialization failed", "AuthContext", err);
       }
       handleLogoutCleanup();
     } finally {
@@ -129,8 +132,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       return response;
-    } catch (err: any) {
-      const message = err?.message || "Login failed. Please try again.";
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message || "Login failed. Please try again.";
       setError(message);
       throw err;
     } finally {
@@ -157,8 +160,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       return response;
-    } catch (err: any) {
-      const message = err?.message || "Registration failed. Please try again.";
+    } catch (err: unknown) {
+      const message = (err as { message?: string })?.message || "Registration failed. Please try again.";
       setError(message);
       throw err;
     } finally {

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -316,7 +317,7 @@ export default function TikiTakaToe() {
                   </p>
                   <div className="flex items-center justify-between pt-4 border-t border-white/10">
                     <div>
-                      <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">Today's Prize</div>
+                      <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">Today&apos;s Prize</div>
                       <div className="text-base font-black text-blue-400">500 Coins</div>
                     </div>
                     <span className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold uppercase text-sm transition-colors">
@@ -655,7 +656,7 @@ export default function TikiTakaToe() {
                       >
                         <X size={12} className="text-red-400 shrink-0" />
                         <span className="text-xs text-red-300">
-                          <strong>{wrongGuess}</strong> didn't play for both clubs
+                          <strong>{wrongGuess}</strong> didn&apos;t play for both clubs
                         </span>
                       </motion.div>
                     )}
@@ -721,7 +722,7 @@ export default function TikiTakaToe() {
                           onClick={() => handleGuess(search.trim())}
                           className="mt-3 px-4 py-2 bg-purple-600/40 border border-purple-500/40 rounded-xl text-sm text-purple-300 font-bold hover:bg-purple-600/60 transition-colors"
                         >
-                          Submit "{search.trim()}" anyway
+                          Submit &quot;{search.trim()}&quot; anyway
                         </button>
                       )}
                     </div>

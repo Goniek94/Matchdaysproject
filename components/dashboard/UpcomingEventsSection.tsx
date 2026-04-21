@@ -158,7 +158,7 @@ export default function UpcomingEventsSection() {
       <div className="mt-6 p-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-white">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-bold mb-1">Don't miss out!</h3>
+            <h3 className="font-bold mb-1">Don&apos;t miss out!</h3>
             <p className="text-sm text-white/90">
               Join events to earn extra points and prizes
             </p>

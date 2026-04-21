@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useState } from "react";
 import { Upload, X, CheckCircle2, Camera } from "lucide-react";

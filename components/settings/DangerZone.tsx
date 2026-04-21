@@ -131,7 +131,7 @@ export default function DangerZone() {
         {/* Info Box */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-900">
-            <span className="font-semibold">Need help?</span> If you're having
+            <span className="font-semibold">Need help?</span> If you&apos;re having
             issues with your account, please{" "}
             <a href="/contact" className="underline hover:text-blue-700">
               contact our support team

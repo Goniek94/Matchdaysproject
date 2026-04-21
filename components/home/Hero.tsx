@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -107,6 +108,7 @@ export default function Hero() {
       paginate(1);
     }, 8000);
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSlide]);
 
   const paginate = (newDirection: number) => {

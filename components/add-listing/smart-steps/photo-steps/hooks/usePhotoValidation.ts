@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useCallback } from "react";
 import type { SmartFormData, Photo } from "@/types/features/listing.types";

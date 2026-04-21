@@ -218,7 +218,7 @@ export default function PublicProfilePage() {
       <div className="text-center">
         <p className="text-4xl mb-3">🔍</p>
         <h2 className="text-xl font-bold text-gray-900 mb-1">User not found</h2>
-        <p className="text-gray-400 text-sm mb-5">This profile doesn't exist or has been removed</p>
+        <p className="text-gray-400 text-sm mb-5">This profile doesn&apos;t exist or has been removed</p>
         <Link href="/auctions" className="inline-flex items-center gap-1.5 text-sm font-semibold text-black underline underline-offset-2">
           <ArrowLeft size={14}/> Back to auctions
         </Link>

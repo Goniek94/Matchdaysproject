@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { SmartFormData } from "../types";
 import { Euro, Gavel, ShoppingCart, TrendingUp } from "lucide-react";

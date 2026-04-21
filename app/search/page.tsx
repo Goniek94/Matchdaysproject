@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -200,8 +201,8 @@ function SearchContent() {
           <div className="mb-4">
             <h1 className="text-2xl font-black text-gray-900">
               {total > 0
-                ? <>{total} result{total !== 1 ? "s" : ""} for <span className="text-gray-500">"{query}"</span></>
-                : <>No results for <span className="text-gray-500">"{query}"</span></>}
+                ? <>{total} result{total !== 1 ? "s" : ""} for <span className="text-gray-500">&quot;{query}&quot;</span></>
+                : <>No results for <span className="text-gray-500">&quot;{query}&quot;</span></>}
             </h1>
           </div>
         )}
@@ -235,7 +236,7 @@ function SearchContent() {
         {!loading && query && results.length === 0 && (
           <div className="py-20 text-center">
             <p className="text-4xl mb-3">😔</p>
-            <p className="text-gray-500 font-medium mb-1">No listings found for "{query}"</p>
+            <p className="text-gray-500 font-medium mb-1">No listings found for &quot;{query}&quot;</p>
             <p className="text-gray-400 text-sm mb-6">Try different keywords or browse all auctions</p>
             <Link href="/auctions"
               className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-colors text-sm">

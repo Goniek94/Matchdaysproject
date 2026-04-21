@@ -257,7 +257,7 @@ export default function ArenaSection() {
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-red-600 animate-pulse"></div>
                       <span className="text-red-600 font-bold text-sm uppercase">
-                        Live • {match.minute}'
+                        Live • {match.minute}&apos;
                       </span>
                       <span className="text-gray-500 text-sm">
                         {match.league}

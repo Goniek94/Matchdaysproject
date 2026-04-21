@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";

@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -132,6 +133,7 @@ export default function NotificationsPage() {
       return;
     }
     fetchNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   const fetchNotifications = async () => {

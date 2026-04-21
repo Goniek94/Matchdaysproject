@@ -89,8 +89,8 @@ export default function AboutUsSection() {
                 AI-Powered Authenticity.
               </h3>
               <p className="text-gray-400 text-sm sm:text-base md:text-lg max-w-sm">
-                Our "Smart Upload" algorithms analyze stitching, codes, and
-                patterns in real-time. Fakes don't stand a chance.
+                Our &quot;Smart Upload&quot; algorithms analyze stitching, codes, and
+                patterns in real-time. Fakes don&apos;t stand a chance.
               </p>
             </div>
 

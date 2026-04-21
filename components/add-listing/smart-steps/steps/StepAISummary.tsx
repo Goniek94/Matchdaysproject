@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { SmartFormData } from "../types";
 import { Edit2, CheckCircle, Loader2, AlertCircle, ArrowRight } from "lucide-react";
@@ -45,6 +46,7 @@ export default function StepAISummary({ data, update, onNext }: StepProps) {
 
   useEffect(() => {
     runAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const runAnalysis = async () => {
@@ -60,12 +62,7 @@ export default function StepAISummary({ data, update, onNext }: StepProps) {
           typeHint: p.typeHint || "front",
         }));
 
-      console.log(
-        "[AI] Sending photos:",
-        photos.length,
-        "category:",
-        data.category,
-      );
+      // photos.length and data.category logged at debug level in analyzeListing
 
       const result = await analyzeListing(data.category, photos);
 

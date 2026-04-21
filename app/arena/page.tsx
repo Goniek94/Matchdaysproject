@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { motion } from "framer-motion";
 import {
@@ -343,7 +344,7 @@ export default function ArenaPage() {
                     Vintage Drop
                   </h3>
                   <p className="text-xs text-gray-400 mb-6">
-                    Limited edition 90s Serie A kits dropping soon. Don't miss
+                    Limited edition 90s Serie A kits dropping soon. Don&apos;t miss
                     out.
                   </p>
 

@@ -60,8 +60,8 @@ export function useMyListings(): UseMyListingsReturn {
       } else {
         setError(response.message || "Failed to load listings");
       }
-    } catch (err: any) {
-      setError(err?.message || "Failed to load listings");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message || "Failed to load listings");
     } finally {
       setLoading(false);
     }
@@ -103,8 +103,8 @@ export function useMyListings(): UseMyListingsReturn {
         return true;
       }
       return false;
-    } catch (err: any) {
-      setError(err?.message || "Failed to update listing");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message || "Failed to update listing");
       return false;
     }
   };
@@ -120,8 +120,8 @@ export function useMyListings(): UseMyListingsReturn {
         return true;
       }
       return false;
-    } catch (err: any) {
-      setError(err?.message || "Failed to delete listing");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message || "Failed to delete listing");
       return false;
     }
   };
@@ -141,8 +141,8 @@ export function useMyListings(): UseMyListingsReturn {
         return true;
       }
       return false;
-    } catch (err: any) {
-      setError(err?.message || "Failed to cancel listing");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message || "Failed to cancel listing");
       return false;
     }
   };
@@ -171,8 +171,8 @@ export function useMyListings(): UseMyListingsReturn {
         return true;
       }
       return false;
-    } catch (err: any) {
-      setError(err?.message || "Failed to relist listing");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message || "Failed to relist listing");
       return false;
     }
   };

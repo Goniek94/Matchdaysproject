@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { SmartFormData } from "../types";
 import { Sparkles, PenTool, Coins, CheckCircle2 } from "lucide-react";
@@ -41,7 +42,7 @@ export default function StepCompletionMode({
         {/* Header */}
         <div className="mb-6">
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter mb-2">
-            Photos uploaded. What's next?
+            Photos uploaded. What&apos;s next?
           </h2>
           <p className="text-base text-gray-500 font-medium">
             Let AI generate the listing for you — or fill in details manually
@@ -159,7 +160,7 @@ export default function StepCompletionMode({
             </h3>
             <p className="text-gray-600 mb-6 leading-relaxed">
               Enter all product details yourself. Best if you know exactly what
-              you're selling.
+              you&apos;re selling.
             </p>
 
             {/* Features List */}

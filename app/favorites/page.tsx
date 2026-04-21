@@ -59,7 +59,7 @@ export default function FavoritesPage() {
             <p className="text-gray-500 text-sm max-w-sm mb-8">
               Browse auctions and click{" "}
               <span className="font-semibold text-gray-700">
-                "Add to Watchlist"
+                &quot;Add to Watchlist&quot;
               </span>{" "}
               to save items here for easy access.
             </p>
