@@ -8,22 +8,35 @@ import {
 import type { UploadedImage } from "@/lib/utils/image.utils";
 import { logger } from "@/lib/logger";
 
-// ── ENV validation (fail-fast) ────────────────────────────────────────────────
-// These are public/anon keys — safe to expose in the browser.
-// Missing values here mean the app is misconfigured, not that a secret leaked.
+// ── Lazy client factory ───────────────────────────────────────────────────────
+// Supabase is browser-only (image upload). We delay validation until first use
+// so that Next.js static prerendering doesn't throw during the build.
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+let _supabase: ReturnType<typeof createClient> | null = null;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Missing Supabase environment variables.\n" +
-    "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.\n" +
-    "See .env.example for the full list of required variables.",
-  );
+function getSupabaseClient() {
+  if (_supabase) return _supabase;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      "Missing Supabase environment variables.\n" +
+      "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local.\n" +
+      "See .env.example for the full list of required variables.",
+    );
+  }
+
+  _supabase = createClient(supabaseUrl, supabaseAnonKey);
+  return _supabase;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_target, prop) {
+    return (getSupabaseClient() as never as Record<string | symbol, unknown>)[prop];
+  },
+});
 
 // ============================================
 // FILE-BASED UPLOAD WITH COMPRESSION

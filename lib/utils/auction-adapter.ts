@@ -145,11 +145,7 @@ export const mapFormDataToCreateAuctionDto = (
 
   // Resolve listing type
   const listingType: AuctionListingType =
-    data.listingType === "buy_now"
-      ? "buy_now"
-      : data.buyNowPrice && data.startingBid
-        ? "auction_buy_now"
-        : "auction";
+    data.listingType === "buy_now" ? "buy_now" : "auction";
 
   // Resolve size — prefer form value, fallback to AI suggestion
   const resolvedSize = data.size?.trim() || data.aiData?.size?.trim() || "M";
@@ -157,22 +153,19 @@ export const mapFormDataToCreateAuctionDto = (
   // Resolve starting bid
   const startingBid = (() => {
     if (data.listingType === "buy_now") {
-      const buyNow = parseFloat(String(data.buyNowPrice)) || 10;
+      const buyNow = parseFloat(String(data.price)) || 10;
       return Math.max(1, Math.floor(buyNow * 0.9));
     }
-    return parseFloat(String(data.startingBid)) || 10;
+    return parseFloat(String(data.startPrice)) || 10;
   })();
 
   // Resolve buy now price
   const buyNowPrice = (() => {
     if (data.listingType === "buy_now") {
-      const price = parseFloat(String(data.buyNowPrice));
+      const price = parseFloat(String(data.price));
       return price > 0 ? price : undefined;
     }
-    // auction_buy_now: buyNowPrice must be > startingBid
-    const buyNow = parseFloat(String(data.buyNowPrice));
-    if (!buyNow) return undefined;
-    return buyNow > startingBid ? buyNow : startingBid + 1;
+    return undefined;
   })();
 
   return {
@@ -217,7 +210,7 @@ export const mapFormDataToCreateAuctionDto = (
 
     // Pricing
     startingBid,
-    bidIncrement: parseFloat(String(data.bidIncrement)) || 5,
+    bidIncrement: parseFloat(String(data.bidStep)) || 5,
     buyNowPrice,
 
     // Timing

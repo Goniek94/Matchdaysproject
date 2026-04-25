@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { SmartFormData } from "../types";
+import { SmartFormData as BaseSmartFormData } from "../types";
 import {
   Euro,
   Gavel,
@@ -12,9 +12,34 @@ import {
 import { CURRENCY } from "@/lib/constants/listing.constants";
 import { cn } from "@/lib/utils";
 
+// Pancerne rozwiązanie: usuwamy z BaseSmartFormData WSZYSTKIE klucze,
+// które definiujemy niżej. Zero szans na jakikolwiek konflikt typów.
+export interface SmartFormData extends Omit<
+  BaseSmartFormData,
+  | "aiData"
+  | "duration"
+  | "listingType"
+  | "price"
+  | "startingBid"
+  | "bidIncrement"
+  | "buyNowPrice"
+> {
+  startingBid?: string | number;
+  bidIncrement?: string | number;
+  buyNowPrice?: string | number;
+  listingType?: "auction" | "buy_now" | string;
+  duration?: string;
+  price?: string | number;
+  aiData?: {
+    priceSuggested?: number;
+    priceMin?: number;
+    [key: string]: any;
+  } | null;
+}
+
 interface StepProps {
   data: SmartFormData;
-  update: (field: keyof SmartFormData, val: any) => void;
+  update: (field: any, val: any) => void;
 }
 
 export default function StepPricing({ data, update }: StepProps) {
@@ -200,7 +225,8 @@ export default function StepPricing({ data, update }: StepProps) {
 
                 {aiSuggestedPrice && (
                   <p className="text-sm text-emerald-600 bg-emerald-50 px-4 py-3 rounded-xl">
-                    💡 AI suggests starting around €{aiSuggestedPrice}
+                    💡 AI suggests starting around {CURRENCY.SYMBOL}
+                    {aiSuggestedPrice}
                   </p>
                 )}
               </>
@@ -226,7 +252,8 @@ export default function StepPricing({ data, update }: StepProps) {
                   </div>
                   {aiSuggestedPrice && (
                     <p className="text-sm text-emerald-600 mt-2">
-                      💡 AI suggested price: €{aiSuggestedPrice}
+                      💡 AI suggested price: {CURRENCY.SYMBOL}
+                      {aiSuggestedPrice}
                     </p>
                   )}
                 </div>
