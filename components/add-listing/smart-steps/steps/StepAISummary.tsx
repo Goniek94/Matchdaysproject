@@ -1,10 +1,11 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { SmartFormData } from "../types";
-import { Edit2, CheckCircle, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { useState, useEffect } from "react";
+import { CheckCircle2, AlertTriangle, Loader2, AlertCircle, ChevronRight, TrendingUp } from "lucide-react";
+import { SmartFormData } from "../types";
 import { analyzeListing, AIAnalysisResult } from "@/lib/api/ai";
+import { cn } from "@/lib/utils";
 
 interface StepProps {
   data: SmartFormData;
@@ -12,39 +13,58 @@ interface StepProps {
   onNext?: () => void;
 }
 
-/**
- * Normalize AI condition string to a short condition code.
- * AI may return long descriptions like "Used - Good. Visible creasing..."
- * We extract the first matching keyword and map it to our condition IDs.
- */
 function normalizeCondition(raw: string): string {
   if (!raw) return "good";
   const lower = raw.toLowerCase();
-  if (lower.includes("brand new with tags") || lower.startsWith("bnwt"))
-    return "bnwt";
-  if (lower.includes("brand new without tags") || lower.startsWith("bnwot"))
-    return "bnwot";
-  if (lower.includes("excellent") || lower.includes("like new"))
-    return "excellent";
+  if (lower.includes("brand new with tags") || lower.startsWith("bnwt")) return "bnwt";
+  if (lower.includes("brand new without tags") || lower.startsWith("bnwot")) return "bnwot";
+  if (lower.includes("excellent") || lower.includes("like new")) return "excellent";
   if (lower.includes("good")) return "good";
   if (lower.includes("fair") || lower.includes("visible wear")) return "fair";
   if (lower.includes("poor") || lower.includes("heavy wear")) return "poor";
-  // Fallback: return first word if it matches a known id
   const firstWord = raw.split(/[\s\-.,]/)[0].toLowerCase();
-  if (
-    ["bnwt", "bnwot", "excellent", "good", "fair", "poor"].includes(firstWord)
-  )
-    return firstWord;
-  return "good";
+  return ["bnwt", "bnwot", "excellent", "good", "fair", "poor"].includes(firstWord)
+    ? firstWord
+    : "good";
+}
+
+// Split authenticityNotes into green and red flags based on content
+function parseFlags(notes: string): { green: string[]; red: string[] } {
+  const RED_KEYWORDS = [
+    "not found", "missing", "unclear", "could not", "unable", "no serial",
+    "no tag", "inconsistent", "concern", "warning", "suspect", "replica",
+    "possible", "potential", "fake", "unverified", "cannot", "failed",
+  ];
+
+  const lines = notes
+    .split(/\n/)
+    .map((l) => l.replace(/^\*+\s*|\d+\.\s*/, "").trim())
+    .filter((l) => l.length > 5);
+
+  const green: string[] = [];
+  const red: string[] = [];
+
+  for (const line of lines) {
+    const lower = line.toLowerCase();
+    const isRed = RED_KEYWORDS.some((kw) => lower.includes(kw));
+    if (isRed) red.push(line);
+    else green.push(line);
+  }
+
+  return { green, red };
 }
 
 export default function StepAISummary({ data, update, onNext }: StepProps) {
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<AIAnalysisResult | null>(null);
 
   useEffect(() => {
+    if (data.aiData) {
+      setAiResult(data.aiData);
+      setIsLoading(false);
+      return;
+    }
     runAnalysis();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -52,40 +72,20 @@ export default function StepAISummary({ data, update, onNext }: StepProps) {
   const runAnalysis = async () => {
     setIsLoading(true);
     setError(null);
-
     try {
-      // Collect photos from the form - data.photos contains all uploaded photos
       const photos = (data.photos || [])
         .filter((p) => p.url && p.url.length > 0)
-        .map((p) => ({
-          url: p.url,
-          typeHint: p.typeHint || "front",
-        }));
-
-      // photos.length and data.category logged at debug level in analyzeListing
+        .map((p) => ({ url: p.url, typeHint: p.typeHint || "front" }));
 
       const result = await analyzeListing(data.category, photos);
 
       if (result.success && result.data) {
         const ai = result.data;
         setAiResult(ai);
-
-        // Store full AI analysis data for SmartFormSummary
         update("aiData", ai);
-
-        // Set verification status based on authenticity score
-        if (ai.authenticityScore >= 80) {
-          update("verificationStatus", "AI_VERIFIED_HIGH");
-        } else if (ai.authenticityScore >= 60) {
-          update("verificationStatus", "AI_VERIFIED_MEDIUM");
-        } else {
-          update("verificationStatus", "FLAGGED");
-        }
-
-        // Write AI results to SmartFormData fields
+        // Pre-fill form fields for the edit step
         update("title", ai.title);
         update("description", ai.description);
-        // AI overrides user-selected sport + itemCategory with what it detected from photos
         update("sport", ai.sport || "");
         update("itemCategory", ai.itemCategory || "");
         update("league", ai.league || "");
@@ -94,10 +94,7 @@ export default function StepAISummary({ data, update, onNext }: StepProps) {
         update("season", ai.season);
         update("model", ai.model);
         update("size", ai.size);
-        update("sizeEU", ai.sizeEU || "");
-        update("sizeUK", ai.sizeUK || "");
         update("productionYear", ai.productionYear || "");
-        // Normalize condition: take only the first word/code (e.g. "Used - Good. Visible..." -> "good")
         update("condition", normalizeCondition(ai.condition));
         update("countryOfProduction", ai.countryOfProduction || "");
         update("serialCode", ai.serialCode || "");
@@ -107,50 +104,39 @@ export default function StepAISummary({ data, update, onNext }: StepProps) {
         setError("AI analysis failed. Please try again.");
       }
     } catch (err: any) {
-      console.error("[AI] Error:", err);
-      if (err?.response?.status === 401) {
-        setError("You need to be logged in to use AI analysis.");
-      } else if (err?.response?.status === 429) {
-        setError("Too many requests. Please wait a moment and try again.");
-      } else {
-        setError(
-          err?.response?.data?.message ||
-            err?.message ||
-            "Could not connect to AI service.",
-        );
-      }
+      setError(err?.response?.data?.message || err?.message || "Could not connect to AI service.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- LOADING ---
+  // ── Loading ─────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="bg-white rounded-3xl shadow-2xl p-12 border border-gray-100 flex flex-col items-center justify-center min-h-[400px]">
-          <Loader2 className="w-16 h-16 text-blue-600 animate-spin mb-6" />
-          <h2 className="text-2xl font-black text-gray-900 mb-2">
-            Analyzing Your Photos
-          </h2>
-          <p className="text-gray-500 text-center max-w-sm">
-            Identifying brand, team, season and estimating value...
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center justify-center min-h-[400px] p-12">
+          <div className="relative mb-8">
+            <div className="w-20 h-20 rounded-full border-4 border-gray-100 flex items-center justify-center">
+              <Loader2 className="w-10 h-10 text-black animate-spin" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tighter mb-2">Analyzing your photos</h2>
+          <p className="text-gray-400 text-center text-sm max-w-xs leading-relaxed">
+            Checking authenticity, identifying item details and estimating market value...
           </p>
         </div>
       </div>
     );
   }
 
-  // --- ERROR ---
+  // ── Error ────────────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="bg-white rounded-3xl shadow-2xl p-12 border border-red-100 flex flex-col items-center justify-center min-h-[400px]">
-          <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
-          <h2 className="text-2xl font-black text-gray-900 mb-2">
-            Analysis Failed
-          </h2>
-          <p className="text-red-600 text-center max-w-sm mb-8">{error}</p>
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="bg-white rounded-3xl shadow-2xl border border-red-100 flex flex-col items-center justify-center min-h-[360px] p-12">
+          <AlertCircle className="w-14 h-14 text-red-500 mb-4" />
+          <h2 className="text-2xl font-black text-gray-900 mb-2">Analysis Failed</h2>
+          <p className="text-red-600 text-center text-sm max-w-sm mb-8">{error}</p>
           <button
             onClick={runAnalysis}
             className="px-8 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all"
@@ -164,304 +150,121 @@ export default function StepAISummary({ data, update, onNext }: StepProps) {
 
   if (!aiResult) return null;
 
-  // --- WYNIK ---
+  const score = aiResult.authenticityScore;
+  const scoreColor = score >= 80 ? "text-green-600" : score >= 60 ? "text-yellow-600" : "text-red-600";
+  const barColor = score >= 80 ? "bg-green-500" : score >= 60 ? "bg-yellow-500" : "bg-red-500";
+  const borderColor = score >= 80 ? "border-green-200 bg-green-50" : score >= 60 ? "border-yellow-200 bg-yellow-50" : "border-red-200 bg-red-50";
+  const { green, red } = parseFlags(aiResult.authenticityNotes);
+
   return (
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-100">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl">
-              <CheckCircle className="text-white" size={32} />
-            </div>
-            <div>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter">
-                AI Analysis Complete
-              </h2>
-              <p className="text-base text-gray-500 font-medium">
-                Review and edit the generated details
-              </p>
-            </div>
+    <div className="w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+
+      {/* Score card */}
+      <div className={cn("rounded-3xl border-2 p-7 shadow-sm", borderColor)}>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-0.5">
+              Authenticity Score
+            </p>
+            <p className={cn("text-6xl font-black tracking-tighter leading-none", scoreColor)}>
+              {score}
+              <span className="text-2xl text-gray-400 font-bold">/100</span>
+            </p>
+          </div>
+          <div className={cn(
+            "w-20 h-20 rounded-full flex items-center justify-center text-4xl",
+            score >= 80 ? "bg-green-100" : score >= 60 ? "bg-yellow-100" : "bg-red-100",
+          )}>
+            {score >= 80 ? "✅" : score >= 60 ? "⚠️" : "❌"}
           </div>
         </div>
-
-        {/* Authenticity Score */}
-        <div
-          className={`p-5 rounded-2xl border-2 mb-6 ${
-            aiResult.verificationRoute === "auto_publish"
-              ? "bg-green-50 border-green-200"
-              : aiResult.verificationRoute === "manual_review"
-                ? "bg-yellow-50 border-yellow-200"
-                : "bg-red-50 border-red-200"
-          }`}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <CheckCircle
-                size={20}
-                className={
-                  aiResult.verificationRoute === "auto_publish"
-                    ? "text-green-600"
-                    : aiResult.verificationRoute === "manual_review"
-                      ? "text-yellow-600"
-                      : "text-red-600"
-                }
-              />
-              <span className="font-bold text-gray-900">
-                AI Authenticity Score
-              </span>
-            </div>
-            <span
-              className={`text-3xl font-black ${
-                aiResult.verificationRoute === "auto_publish"
-                  ? "text-green-600"
-                  : aiResult.verificationRoute === "manual_review"
-                    ? "text-yellow-600"
-                    : "text-red-600"
-              }`}
-            >
-              {aiResult.authenticityScore}%
-            </span>
-          </div>
-          <div className="w-full h-2.5 bg-white/60 rounded-full overflow-hidden mb-4">
-            <div
-              className={`h-full rounded-full transition-all duration-1000 ${
-                aiResult.verificationRoute === "auto_publish"
-                  ? "bg-green-500"
-                  : aiResult.verificationRoute === "manual_review"
-                    ? "bg-yellow-500"
-                    : "bg-red-500"
-              }`}
-              style={{ width: `${aiResult.authenticityScore}%` }}
-            />
-          </div>
-
-          {/* Numbered authenticity notes */}
-          <AuthenticityNotesList notes={aiResult.authenticityNotes} />
+        <div className="w-full h-2.5 bg-white/60 rounded-full overflow-hidden">
+          <div
+            className={cn("h-full rounded-full transition-all duration-1000", barColor)}
+            style={{ width: `${score}%` }}
+          />
         </div>
-
-        {/* Title & Description */}
-        <div className="space-y-6 mb-8">
-          <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200">
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="font-bold text-lg text-gray-900">
-                Generated Title
-              </h3>
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
-                <Edit2 size={14} />
-                {isEditing ? "Done" : "Edit"}
-              </button>
-            </div>
-            {isEditing ? (
-              <input
-                type="text"
-                value={data.title || ""}
-                onChange={(e) => update("title", e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border-2 border-blue-300 focus:border-blue-600 focus:outline-none font-medium"
-              />
-            ) : (
-              <p className="text-xl font-bold text-gray-900">{data.title}</p>
-            )}
-          </div>
-
-          <div className="p-6 bg-gray-50 rounded-2xl border border-gray-200">
-            <div className="flex items-start justify-between mb-3">
-              <h3 className="font-bold text-lg text-gray-900">
-                Generated Description
-              </h3>
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
-                <Edit2 size={14} />
-                {isEditing ? "Done" : "Edit"}
-              </button>
-            </div>
-            {isEditing ? (
-              <textarea
-                value={data.description || ""}
-                onChange={(e) => update("description", e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 focus:border-black focus:outline-none resize-none"
-              />
-            ) : (
-              <p className="text-gray-700 leading-relaxed">
-                {data.description}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Product Details Table */}
-        <div className="mb-8">
-          <h3 className="font-bold text-xl text-gray-900 mb-4">
-            Product Details
-          </h3>
-          <div className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <tbody className="divide-y divide-gray-200">
-                {[
-                  { label: "Sport", value: (() => { const s: Record<string,string> = {football:"Football",basketball:"Basketball",hockey:"Ice Hockey",tennis:"Tennis",f1:"Formula 1",rugby:"Rugby",baseball:"Baseball",cricket:"Cricket",esports:"Esports",other:"Other"}; return s[aiResult.sport] || aiResult.sport || ""; })() },
-                  { label: "Brand", value: aiResult.brand },
-                  { label: "Club / Team", value: aiResult.team },
-                  { label: "Season", value: aiResult.season },
-                  { label: "Model", value: aiResult.model },
-                  { label: "Size", value: aiResult.size },
-                  { label: "Condition", value: aiResult.condition },
-                  {
-                    label: "Country of Production",
-                    value: aiResult.countryOfProduction,
-                  },
-                  { label: "Serial Code", value: aiResult.serialCode },
-                  {
-                    label: "Category",
-                    value: data.categorySlug || data.category,
-                  },
-                ].map((row, index) => (
-                  <tr
-                    key={index}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-bold text-gray-700 w-1/3">
-                      {row.label}
-                    </td>
-                    <td className="px-6 py-4 text-gray-900 font-medium">
-                      {row.value || "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Price Estimation */}
-        <div className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-200">
-          <h3 className="font-bold text-xl text-gray-900 mb-4 flex items-center gap-2">
-            <span className="text-2xl">💰</span>
-            AI Price Estimation
-          </h3>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-white rounded-xl">
-              <p className="text-sm text-gray-500 mb-1">Minimum</p>
-              <p className="text-2xl font-black text-gray-900">
-                €{aiResult.priceMin}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl">
-              <p className="text-sm text-white/80 mb-1">Suggested</p>
-              <p className="text-3xl font-black text-white">
-                €{aiResult.priceSuggested}
-              </p>
-            </div>
-            <div className="text-center p-4 bg-white rounded-xl">
-              <p className="text-sm text-gray-500 mb-1">Maximum</p>
-              <p className="text-2xl font-black text-gray-900">
-                €{aiResult.priceMax}
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-gray-600 mt-4 text-center">
-            Based on similar items sold recently
-          </p>
-        </div>
-
-        {/* Info Box */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-          <p className="text-sm text-blue-800">
-            <strong>💡 Note:</strong> You can edit any of these details before
-            publishing. The AI analysis is based on your photos and similar
-            items in our database.
-          </p>
-        </div>
-
-        {/* Continue button */}
-        {onNext && (
-          <div className="mt-8 flex justify-end">
-            <button
-              onClick={onNext}
-              className="flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white bg-black hover:bg-gray-800 shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              Continue to Summary <ArrowRight size={18} />
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Green flags */}
+      {green.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
+            <CheckCircle2 size={16} className="text-green-500" />
+            <span className="text-sm font-bold text-gray-900">Positive findings</span>
+            <span className="ml-auto text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">{green.length}</span>
+          </div>
+          <ul className="divide-y divide-gray-50">
+            {green.map((note, i) => (
+              <li key={i} className="flex items-start gap-3 px-5 py-3">
+                <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                  {i + 1}
+                </span>
+                <p className="text-sm text-gray-700 leading-relaxed">{note}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Red flags */}
+      {red.length > 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
+            <AlertTriangle size={16} className="text-orange-500" />
+            <span className="text-sm font-bold text-gray-900">Points to verify</span>
+            <span className="ml-auto text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">{red.length}</span>
+          </div>
+          <ul className="divide-y divide-gray-50">
+            {red.map((note, i) => (
+              <li key={i} className="flex items-start gap-3 px-5 py-3">
+                <span className="w-5 h-5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                  !
+                </span>
+                <p className="text-sm text-gray-700 leading-relaxed">{note}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 px-5 py-3.5 bg-green-50 rounded-2xl border border-green-100">
+          <CheckCircle2 size={16} className="text-green-500 shrink-0" />
+          <p className="text-sm text-green-700 font-medium">No red flags detected</p>
+        </div>
+      )}
+
+      {/* Price estimation */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
+          <TrendingUp size={16} className="text-gray-700" />
+          <span className="text-sm font-bold text-gray-900">Market price estimate</span>
+        </div>
+        <div className="grid grid-cols-3 gap-0 divide-x divide-gray-100">
+          <div className="text-center px-4 py-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Minimum</p>
+            <p className="text-2xl font-black text-gray-700">€{aiResult.priceMin}</p>
+          </div>
+          <div className="text-center px-4 py-5 bg-black">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Suggested</p>
+            <p className="text-3xl font-black text-white">€{aiResult.priceSuggested}</p>
+          </div>
+          <div className="text-center px-4 py-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Maximum</p>
+            <p className="text-2xl font-black text-gray-700">€{aiResult.priceMax}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Continue */}
+      {onNext && (
+        <button
+          onClick={onNext}
+          className="w-full flex items-center justify-center gap-2 py-4 bg-black text-white font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-gray-800 active:scale-[0.98] transition-all"
+        >
+          Continue — Review & Edit Details
+          <ChevronRight size={16} />
+        </button>
+      )}
     </div>
   );
-}
-
-/** Parse and render authenticity notes as a numbered list */
-function AuthenticityNotesList({ notes }: { notes: string }) {
-  const lines = notes
-    .split(/\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
-  const isNumbered = lines.some((l) => /^\d+\.\s/.test(l));
-
-  if (isNumbered && lines.length > 1) {
-    return (
-      <ol className="space-y-2.5">
-        {lines.map((line, i) => {
-          const match = line.match(/^(\d+)\.\s*(.*)/);
-          const number = match ? match[1] : String(i + 1);
-          const content = match ? match[2] : line;
-          const colonIdx = content.indexOf(":");
-          const label = colonIdx > -1 ? content.slice(0, colonIdx) : null;
-          const desc =
-            colonIdx > -1 ? content.slice(colonIdx + 1).trim() : content;
-
-          return (
-            <li key={i} className="flex items-start gap-2.5">
-              <span className="shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center justify-center mt-0.5">
-                {number}
-              </span>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {label && (
-                  <span className="font-bold text-gray-900">{label}: </span>
-                )}
-                {desc}
-              </p>
-            </li>
-          );
-        })}
-      </ol>
-    );
-  }
-
-  // Fallback: split by bullet points
-  const bulletLines = notes
-    .split(/[•]/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  if (bulletLines.length > 1) {
-    return (
-      <ol className="space-y-2.5">
-        {bulletLines.map((line, i) => {
-          const colonIdx = line.indexOf(":");
-          const label = colonIdx > -1 ? line.slice(0, colonIdx) : null;
-          const desc = colonIdx > -1 ? line.slice(colonIdx + 1).trim() : line;
-          return (
-            <li key={i} className="flex items-start gap-2.5">
-              <span className="shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center justify-center mt-0.5">
-                {i + 1}
-              </span>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {label && (
-                  <span className="font-bold text-gray-900">{label}: </span>
-                )}
-                {desc}
-              </p>
-            </li>
-          );
-        })}
-      </ol>
-    );
-  }
-
-  return <p className="text-sm text-gray-600 leading-relaxed">{notes}</p>;
 }

@@ -147,7 +147,7 @@ export const mapFormDataToCreateAuctionDto = (
   const listingType: AuctionListingType =
     data.listingType === "buy_now"
       ? "buy_now"
-      : data.price && data.startPrice
+      : data.buyNowPrice && data.startingBid
         ? "auction_buy_now"
         : "auction";
 
@@ -156,32 +156,23 @@ export const mapFormDataToCreateAuctionDto = (
 
   // Resolve starting bid
   const startingBid = (() => {
-    const price = parseFloat(data.price) || 10;
-    const startPrice = parseFloat(data.startPrice);
-
     if (data.listingType === "buy_now") {
-      // For buy_now: startingBid must be strictly less than buyNowPrice
-      if (startPrice && startPrice < price) return startPrice;
-      return Math.max(1, Math.floor(price * 0.9));
+      const buyNow = parseFloat(String(data.buyNowPrice)) || 10;
+      return Math.max(1, Math.floor(buyNow * 0.9));
     }
-
-    // For auction / auction_buy_now: use startPrice if set, otherwise use price
-    return startPrice || price;
+    return parseFloat(String(data.startingBid)) || 10;
   })();
 
   // Resolve buy now price
   const buyNowPrice = (() => {
-    const price = parseFloat(data.price);
-    if (!price) return undefined;
-
     if (data.listingType === "buy_now") {
-      return price;
+      const price = parseFloat(String(data.buyNowPrice));
+      return price > 0 ? price : undefined;
     }
-
-    // For auction_buy_now: buyNowPrice must be > startingBid
-    const startBid =
-      parseFloat(data.startPrice) || parseFloat(data.price) || 10;
-    return price > startBid ? price : startBid + 1;
+    // auction_buy_now: buyNowPrice must be > startingBid
+    const buyNow = parseFloat(String(data.buyNowPrice));
+    if (!buyNow) return undefined;
+    return buyNow > startingBid ? buyNow : startingBid + 1;
   })();
 
   return {
@@ -226,7 +217,7 @@ export const mapFormDataToCreateAuctionDto = (
 
     // Pricing
     startingBid,
-    bidIncrement: parseFloat(data.bidStep) || 5,
+    bidIncrement: parseFloat(String(data.bidIncrement)) || 5,
     buyNowPrice,
 
     // Timing

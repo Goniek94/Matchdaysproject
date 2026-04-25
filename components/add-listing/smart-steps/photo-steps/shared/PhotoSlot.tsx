@@ -262,18 +262,19 @@ export function PhotoSlot({
       {/* Photo upload area */}
       <div className="px-4 pb-4">
         {existingPhoto ? (
-          <div className="relative aspect-video rounded-xl overflow-hidden group">
+          <div className="relative rounded-xl overflow-hidden group" style={{ minHeight: "180px" }}>
             <img
               src={existingPhoto.url}
               alt={label}
-              className="w-full h-full object-cover"
+              className="w-full object-cover rounded-xl"
+              style={{ maxHeight: "260px", minHeight: "180px" }}
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all rounded-xl" />
             <button
               onClick={onRemove}
-              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+              className="absolute top-3 right-3 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
             >
-              <X size={14} />
+              <X size={15} />
             </button>
           </div>
         ) : (
@@ -289,32 +290,35 @@ export function PhotoSlot({
               onUpload(e.dataTransfer.files);
             }}
             className={cn(
-              "relative aspect-video rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all",
+              "relative rounded-xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all",
               isDragging
                 ? "border-blue-400 bg-blue-50 scale-[1.01]"
-                : "border-gray-200 hover:border-gray-400 hover:bg-gray-50",
+                : "border-gray-200 hover:border-gray-400 hover:bg-gray-50/80",
             )}
+            style={{ minHeight: "180px" }}
           >
             <input
               type="file"
               accept="image/*"
+              onClick={(e) => { (e.target as HTMLInputElement).value = ""; }}
               onChange={(e) => onUpload(e.target.files)}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <div
               className={cn(
-                "w-9 h-9 rounded-full flex items-center justify-center mb-2 transition-colors",
+                "w-14 h-14 rounded-2xl flex items-center justify-center mb-3 transition-colors",
                 isDragging ? "bg-blue-100" : "bg-gray-100",
               )}
             >
               <Upload
-                size={16}
+                size={24}
                 className={isDragging ? "text-blue-500" : "text-gray-400"}
               />
             </div>
-            <p className="text-xs font-semibold text-gray-400">
-              {isDragging ? "Drop it!" : "Click or drop"}
+            <p className="text-sm font-bold text-gray-500">
+              {isDragging ? "Drop it!" : "Click or drop photo"}
             </p>
+            <p className="text-xs text-gray-400 mt-1">JPG, PNG, WEBP</p>
           </div>
         )}
       </div>

@@ -813,6 +813,7 @@ export default function AuctionDetailPage() {
                     initialSeconds={secondsRemaining}
                     onPlaceBid={handlePlaceBid}
                     disabled={bidding || auctionEnded}
+                    isEnded={auctionEnded}
                   />
                 ) : (
                   <BuyNowPanel
@@ -974,6 +975,7 @@ export default function AuctionDetailPage() {
                   initialSeconds={secondsRemaining}
                   onPlaceBid={handlePlaceBid}
                   disabled={bidding || auctionEnded}
+                  isEnded={auctionEnded}
                 />
               ) : (
                 <BuyNowPanel

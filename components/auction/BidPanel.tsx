@@ -17,6 +17,7 @@ interface BidPanelProps {
   initialSeconds?: number;
   onPlaceBid?: (amount: number) => void;
   disabled?: boolean;
+  isEnded?: boolean;
 }
 
 /**
@@ -36,6 +37,7 @@ export default function BidPanel({
   initialSeconds = 0,
   onPlaceBid,
   disabled = false,
+  isEnded = false,
 }: BidPanelProps) {
   const { isAuthenticated } = useAuth();
   const { isInWatchlist, toggleWatchlist } = useWatchlist();
@@ -131,7 +133,9 @@ export default function BidPanel({
     setTimeout(() => setWatchlistFeedback(null), 2000);
   };
 
-  const auctionEnded = timeLeft <= 0;
+  // Use explicit isEnded prop from parent (authoritative), fall back to local timer only
+  // when we have confirmed timer data (initialSeconds > 0)
+  const auctionEnded = isEnded || (initialSeconds > 0 && timeLeft <= 0);
 
   return (
     <div className="bg-black text-white p-6 rounded-3xl">

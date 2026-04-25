@@ -7,7 +7,6 @@ interface TitleCardProps {
   completionMode: CompletionMode;
 }
 
-/** Card displaying the listing title with optional AI badge */
 const TitleCard = ({ title, completionMode }: TitleCardProps) => (
   <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
     <div className="flex justify-between items-center mb-2">
@@ -15,10 +14,7 @@ const TitleCard = ({ title, completionMode }: TitleCardProps) => (
         Title
       </span>
       {completionMode === "AI" && (
-        <Badge
-          variant="outline"
-          className="text-[10px] bg-primary/5 border-primary/20 text-primary"
-        >
+        <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
           <Sparkles size={10} className="mr-1" />
           AI ENHANCED
         </Badge>

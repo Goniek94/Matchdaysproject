@@ -6,6 +6,7 @@ import {
   StepCategory,
   StepCompletionMode,
   StepAISummary,
+  StepEditListing,
   StepPricing,
   StepProductDetailsManual,
 } from "./steps";
@@ -20,8 +21,8 @@ interface SmartFormStepsProps {
 }
 
 // Steps: 1 Category → 2 Photos → 3 Mode Selection
-// AI path:     4 AI Analysis → 5 Summary (in SmartForm)
-// Manual path: 4 Details → 5 Pricing → 6 Summary (in SmartForm)
+// AI path:     4 AI Analysis → 5 Edit Listing → 6 Pricing → Summary
+// Manual path: 4 Details     → 5 Pricing      → Summary
 
 export default function SmartFormSteps({
   step,
@@ -30,26 +31,27 @@ export default function SmartFormSteps({
   onNext,
   onBack,
 }: SmartFormStepsProps) {
+  const isAI = data.completionMode === "AI";
+
   switch (step) {
     case 1:
       return <StepCategory data={data} update={update} onNext={onNext} />;
     case 2:
       return (
-        <PhotoStepRouter
-          data={data}
-          update={update}
-          onNext={onNext}
-          onBack={onBack}
-        />
+        <PhotoStepRouter data={data} update={update} onNext={onNext} onBack={onBack} />
       );
     case 3:
       return <StepCompletionMode data={data} update={update} onNext={onNext} />;
     case 4:
-      if (data.completionMode === "AI")
+      if (isAI)
         return <StepAISummary data={data} update={update} onNext={onNext} />;
       return <StepProductDetailsManual data={data} update={update} />;
     case 5:
-      if (data.completionMode === "MANUAL")
+      if (isAI)
+        return <StepEditListing data={data} update={update} onNext={onNext} onBack={onBack} />;
+      return <StepPricing data={data} update={update} />;
+    case 6:
+      if (isAI)
         return <StepPricing data={data} update={update} />;
       return null;
     default:

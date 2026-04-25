@@ -8,22 +8,11 @@ interface ImageGalleryProps {
   onImageSelect: (url: string) => void;
 }
 
-/** Full-width image gallery with thumbnail strip */
-const ImageGallery = ({
-  photos,
-  activeImage,
-  onImageSelect,
-}: ImageGalleryProps) => (
+const ImageGallery = ({ photos, activeImage, onImageSelect }: ImageGalleryProps) => (
   <div className="rounded-2xl overflow-hidden bg-gray-950 shadow-lg">
     <div className="relative w-full" style={{ aspectRatio: "4/3" }}>
       {activeImage ? (
-        <Image
-          src={activeImage}
-          alt="Preview"
-          fill
-          className="object-contain"
-          priority
-        />
+        <Image src={activeImage} alt="Preview" fill className="object-contain" priority />
       ) : (
         <div className="flex items-center justify-center h-full text-gray-500">
           <div className="text-center">
@@ -33,8 +22,6 @@ const ImageGallery = ({
         </div>
       )}
     </div>
-
-    {/* Thumbnail strip */}
     {photos && photos.length > 1 && (
       <div className="p-3 bg-gray-900 flex gap-2 overflow-x-auto">
         {photos.map((photo, i) => (
@@ -47,12 +34,7 @@ const ImageGallery = ({
                 : "border-transparent opacity-50 hover:opacity-80"
             }`}
           >
-            <Image
-              src={photo.url}
-              alt={`Photo ${i + 1}`}
-              fill
-              className="object-cover"
-            />
+            <Image src={photo.url} alt={`Photo ${i + 1}`} fill className="object-cover" />
           </button>
         ))}
       </div>

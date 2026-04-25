@@ -2,7 +2,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { SmartFormData } from "../types";
-import { Euro, Gavel, ShoppingCart, TrendingUp } from "lucide-react";
+import {
+  Euro,
+  Gavel,
+  ShoppingCart,
+  TrendingUp,
+  Infinity as InfinityIcon,
+} from "lucide-react";
 import { CURRENCY } from "@/lib/constants/listing.constants";
 import { cn } from "@/lib/utils";
 
@@ -15,16 +21,29 @@ export default function StepPricing({ data, update }: StepProps) {
   const isAuction = data.listingType === "auction";
   const isBuyNow = data.listingType === "buy_now";
 
+  // Sugerowana cena z AI (jeśli istnieje)
+  const aiSuggestedPrice = data.aiData?.priceSuggested || data.aiData?.priceMin;
+
+  const handleTypeChange = (type: "auction" | "buy_now") => {
+    update("listingType", type);
+
+    if (type === "buy_now") {
+      update("duration", "365d"); // Kup Teraz - długi czas
+    } else {
+      update("duration", "7d"); // Aukcja - domyślnie 7 dni
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-100">
         {/* Header */}
         <div className="mb-8">
           <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter mb-2">
-            Pricing & Listing Type
+            How do you want to sell?
           </h2>
           <p className="text-base text-gray-500 font-medium">
-            Choose how you want to sell your item
+            Choose listing type and set the price
           </p>
         </div>
 
@@ -34,7 +53,7 @@ export default function StepPricing({ data, update }: StepProps) {
           <div className="grid md:grid-cols-2 gap-4">
             {/* Auction */}
             <button
-              onClick={() => update("listingType", "auction")}
+              onClick={() => handleTypeChange("auction")}
               className={cn(
                 "group relative p-6 rounded-2xl border-2 text-left transition-all duration-300",
                 isAuction
@@ -54,8 +73,7 @@ export default function StepPricing({ data, update }: StepProps) {
               </div>
               <h4 className="text-xl font-bold text-gray-900 mb-2">Auction</h4>
               <p className="text-sm text-gray-600 mb-4">
-                Let buyers bid on your item. Great for rare or collectible
-                items.
+                Buyers will bid. Great for rare or collectible items.
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-center gap-2">
@@ -64,19 +82,14 @@ export default function StepPricing({ data, update }: StepProps) {
                 </li>
                 <li className="flex items-center gap-2">
                   <TrendingUp size={14} className="text-green-600" />
-                  Creates excitement and urgency
+                  Max 7 days duration
                 </li>
               </ul>
-              {isAuction && (
-                <div className="absolute top-4 right-4 w-6 h-6 bg-black rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                </div>
-              )}
             </button>
 
             {/* Buy Now */}
             <button
-              onClick={() => update("listingType", "buy_now")}
+              onClick={() => handleTypeChange("buy_now")}
               className={cn(
                 "group relative p-6 rounded-2xl border-2 text-left transition-all duration-300",
                 isBuyNow
@@ -96,23 +109,18 @@ export default function StepPricing({ data, update }: StepProps) {
               </div>
               <h4 className="text-xl font-bold text-gray-900 mb-2">Buy Now</h4>
               <p className="text-sm text-gray-600 mb-4">
-                Set a fixed price. Buyers can purchase immediately.
+                Fixed price – instant purchase possible.
               </p>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li className="flex items-center gap-2">
                   <TrendingUp size={14} className="text-blue-600" />
-                  Instant sale possible
+                  Instant sale
                 </li>
                 <li className="flex items-center gap-2">
-                  <TrendingUp size={14} className="text-blue-600" />
-                  Simple and straightforward
+                  <InfinityIcon size={14} className="text-blue-600" />
+                  Active until sold
                 </li>
               </ul>
-              {isBuyNow && (
-                <div className="absolute top-4 right-4 w-6 h-6 bg-black rounded-full flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                </div>
-              )}
             </button>
           </div>
         </div>
@@ -121,10 +129,9 @@ export default function StepPricing({ data, update }: StepProps) {
         {data.listingType && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
             {isAuction ? (
-              /* Auction Pricing */
+              /* AUCTION */
               <>
                 <div className="grid md:grid-cols-2 gap-6">
-                  {/* Starting Price */}
                   <div>
                     <label className="block font-bold text-gray-900 mb-2">
                       Starting Price <span className="text-red-500">*</span>
@@ -136,21 +143,17 @@ export default function StepPricing({ data, update }: StepProps) {
                       />
                       <input
                         type="number"
-                        value={data.startPrice}
-                        onChange={(e) => update("startPrice", e.target.value)}
+                        value={data.startingBid ?? ""}
+                        onChange={(e) => update("startingBid", e.target.value)}
                         placeholder="0.00"
                         className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-lg"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Minimum bid to start the auction ({CURRENCY.CODE})
-                    </p>
                   </div>
 
-                  {/* Bid Step */}
                   <div>
                     <label className="block font-bold text-gray-900 mb-2">
-                      Bid Step <span className="text-red-500">*</span>
+                      Bid Increment <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <Euro
@@ -159,19 +162,16 @@ export default function StepPricing({ data, update }: StepProps) {
                       />
                       <input
                         type="number"
-                        value={data.bidStep}
-                        onChange={(e) => update("bidStep", e.target.value)}
+                        value={data.bidIncrement ?? ""}
+                        onChange={(e) => update("bidIncrement", e.target.value)}
                         placeholder="5.00"
                         className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-lg"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Minimum increase per bid ({CURRENCY.CODE})
-                    </p>
                   </div>
                 </div>
 
-                {/* Duration */}
+                {/* Duration - tylko 24h, 48h, 7d */}
                 <div>
                   <label className="block font-bold text-gray-900 mb-2">
                     Auction Duration <span className="text-red-500">*</span>
@@ -179,7 +179,7 @@ export default function StepPricing({ data, update }: StepProps) {
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { value: "24h", label: "24 Hours" },
-                      { value: "3d", label: "3 Days" },
+                      { value: "48h", label: "48 Hours" },
                       { value: "7d", label: "7 Days" },
                     ].map((option) => (
                       <button
@@ -188,7 +188,7 @@ export default function StepPricing({ data, update }: StepProps) {
                         className={cn(
                           "p-4 rounded-xl border-2 text-center font-bold transition-all",
                           data.duration === option.value
-                            ? "border-black bg-black text-white"
+                            ? "border-black bg-black text-white shadow-md scale-[1.02]"
                             : "border-gray-200 hover:border-gray-400",
                         )}
                       >
@@ -197,41 +197,46 @@ export default function StepPricing({ data, update }: StepProps) {
                     ))}
                   </div>
                 </div>
+
+                {aiSuggestedPrice && (
+                  <p className="text-sm text-emerald-600 bg-emerald-50 px-4 py-3 rounded-xl">
+                    💡 AI suggests starting around €{aiSuggestedPrice}
+                  </p>
+                )}
               </>
             ) : (
-              /* Buy Now Pricing */
-              <div>
-                <label className="block font-bold text-gray-900 mb-2">
-                  Price <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <Euro
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                    size={24}
-                  />
-                  <input
-                    type="number"
-                    value={data.price}
-                    onChange={(e) => update("price", e.target.value)}
-                    placeholder="0.00"
-                    className="w-full pl-14 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-2xl"
-                  />
+              /* BUY NOW */
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-bold text-gray-900 mb-2">
+                    Fixed Price <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Euro
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={24}
+                    />
+                    <input
+                      type="number"
+                      value={data.buyNowPrice ?? data.price ?? ""}
+                      onChange={(e) => update("buyNowPrice", e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pl-14 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-2xl"
+                    />
+                  </div>
+                  {aiSuggestedPrice && (
+                    <p className="text-sm text-emerald-600 mt-2">
+                      💡 AI suggested price: €{aiSuggestedPrice}
+                    </p>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Fixed price for immediate purchase ({CURRENCY.CODE})
-                </p>
+
+                <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-3 rounded-lg font-medium">
+                  <InfinityIcon size={18} />
+                  This listing will remain active until the item is sold.
+                </div>
               </div>
             )}
-
-            {/* Info Box */}
-            <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
-              <p className="text-sm text-yellow-900">
-                <strong>💡 Pricing Tip:</strong>{" "}
-                {isAuction
-                  ? "Start with a lower price to attract more bidders. The final price often exceeds the starting price!"
-                  : "Research similar items to set a competitive price. You can always adjust it later."}
-              </p>
-            </div>
           </div>
         )}
       </div>

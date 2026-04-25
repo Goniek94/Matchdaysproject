@@ -24,14 +24,16 @@ const PricingCard = ({ data }: PricingCardProps) => {
       <div className="text-center">
         <span className="text-4xl font-black tracking-tight">
           {CURRENCY.SYMBOL}
-          {isAuction ? data.startPrice || data.price || "0" : data.price || "0"}
+          {isAuction
+            ? data.startingBid || data.startPrice || data.price || "0"
+            : data.buyNowPrice || data.price || "0"}
         </span>
       </div>
       {isAuction && (
         <div className="mt-3 flex justify-center gap-4 text-xs text-gray-400">
           <span>
             Bid Step: {CURRENCY.SYMBOL}
-            {data.bidStep || "—"}
+            {data.bidIncrement || data.bidStep || "—"}
           </span>
           <span>Duration: {getDurationLabel(data.duration)}</span>
         </div>

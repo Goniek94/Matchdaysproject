@@ -6,14 +6,16 @@ import { SmartFormData, INITIAL_STATE, Photo } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
 import { SuccessView } from "./steps";
 import { SmartFormSummary } from "./summary";
-import { createAuctionFromForm, updateListingVerification } from "@/lib/api/auctions.api";
+import {
+  createAuctionFromForm,
+  updateListingVerification,
+} from "@/lib/api/auctions.api";
 import { uploadPhotos } from "@/lib/supabase";
 import { analyzeListing } from "@/lib/api/ai";
 import { logger } from "@/lib/logger";
 
-// AI path: 4 steps (Category → Photos → Mode → AI Analysis)
+// AI path: 5 steps (Category → Photos → Mode → AI Analysis → Pricing)
 // Manual path: 5 steps (Category → Photos → Mode → Details → Pricing)
-// Defaults to 5 (MANUAL) until user picks AI at step 3
 
 export default function SmartForm({ onBack }: { onBack?: () => void }) {
   const [step, setStep] = useState(1);
@@ -25,8 +27,10 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
     null,
   );
 
-  const update = (field: keyof SmartFormData, val: SmartFormData[keyof SmartFormData]) =>
-    setData((prev) => ({ ...prev, [field]: val }));
+  const update = (
+    field: keyof SmartFormData,
+    val: SmartFormData[keyof SmartFormData],
+  ) => setData((prev) => ({ ...prev, [field]: val }));
 
   const handleNext = () => {
     setStep((prev) => prev + 1);
@@ -55,9 +59,13 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       });
 
       // 1. Upload photos to Supabase Storage
-      logger.debug("[Publish] Uploading photos", "SmartForm", { count: data.photos.length });
+      logger.debug("[Publish] Uploading photos", "SmartForm", {
+        count: data.photos.length,
+      });
       const uploadedPhotos = await uploadPhotos(data.photos);
-      logger.debug("[Publish] Photos uploaded", "SmartForm", { uploaded: uploadedPhotos.length });
+      logger.debug("[Publish] Photos uploaded", "SmartForm", {
+        uploaded: uploadedPhotos.length,
+      });
 
       // 2. Map back to Photo[] preserving ids
       const photosWithIds: Photo[] = data.photos.map((photo, index) => ({
@@ -76,18 +84,15 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       const result = await createAuctionFromForm(dataWithPhotos);
 
       if (result.success) {
-        logger.info("[Publish] Listing created", "SmartForm", { id: result.data?.id });
+        logger.info("[Publish] Listing created", "SmartForm", {
+          id: result.data?.id,
+        });
         setPublishedListingId(result.data?.id || null);
         setPublishedPhotos(photosWithIds);
         setData(dataWithPhotos);
         setIsPublished(true);
 
-        // Background AI verification — runs for ALL modes, silent, no UI.
-        // AI mode: re-verifies with uploaded URLs (more reliable than base64).
-        // Manual mode: first verification — determines auto-live vs manual review.
-        // Score >= 90% → AI_VERIFIED_HIGH (auto-live)
-        // Score 60–89% → AI_VERIFIED_MEDIUM (manual review)
-        // Score < 60%  → FLAGGED (manual review)
+        // Background AI verification
         const photoGroupKey = data.itemCategory || data.category || "shirts";
         const bgPhotos = photosWithIds
           .filter((p) => p.url?.startsWith("http"))
@@ -109,7 +114,9 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
             .catch(() => {});
         }
       } else {
-        logger.error("[Publish] Failed", "SmartForm", { message: result.message });
+        logger.error("[Publish] Failed", "SmartForm", {
+          message: result.message,
+        });
         alert(`Failed to create listing: ${result.message}`);
       }
     } catch (error) {
@@ -120,7 +127,8 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
     }
   };
 
-  const totalSteps = data.completionMode === "AI" ? 4 : 5;
+  // AI path has 6 steps (adds Edit Listing step), Manual has 5
+  const totalSteps = data.completionMode === "AI" ? 6 : 5;
 
   // --- SPECIAL VIEWS ---
   if (isPublished) {
@@ -144,7 +152,7 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
   // --- FINAL SUMMARY + PUBLISH (step after last) ---
   if (step === totalSteps + 1) {
     return (
-      <div className="min-h-screen pb-24 pt-24 px-4 max-w-4xl mx-auto">
+      <div className="min-h-screen pb-24 pt-24 px-4 max-w-7xl mx-auto">
         <SmartFormSummary
           data={data}
           onPublish={handlePublish}
@@ -156,14 +164,12 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
   }
 
   // --- MAIN RENDER (steps 1–N) ---
-  // Steps with their own navigation (no outer nav buttons):
-  //   2 = Photos (PhotoStepRouter has its own buttons)
-  //   3 = Mode selection (auto-advances on card click)
-  //   4 = AI Analysis (StepAISummary has its own Continue button)
+  // Ukrywamy główne przyciski nawigacyjne na krokach, które mają własną nawigację
+  // Steps that manage their own navigation buttons
   const hideNavButtons =
-    step === 2 ||
-    step === 3 ||
-    (step === 4 && data.completionMode === "AI");
+    step === 1 || step === 2 || step === 3 ||
+    (step === 4 && data.completionMode === "AI") ||  // StepAISummary
+    (step === 5 && data.completionMode === "AI");    // StepEditListing
 
   return (
     <div className="min-h-screen pb-24 pt-24">
@@ -209,7 +215,8 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
               onClick={handleNext}
               className="flex items-center gap-2 px-10 py-3 rounded-xl font-bold text-white bg-black hover:bg-gray-800 shadow-lg shadow-gray-200 transition-all hover:scale-[1.02] active:scale-95"
             >
-              Next <ArrowRight size={18} />
+              {step === totalSteps ? "Review Listing" : "Next"}{" "}
+              <ArrowRight size={18} />
             </button>
           </div>
         )}
