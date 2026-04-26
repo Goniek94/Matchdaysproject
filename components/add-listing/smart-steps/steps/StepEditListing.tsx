@@ -71,7 +71,7 @@ function EditableField({
   return (
     <button
       onClick={() => { setDraft(value); setEditing(true); }}
-      className={cn("group flex items-start gap-2 text-left w-full", displayClass)}
+      className={cn("group flex items-center gap-2 w-full", displayClass)}
     >
       <span className={cn("flex-1", !value && "italic font-normal text-gray-300")}>
         {value || placeholder}
@@ -124,7 +124,7 @@ function SpecRow({
           <EditableField
             value={value}
             onChange={onChange}
-            displayClass="text-xs font-semibold text-gray-900 justify-end truncate"
+            displayClass="text-xs font-semibold text-gray-900 text-right truncate"
             inputClass="text-xs font-semibold text-gray-900 text-right"
           />
         )}

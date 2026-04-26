@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/CartContext";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
+import { useAuth } from "@/lib/context/AuthContext";
+import LoginModal from "@/components/auth/LoginModal";
 import { ShoppingCart, Heart, Plus } from "lucide-react";
 
 interface BuyNowPanelProps {
@@ -33,11 +35,13 @@ export default function BuyNowPanel({
   const router = useRouter();
   const { addToCart, items } = useCart();
   const { isInWatchlist, toggleWatchlist } = useWatchlist();
+  const { isAuthenticated } = useAuth();
 
   const [justAdded, setJustAdded] = useState(false);
   const [watchlistFeedback, setWatchlistFeedback] = useState<string | null>(
     null,
   );
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const isInCart = items.some((item) => item.id === auctionId);
   const inWatchlist = isInWatchlist(auctionId);
@@ -69,6 +73,10 @@ export default function BuyNowPanel({
   };
 
   const handleToggleWatchlist = () => {
+    if (!isAuthenticated) {
+      setLoginOpen(true);
+      return;
+    }
     const added = toggleWatchlist({
       id: auctionId,
       title,
@@ -88,6 +96,8 @@ export default function BuyNowPanel({
   };
 
   return (
+    <>
+    <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
     <div className="bg-black text-white p-8 rounded-[2px] mb-8">
       {/* Price Section */}
       <div className="mb-6">
@@ -181,5 +191,6 @@ export default function BuyNowPanel({
         </div>
       </div>
     </div>
+    </>
   );
 }

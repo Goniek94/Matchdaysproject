@@ -15,7 +15,9 @@ import {
   Zap,
 } from "lucide-react";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
+import { useAuth } from "@/lib/context/AuthContext";
 import AuctionPreviewModal from "@/components/home/AuctionPreviewModal";
+import LoginModal from "@/components/auth/LoginModal";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -68,12 +70,14 @@ const isLastCall = (timeStr: string) => {
 
 export default function AuctionCard({ auction }: AuctionCardProps) {
   const { isInWatchlist, toggleWatchlist } = useWatchlist();
+  const { isAuthenticated } = useAuth();
 
   const initialPrice = auction.price || (auction as any).currentBid || 0;
   const [currentPrice, setCurrentPrice] = useState(initialPrice);
   const [priceFlash, setPriceFlash] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const prevPrice = useRef(initialPrice);
   const isFav = isInWatchlist(auction.id);
   const supportsModal = auction.id?.includes("-") ?? false;
@@ -101,6 +105,10 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
   const handleFav = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!isAuthenticated) {
+      setLoginOpen(true);
+      return;
+    }
     const added = toggleWatchlist({
       id: auction.id,
       title: auction.title,
@@ -130,6 +138,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
           onClose={() => setModalOpen(false)}
         />
       )}
+      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
 
       <div className="group relative h-full">
         {/* Feedback toast */}
