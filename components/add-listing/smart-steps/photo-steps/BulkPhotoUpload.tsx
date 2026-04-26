@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, DragEvent } from "react";
+
 import { Upload, X, CheckCircle2, ChevronRight, Image as ImageIcon } from "lucide-react";
 import type { SmartFormData, Photo } from "@/types/features/listing.types";
 import { cn } from "@/lib/utils";
@@ -37,6 +38,8 @@ export default function BulkPhotoUpload({
 }: BulkPhotoUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const hashSetRef = useRef<Set<string>>(new Set());
 
@@ -83,6 +86,38 @@ export default function BulkPhotoUpload({
 
   const removePhoto = (id: string) => {
     update("photos", data.photos.filter((p) => p.id !== id));
+  };
+
+  const handleDragStart = (e: DragEvent<HTMLDivElement>, i: number) => {
+    setDragIndex(i);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: DragEvent<HTMLDivElement>, i: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (i !== dropIndex) setDropIndex(i);
+  };
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>, i: number) => {
+    e.preventDefault();
+    if (dragIndex === null || dragIndex === i) {
+      setDragIndex(null);
+      setDropIndex(null);
+      return;
+    }
+    const reordered = [...bulkPhotos];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(i, 0, moved);
+    const nonBulk = data.photos.filter((p) => !p.typeHint?.startsWith("bulk_"));
+    update("photos", [...nonBulk, ...reordered]);
+    setDragIndex(null);
+    setDropIndex(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDropIndex(null);
   };
 
   const canContinue = bulkPhotos.length >= 2;
@@ -171,14 +206,31 @@ export default function BulkPhotoUpload({
             )}
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {bulkPhotos.map((photo) => (
-              <div key={photo.id} className="relative group aspect-square rounded-xl overflow-hidden bg-gray-100">
+            {bulkPhotos.map((photo, i) => (
+              <div
+                key={photo.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, i)}
+                onDragOver={(e) => handleDragOver(e, i)}
+                onDrop={(e) => handleDrop(e, i)}
+                onDragEnd={handleDragEnd}
+                className={cn(
+                  "relative group aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-grab active:cursor-grabbing transition-all select-none",
+                  dragIndex === i && "opacity-40 scale-95",
+                  dropIndex === i && dragIndex !== i && "ring-2 ring-black ring-offset-2 scale-[1.03]",
+                )}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo.url}
                   alt="uploaded"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover pointer-events-none"
                 />
+                {i === 0 && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[9px] font-bold text-center py-1 uppercase tracking-widest">
+                    Cover
+                  </div>
+                )}
                 <button
                   onClick={(e) => { e.stopPropagation(); removePhoto(photo.id); }}
                   className="absolute top-1.5 right-1.5 p-1.5 bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"

@@ -300,17 +300,19 @@ export default function ListingCard({
             </div>
           </div>
 
-          {/* Time info */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <Clock size={13} className="flex-shrink-0" />
-            {listing.status === "active" ? (
-              <span className="font-semibold text-amber-600">
-                {getTimeLeft(listing.endTime)}
-              </span>
-            ) : (
-              <span>Ends {formatDate(listing.endTime)}</span>
-            )}
-          </div>
+          {/* Time info — auctions only */}
+          {listing.listingType !== "buy_now" && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Clock size={13} className="flex-shrink-0" />
+              {listing.status === "active" ? (
+                <span className="font-semibold text-amber-600">
+                  {getTimeLeft(listing.endTime)}
+                </span>
+              ) : (
+                <span>Ends {formatDate(listing.endTime)}</span>
+              )}
+            </div>
+          )}
 
           {/* Confirm action overlay */}
           {confirmAction && (

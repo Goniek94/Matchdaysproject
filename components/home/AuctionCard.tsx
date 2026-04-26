@@ -202,17 +202,19 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
 
-                {/* Timer */}
-                <div
-                  className={`absolute bottom-3 left-3 flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                    ending
-                      ? "bg-red-500 text-white animate-pulse"
-                      : "bg-black/60 text-white backdrop-blur-sm"
-                  }`}
-                >
-                  <Clock size={10} />
-                  {auction.endTime}
-                </div>
+                {/* Timer — auctions only */}
+                {!isBuyNow && (
+                  <div
+                    className={`absolute bottom-3 left-3 flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                      ending
+                        ? "bg-red-500 text-white animate-pulse"
+                        : "bg-black/60 text-white backdrop-blur-sm"
+                    }`}
+                  >
+                    <Clock size={10} />
+                    {auction.endTime}
+                  </div>
+                )}
               </div>
             </Link>
           </div>

@@ -25,8 +25,10 @@ const stripDataUrlPrefix = (dataUrl: string): string => {
 const compressImage = (dataUrl: string): Promise<string> => {
   return new Promise((resolve) => {
     const img = new Image();
+    img.crossOrigin = "anonymous";
     img.onload = () => {
-      const MAX_SIZE = 800;
+      // 1200px keeps player name / number legible after JPEG compression
+      const MAX_SIZE = 1200;
       let { width, height } = img;
 
       if (width > MAX_SIZE || height > MAX_SIZE) {
@@ -44,13 +46,15 @@ const compressImage = (dataUrl: string): Promise<string> => {
       canvas.height = height;
 
       const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(dataUrl);
-        return;
-      }
+      if (!ctx) { resolve(dataUrl); return; }
 
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.7));
+      try {
+        resolve(canvas.toDataURL("image/jpeg", 0.85));
+      } catch {
+        // Cross-origin image (e.g. Supabase URL) — return original
+        resolve(dataUrl);
+      }
     };
 
     img.onerror = () => resolve(dataUrl);

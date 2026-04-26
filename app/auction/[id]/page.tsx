@@ -446,21 +446,23 @@ export default function AuctionDetailPage() {
       xxl: "XXL",
       xxxl: "XXXL",
       xxxxl: "XXXXL",
-      ys: "YS",
-      ym: "YM",
-      yl: "YL",
-      yxl: "YXL",
-      "3-4y": "3-4 years",
-      "5-6y": "5-6 years",
-      "7-8y": "7-8 years",
-      "9-10y": "9-10 years",
-      "11-12y": "11-12 years",
-      "13-14y": "13-14 years",
+      ys: "Youth S",
+      ym: "Youth M",
+      yl: "Youth L",
+      yxl: "Youth XL",
+      "3-4y": "3-4Y",
+      "5-6y": "5-6Y",
+      "7-8y": "7-8Y",
+      "9-10y": "9-10Y",
+      "11-12y": "11-12Y",
+      "13-14y": "13-14Y",
+      "15-16y": "15-16Y",
     };
     const lower = raw.toLowerCase().trim();
     if (SHIRT_SIZE_MAP[lower]) return SHIRT_SIZE_MAP[lower];
     if (raw.length <= 10 && !raw.includes(" ")) return raw.toUpperCase();
-    return null;
+    // Return raw value for complex size strings like "Youth 13-14Y (164)"
+    return raw;
   };
 
   const buildProductDetails = (): DetailEntry[] => {

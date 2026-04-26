@@ -1,4 +1,5 @@
 export { default as StepCategory } from "./StepCategory";
+export { default as StepPreAnalysis } from "./StepPreAnalysis";
 export { default as StepCompletionMode } from "./StepCompletionMode";
 export { default as StepAISummary } from "./StepAISummary";
 export { default as StepEditListing } from "./StepEditListing";

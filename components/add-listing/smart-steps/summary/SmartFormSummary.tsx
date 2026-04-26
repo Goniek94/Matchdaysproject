@@ -8,7 +8,6 @@ import {
   TitleCard,
   DescriptionCard,
   VerificationDetails,
-  PricingCard,
   ProductDetails,
   BoostOptions,
   ActionButtons,
@@ -39,12 +38,10 @@ const SmartFormSummary = ({
     data.photos?.[0]?.url || null,
   );
   const [selectedBoosts, setSelectedBoosts] = useState<string[]>([]);
-
-  const toggleBoost = (id: string) => {
+  const toggleBoost = (id: string) =>
     setSelectedBoosts((prev) =>
       prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id],
     );
-  };
 
   return (
     <div className="w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -65,14 +62,10 @@ const SmartFormSummary = ({
           <VerificationDetails data={data} />
         </div>
 
-        {/* Right column (2/5): Pricing + Verified + Product Details + Boost + Actions */}
+        {/* Right column (2/5): Product Details + Boosts + Actions */}
         <div className="lg:col-span-2 space-y-5 lg:sticky lg:top-20">
-          <PricingCard data={data} />
           <ProductDetails data={data} />
-          <BoostOptions
-            selectedBoosts={selectedBoosts}
-            onToggleBoost={toggleBoost}
-          />
+          <BoostOptions selectedBoosts={selectedBoosts} onToggleBoost={toggleBoost} />
           <ActionButtons
             onPublish={onPublish}
             onBack={onBack}

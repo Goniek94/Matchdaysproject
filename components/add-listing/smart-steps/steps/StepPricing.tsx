@@ -12,30 +12,7 @@ import {
 import { CURRENCY } from "@/lib/constants/listing.constants";
 import { cn } from "@/lib/utils";
 
-// Pancerne rozwiązanie: usuwamy z BaseSmartFormData WSZYSTKIE klucze,
-// które definiujemy niżej. Zero szans na jakikolwiek konflikt typów.
-export interface SmartFormData extends Omit<
-  BaseSmartFormData,
-  | "aiData"
-  | "duration"
-  | "listingType"
-  | "price"
-  | "startingBid"
-  | "bidIncrement"
-  | "buyNowPrice"
-> {
-  startingBid?: string | number;
-  bidIncrement?: string | number;
-  buyNowPrice?: string | number;
-  listingType?: "auction" | "buy_now" | string;
-  duration?: string;
-  price?: string | number;
-  aiData?: {
-    priceSuggested?: number;
-    priceMin?: number;
-    [key: string]: any;
-  } | null;
-}
+export type SmartFormData = BaseSmartFormData;
 
 interface StepProps {
   data: SmartFormData;
@@ -168,8 +145,8 @@ export default function StepPricing({ data, update }: StepProps) {
                       />
                       <input
                         type="number"
-                        value={data.startingBid ?? ""}
-                        onChange={(e) => update("startingBid", e.target.value)}
+                        value={data.startPrice ?? ""}
+                        onChange={(e) => update("startPrice", e.target.value)}
                         placeholder="0.00"
                         className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-lg"
                       />
@@ -187,8 +164,8 @@ export default function StepPricing({ data, update }: StepProps) {
                       />
                       <input
                         type="number"
-                        value={data.bidIncrement ?? ""}
-                        onChange={(e) => update("bidIncrement", e.target.value)}
+                        value={data.bidStep ?? ""}
+                        onChange={(e) => update("bidStep", e.target.value)}
                         placeholder="5.00"
                         className="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-lg"
                       />
@@ -244,8 +221,8 @@ export default function StepPricing({ data, update }: StepProps) {
                     />
                     <input
                       type="number"
-                      value={data.buyNowPrice ?? data.price ?? ""}
-                      onChange={(e) => update("buyNowPrice", e.target.value)}
+                      value={data.price ?? ""}
+                      onChange={(e) => update("price", e.target.value)}
                       placeholder="0.00"
                       className="w-full pl-14 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none font-bold text-2xl"
                     />

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, AlertTriangle, Loader2, AlertCircle, ChevronRight, TrendingUp } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Loader2, AlertCircle, ChevronRight, TrendingUp, ShirtIcon } from "lucide-react";
 import { SmartFormData } from "../types";
 import { analyzeListing, AIAnalysisResult } from "@/lib/api/ai";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ interface StepProps {
   data: SmartFormData;
   update: (field: keyof SmartFormData, val: any) => void;
   onNext?: () => void;
+  onBack?: () => void;
 }
 
 function normalizeCondition(raw: string): string {
@@ -31,9 +32,10 @@ function normalizeCondition(raw: string): string {
 // Split authenticityNotes into green and red flags based on content
 function parseFlags(notes: string): { green: string[]; red: string[] } {
   const RED_KEYWORDS = [
-    "not found", "missing", "unclear", "could not", "unable", "no serial",
-    "no tag", "inconsistent", "concern", "warning", "suspect", "replica",
-    "possible", "potential", "fake", "unverified", "cannot", "failed",
+    "not found", "missing", "no serial", "no tag",
+    "inconsistent", "concern", "warning", "suspect",
+    "fake", "counterfeit", "unverified", "failed",
+    "❌", "⚠️",
   ];
 
   const lines = notes
@@ -45,6 +47,10 @@ function parseFlags(notes: string): { green: string[]; red: string[] } {
   const red: string[] = [];
 
   for (const line of lines) {
+    // Primary: use emoji verdict marker if present
+    if (line.includes("✅")) { green.push(line); continue; }
+    if (line.includes("❌") || line.includes("⚠️")) { red.push(line); continue; }
+    // Fallback: keyword scan
     const lower = line.toLowerCase();
     const isRed = RED_KEYWORDS.some((kw) => lower.includes(kw));
     if (isRed) red.push(line);
@@ -54,7 +60,7 @@ function parseFlags(notes: string): { green: string[]; red: string[] } {
   return { green, red };
 }
 
-export default function StepAISummary({ data, update, onNext }: StepProps) {
+export default function StepAISummary({ data, update, onNext, onBack }: StepProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<AIAnalysisResult | null>(null);
@@ -100,6 +106,10 @@ export default function StepAISummary({ data, update, onNext }: StepProps) {
         update("serialCode", ai.serialCode || "");
         update("playerName", ai.playerName || "");
         update("playerNumber", ai.playerNumber || "");
+        update("colorway", ai.colorway || "");
+        update("studType", ai.studType || "");
+        // FIA certification — stored in serialCode for race suits/helmets/gloves
+        if (ai.fiaCertification) update("serialCode", ai.fiaCertification);
       } else {
         setError("AI analysis failed. Please try again.");
       }
@@ -149,6 +159,34 @@ export default function StepAISummary({ data, update, onNext }: StepProps) {
   }
 
   if (!aiResult) return null;
+
+  // Block if multiple different items detected
+  if (aiResult.multipleItemsDetected) {
+    return (
+      <div className="w-full max-w-2xl mx-auto">
+        <div className="bg-white rounded-3xl shadow-2xl border-2 border-red-200 flex flex-col items-center justify-center min-h-[360px] p-12 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-5">
+            <ShirtIcon className="w-8 h-8 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tighter mb-2">Multiple items detected</h2>
+          <p className="text-gray-500 text-sm max-w-sm leading-relaxed mb-2">
+            Your photos appear to show more than one jersey. Each listing must contain photos of a single item only.
+          </p>
+          {aiResult.multipleItemsReason && (
+            <p className="text-xs text-red-500 bg-red-50 px-4 py-2 rounded-xl max-w-sm mb-6">
+              {aiResult.multipleItemsReason}
+            </p>
+          )}
+          <button
+            onClick={onBack}
+            className="px-8 py-3 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-all"
+          >
+            ← Go back and fix photos
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const score = aiResult.authenticityScore;
   const scoreColor = score >= 80 ? "text-green-600" : score >= 60 ? "text-yellow-600" : "text-red-600";

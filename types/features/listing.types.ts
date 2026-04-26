@@ -94,6 +94,8 @@ export interface Category {
  * @see lib/api/ai.ts for the API function
  */
 export interface AIAnalysisResult {
+  multipleItemsDetected?: boolean;
+  multipleItemsReason?: string;
   title: string;
   description: string;
   sport: string;
@@ -114,6 +116,9 @@ export interface AIAnalysisResult {
   serialCode: string;
   playerName?: string;
   playerNumber?: string;
+  colorway?: string;
+  studType?: string;
+  fiaCertification?: string;
   priceMin: number;
   priceSuggested: number;
   priceMax: number;
@@ -170,11 +175,16 @@ export interface SmartFormData {
   serialCode: string;
   playerName: string;
   playerNumber: string;
+  colorway: string;
+  studType: string;
+  itemHistory: string;
 
   // Verification fields
   verification: {
     hasAutograph: boolean;
     autographDetails: string;
+    hasCertificate: boolean;
+    certificateDetails: string;
     isVintage: boolean;
     vintageYear: string;
     tagCondition: "intact" | "cut" | "washed_out" | "missing";
@@ -184,9 +194,7 @@ export interface SmartFormData {
       description: string;
       photoId: string | null;
     }>;
-    // Tag options - user can indicate all tag info is on one photo
     tagsCombined: boolean;
-    // Player print options - user can indicate no player name/number on shirt
     noPlayerPrint: boolean;
   };
 
@@ -242,9 +250,14 @@ export const INITIAL_FORM_STATE: SmartFormData = {
   serialCode: "",
   playerName: "",
   playerNumber: "",
+  colorway: "",
+  studType: "",
+  itemHistory: "",
   verification: {
     hasAutograph: false,
     autographDetails: "",
+    hasCertificate: false,
+    certificateDetails: "",
     isVintage: false,
     vintageYear: "",
     tagCondition: "intact",

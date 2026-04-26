@@ -127,8 +127,8 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
     }
   };
 
-  // AI path has 6 steps (adds Edit Listing step), Manual has 5
-  const totalSteps = data.completionMode === "AI" ? 6 : 5;
+  // AI path has 7 steps (adds Pre-Analysis + Edit Listing), Manual has 6
+  const totalSteps = data.completionMode === "AI" ? 7 : 6;
 
   // --- SPECIAL VIEWS ---
   if (isPublished) {
@@ -167,14 +167,14 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
   // Ukrywamy główne przyciski nawigacyjne na krokach, które mają własną nawigację
   // Steps that manage their own navigation buttons
   const hideNavButtons =
-    step === 1 || step === 2 || step === 3 ||
-    (step === 4 && data.completionMode === "AI") ||  // StepAISummary
-    (step === 5 && data.completionMode === "AI");    // StepEditListing
+    step === 1 || step === 2 || step === 4 ||        // step 4 = CompletionMode (own nav)
+    (step === 5 && data.completionMode === "AI") ||  // StepAISummary
+    (step === 6 && data.completionMode === "AI");    // StepEditListing
 
   return (
-    <div className="min-h-screen pb-24 pt-24">
+    <div className="min-h-screen pb-24 pt-20">
       {/* Progress Bar */}
-      <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 mb-8 py-4 px-4 transition-all">
+      <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 mb-4 py-3 px-4 transition-all">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
@@ -188,7 +188,7 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
         </div>
       </div>
 
-      <div className="px-4 max-w-4xl mx-auto">
+      <div className={`px-4 mx-auto ${step === 6 && data.completionMode === "AI" ? "max-w-6xl" : "max-w-4xl"}`}>
         <SmartFormSteps
           step={step}
           data={data}
