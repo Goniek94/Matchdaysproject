@@ -19,9 +19,9 @@ export default function StepCompletionMode({
   onNext,
 }: StepProps) {
   const [showCreditModal, setShowCreditModal] = useState(false);
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const userCredits = (user as any)?.aiCredits ?? 0;
-  const canUseAI = isAdmin || userCredits > 0;
+  const canUseAI = true;
 
   const handleModeSelect = (mode: "AI" | "MANUAL") => {
     if (mode === "AI" && !canUseAI) {
