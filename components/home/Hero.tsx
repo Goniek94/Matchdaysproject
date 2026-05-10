@@ -1,333 +1,813 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+/**
+ * Hero — 4 centred slides.
+ *
+ * No side cards, no widgets — just one focused, well-typeset slide at a time:
+ *   01. Who we are
+ *   02. What you'll find
+ *   03. How it works
+ *   04. Join the community
+ *
+ * Each slide reveals an eyebrow → big headline → short description → optional
+ * "supporting strip" (categories, steps or stats — text only, no boxed cards)
+ * → two CTAs. Background image cross-fades, parallax follows the cursor.
+ */
+
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  AnimatePresence,
+} from "framer-motion";
+import { ArrowRight } from "lucide-react";
+
+const EASE = [0.22, 1, 0.36, 1] as any;
+const SLIDE_DURATION_MS = 8000;
+
+// ─── Slide content ───────────────────────────────────────────────────────────
+
+type Slide = {
+  id: string;
+  number: string;
+  eyebrow: string;
+  category: string;
+  headline1: string;
+  headline2: string;
+  description: string;
+  /** Optional supporting strip rendered below the description. Plain text — no cards. */
+  strip?:
+    | { type: "tags"; items: string[] }
+    | { type: "steps"; items: { n: string; label: string }[] }
+    | { type: "stats"; items: { value: string; label: string }[] };
+  primaryCta: { label: string; href: string };
+  secondaryCta: { label: string; href: string };
+  image: string;
+};
+
+const SLIDES: Slide[] = [
+  {
+    id: "who",
+    number: "01",
+    eyebrow: "Who We Are",
+    category: "Sports Memorabilia",
+    headline1: "The Home of",
+    headline2: "Sports Collectibles.",
+    description:
+      "Built by collectors, for collectors. A premium marketplace for authentic jerseys, signed items and match-worn gear from football, basketball, hockey and beyond.",
+    primaryCta: { label: "Browse Listings", href: "/auctions" },
+    secondaryCta: { label: "About Us", href: "/about" },
+    // Empty stadium at golden hour — premium, classic, "the home of"
+    image:
+      "https://images.unsplash.com/photo-1577223625816-7546f13df25d?q=80&w=2500&auto=format&fit=crop",
+  },
+  {
+    id: "what",
+    number: "02",
+    eyebrow: "What You'll Find",
+    category: "The Catalogue",
+    headline1: "Football, Basketball,",
+    headline2: "Match-Worn & Rare.",
+    description:
+      "Every era, every league, every legend. From classic 90s kits to last season's signed shirts — curated, categorised and ready to bid on.",
+    strip: {
+      type: "tags",
+      items: [
+        "Football Jerseys",
+        "Signed Shirts",
+        "Match-Worn",
+        "Boots",
+        "Basketball Kits",
+        "Hockey Gear",
+        "Vintage",
+      ],
+    },
+    primaryCta: { label: "Explore Catalogue", href: "/auctions" },
+    secondaryCta: { label: "Featured Items", href: "/auctions?featured=1" },
+    // Jerseys hanging in a sport store — fits "what you'll find"
+    image:
+      "https://images.unsplash.com/photo-1556906903-7a3037c87bbf?q=80&w=2500&auto=format&fit=crop",
+  },
+  {
+    id: "how",
+    number: "03",
+    eyebrow: "How It Works",
+    category: "The Process",
+    headline1: "List, Verify,",
+    headline2: "Bid, Win.",
+    description:
+      "Sellers list in minutes — every item is AI-scanned for authenticity before going live. Buyers bid in real time. Winners ship protected end-to-end.",
+    strip: {
+      type: "steps",
+      items: [
+        { n: "01", label: "List" },
+        { n: "02", label: "AI Verify" },
+        { n: "03", label: "Bid Live" },
+        { n: "04", label: "Win & Ship" },
+      ],
+    },
+    primaryCta: { label: "Start Selling", href: "/add-listing" },
+    secondaryCta: { label: "How AI Works", href: "/aitools" },
+    // Football action moment — energy, intensity, "bid live"
+    image:
+      "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2500&auto=format&fit=crop",
+  },
+  {
+    id: "join",
+    number: "04",
+    eyebrow: "Join Us",
+    category: "The Community",
+    headline1: "Where Collectors",
+    headline2: "Trade Daily.",
+    description:
+      "10,000+ active listings. Bidders win every minute. Sellers move rare items in days, not weeks. The standard is authenticity.",
+    strip: {
+      type: "stats",
+      items: [
+        { value: "10K+", label: "Listings" },
+        { value: "4.9★", label: "Trust" },
+        { value: "AI", label: "Verified" },
+        { value: "EU", label: "Shipping" },
+      ],
+    },
+    primaryCta: { label: "Create Account", href: "/register" },
+    secondaryCta: { label: "Browse Now", href: "/auctions" },
+    // Stadium full of fans at night — community, scale, "join us"
+    image:
+      "https://images.unsplash.com/photo-1459865264687-595d652de67e?q=80&w=2500&auto=format&fit=crop",
+  },
+];
+
+// ─── Bottom ticker ───────────────────────────────────────────────────────────
+
+const TICKER = [
+  "Football Jerseys",
+  "Signed Shirts",
+  "Basketball Kits",
+  "Match-Worn Items",
+  "Rare Collectibles",
+  "Hockey Gear",
+  "Motorsport",
+  "Vintage Kits",
+  "AI Verified",
+];
+
+function Ticker() {
+  const items = [...TICKER, ...TICKER, ...TICKER];
+  return (
+    <div className="overflow-hidden">
+      <motion.div
+        animate={{ x: ["0%", "-33.333%"] }}
+        transition={{ duration: 32, repeat: Infinity, ease: "linear" }}
+        className="flex whitespace-nowrap w-max py-3"
+      >
+        {items.map((item, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-4 px-5"
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: "0.26em",
+              color: "rgba(255,255,255,0.25)",
+              textTransform: "uppercase",
+            }}
+          >
+            {item}
+            <span
+              style={{
+                width: 3,
+                height: 3,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.2)",
+                display: "inline-block",
+                flexShrink: 0,
+              }}
+            />
+          </span>
+        ))}
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Supporting strip variants ───────────────────────────────────────────────
+
+function StripTags({ items }: { items: string[] }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.55, duration: 0.5 }}
+      className="flex items-center justify-center gap-x-3 gap-y-2 flex-wrap"
+      style={{ maxWidth: 720, margin: "0 auto" }}
+    >
+      {items.map((tag) => (
+        <span
+          key={tag}
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.55)",
+            padding: "7px 14px",
+            borderRadius: 999,
+            border: "1px solid rgba(255,255,255,0.12)",
+            background: "rgba(255,255,255,0.03)",
+            backdropFilter: "blur(8px)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {tag}
+        </span>
+      ))}
+    </motion.div>
+  );
+}
+
+function StripSteps({
+  items,
+}: {
+  items: { n: string; label: string }[];
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.55, duration: 0.5 }}
+      className="flex items-center justify-center gap-2 sm:gap-6 flex-wrap"
+      style={{ maxWidth: 760, margin: "0 auto" }}
+    >
+      {items.map((step, i) => (
+        <div key={step.n} className="flex items-center gap-2 sm:gap-6">
+          <div className="flex items-baseline gap-2">
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: "#e11d48",
+                letterSpacing: "0.15em",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {step.n}
+            </span>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: "rgba(255,255,255,0.85)",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+              }}
+            >
+              {step.label}
+            </span>
+          </div>
+          {i < items.length - 1 && (
+            <span
+              style={{
+                width: 24,
+                height: 1,
+                background: "rgba(255,255,255,0.18)",
+                display: "inline-block",
+              }}
+            />
+          )}
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
+function StripStats({
+  items,
+}: {
+  items: { value: string; label: string }[];
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.55, duration: 0.5 }}
+      className="grid grid-cols-4 gap-4 sm:gap-10"
+      style={{ maxWidth: 640, margin: "0 auto" }}
+    >
+      {items.map((s, i) => (
+        <div key={s.label} className="text-center relative">
+          <div
+            style={{
+              fontSize: "clamp(1.7rem, 2.4vw, 2.4rem)",
+              fontWeight: 900,
+              color: i === 1 ? "#e11d48" : "#fff",
+              lineHeight: 1,
+              letterSpacing: "-0.03em",
+              textShadow:
+                i === 1
+                  ? "0 0 30px rgba(225,29,72,0.4)"
+                  : "0 2px 14px rgba(0,0,0,0.7)",
+              marginBottom: 6,
+            }}
+          >
+            {s.value}
+          </div>
+          <div
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: "0.3em",
+              color: "rgba(255,255,255,0.4)",
+              textTransform: "uppercase",
+            }}
+          >
+            {s.label}
+          </div>
+          {/* subtle vertical divider between columns */}
+          {i < items.length - 1 && (
+            <span
+              className="hidden sm:block"
+              style={{
+                position: "absolute",
+                right: -20,
+                top: "20%",
+                bottom: "20%",
+                width: 1,
+                background: "rgba(255,255,255,0.07)",
+              }}
+            />
+          )}
+        </div>
+      ))}
+    </motion.div>
+  );
+}
+
+// ─── Pagination dots ─────────────────────────────────────────────────────────
+
+function SlideDots({
+  total,
+  current,
+  onSelect,
+  paused,
+}: {
+  total: number;
+  current: number;
+  onSelect: (i: number) => void;
+  paused: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      {Array.from({ length: total }).map((_, i) => {
+        const isActive = i === current;
+        return (
+          <button
+            key={i}
+            onClick={() => onSelect(i)}
+            className="group relative"
+            style={{ padding: 4 }}
+            aria-label={`Go to slide ${i + 1}`}
+          >
+            <div
+              style={{
+                width: isActive ? 36 : 8,
+                height: 8,
+                borderRadius: 4,
+                background: isActive ? "#e11d48" : "rgba(255,255,255,0.18)",
+                transition: "all 0.4s cubic-bezier(0.22,1,0.36,1)",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {isActive && !paused && (
+                <motion.div
+                  key={`progress-${current}`}
+                  initial={{ x: "-100%" }}
+                  animate={{ x: 0 }}
+                  transition={{
+                    duration: SLIDE_DURATION_MS / 1000,
+                    ease: "linear",
+                  }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "rgba(255,255,255,0.4)",
+                  }}
+                />
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Hero ────────────────────────────────────────────────────────────────────
 
 export default function Hero() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [direction, setDirection] = useState(0);
+  const [slide, setSlide] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const sx = useSpring(mx, { stiffness: 25, damping: 28 });
+  const sy = useSpring(my, { stiffness: 25, damping: 28 });
 
-  const slides = [
-    {
-      id: 1,
-      title: "Matchdays",
-      subtitle: "The Sports Collectibles Marketplace",
-      highlight: "BUY. SELL. COLLECT. REPEAT.",
-      description:
-        "The home for authentic sports memorabilia. Jerseys, kits, signed items and rare collectibles from football, basketball, hockey, motorsport and beyond — all in one place.",
-      image:
-        "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Start Exploring",
-      ctaLink: "/auctions",
-      color: "from-red-600 to-rose-700",
-    },
-    {
-      id: 2,
-      title: "Bid. Win. Own.",
-      subtitle: "Live Auctions & Buy Now",
-      highlight: "RARE ITEMS. REAL VALUE.",
-      description:
-        "Compete in live auctions or grab items instantly at fixed prices. From match-worn shirts to signed memorabilia — every listing is verified and every deal is protected.",
-      image:
-        "https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Browse Auctions",
-      ctaLink: "/auctions",
-      color: "from-amber-500 to-orange-600",
-    },
-    {
-      id: 3,
-      title: "AI-Powered",
-      subtitle: "Smart Collecting, Smarter Selling",
-      highlight: "VERIFIED. VALUED. TRUSTED.",
-      description:
-        "Instant authenticity checks. AI-generated descriptions. Real-time market valuations. Buy and sell with total confidence",
-      image:
-        "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Explore AI Tools",
-      ctaLink: "/aitools",
-      color: "from-purple-600 to-pink-600",
-    },
-    {
-      id: 4,
-      title: "Sell Smarter",
-      subtitle: "List, Search & Sell Across Europe",
-      highlight: "YOUR COLLECTION. YOUR PRICE.",
-      description:
-        "List your items in minutes, search thousands of verified collectibles and reach buyers across the entire European Union. No borders, no hidden fees — just sport, passion and fair deals.",
-      image:
-        "https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Start Selling",
-      ctaLink: "/add-listing",
-      color: "from-green-600 to-emerald-600",
-    },
-    {
-      id: 5,
-      title: "My Collection",
-      subtitle: "Your Personal Trophy Cabinet",
-      highlight: "TRACK. SHOWCASE. TRADE.",
-      description:
-        "Build your own digital cabinet of sports treasures. Organise every jersey, signed item and rare collectible you own — rank them by rarity, keep them private or show the world, and list anything for auction in one tap.",
-      image:
-        "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "Open My Collection",
-      ctaLink: "/collection/mine",
-      color: "from-teal-500 to-cyan-600",
-    },
-    {
-      id: 6,
-      title: "Play & Win",
-      subtitle: "Matchdays Arena",
-      highlight: "YOUR KNOWLEDGE PAYS OFF.",
-      description:
-        "More than a marketplace — it's a community. Predict match outcomes, challenge other collectors, climb the leaderboard and win exclusive prizes. Sport is better together.",
-      image: "/images/arena.png",
-      ctaText: "Enter the Arena",
-      ctaLink: "/arena",
-      color: "from-indigo-500 to-blue-600",
-    },
-    {
-      id: 7,
-      title: "Zero Fakes.",
-      subtitle: "Buyer Protection Guaranteed",
-      highlight: "100% AUTHENTIC OR MONEY BACK.",
-      description:
-        "Every item is verified before it reaches you. Secure payments, insured EU-wide shipping and a full buyer protection policy. Shop with confidence — we've got you covered.",
-      image:
-        "https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=2500&auto=format&fit=crop",
-      ctaText: "How It Works",
-      ctaLink: "/auctions",
-      color: "from-blue-600 to-indigo-600",
-    },
-  ];
+  const next = useCallback(() => setSlide((s) => (s + 1) % SLIDES.length), []);
+  const prev = useCallback(
+    () => setSlide((s) => (s - 1 + SLIDES.length) % SLIDES.length),
+    [],
+  );
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      paginate(1);
-    }, 8000);
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSlide]);
+    if (paused) return;
+    const t = setInterval(next, SLIDE_DURATION_MS);
+    return () => clearInterval(t);
+  }, [next, paused]);
 
-  const paginate = (newDirection: number) => {
-    setDirection(newDirection);
-    setCurrentSlide(
-      (prev) => (prev + newDirection + slides.length) % slides.length,
-    );
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") next();
+      else if (e.key === "ArrowLeft") prev();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [next, prev]);
+
+  const onMouse = (e: React.MouseEvent) => {
+    const r = ref.current?.getBoundingClientRect();
+    if (!r) return;
+    mx.set(((e.clientX - r.left) / r.width - 0.5) * 12);
+    my.set(((e.clientY - r.top) / r.height - 0.5) * 8);
   };
 
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 1000 : -1000,
-      opacity: 0,
-      scale: 1.2,
-    }),
-    center: {
-      zIndex: 1,
-      x: 0,
-      opacity: 1,
-      scale: 1,
-      transition: {
-        x: { type: "spring" as const, stiffness: 300, damping: 30 },
-        opacity: { duration: 0.5 },
-        scale: { duration: 8, ease: "linear" as const },
-      },
-    },
-    exit: (direction: number) => ({
-      zIndex: 0,
-      x: direction < 0 ? 1000 : -1000,
-      opacity: 0,
-      transition: {
-        x: { type: "spring" as const, stiffness: 300, damping: 30 },
-        opacity: { duration: 0.5 },
-      },
-    }),
-  };
-
-  const textContainerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.3,
-      },
-    },
-  };
-
-  const textItemVariants = {
-    hidden: { y: 50, opacity: 0 },
-    show: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring" as const, stiffness: 100, damping: 10 },
-    },
-  };
+  const current = SLIDES[slide];
 
   return (
-    /*
-     * ZMIANY MOBILE:
-     * - h-[85vh] zamiast 70vh — więcej miejsca na treść
-     * - min-h-[580px] — zabezpieczenie przed zbyt małą wysokością
-     * - pb-20 — padding na dole dla kropek, żeby nie nachodziły na CTA
-     */
-    <section className="relative h-[85vh] min-h-[580px] md:h-[75vh] w-full overflow-hidden bg-black">
-      {/* TŁO */}
-      <AnimatePresence initial={false} custom={direction}>
+    <section
+      ref={ref}
+      onMouseMove={onMouse}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      className="relative w-full bg-black overflow-hidden flex flex-col"
+      style={{ height: "82vh", minHeight: 620 }}
+    >
+      {/* Background images cross-fade */}
+      <AnimatePresence initial={false} mode="popLayout">
         <motion.div
-          key={currentSlide}
-          custom={direction}
-          variants={slideVariants as any}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          className="absolute inset-0 z-0"
+          key={current.image}
+          initial={{ opacity: 0, scale: 1.06 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.4, ease: "easeInOut" }}
+          className="absolute inset-0 z-0 pointer-events-none"
         >
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: `url(${slides[currentSlide].image})` }}
+          <motion.div
+            className="absolute bg-cover bg-center"
+            style={{
+              inset: "-5%",
+              backgroundImage: `url(${current.image})`,
+              x: sx,
+              y: sy,
+            }}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/30 z-10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-10" />
         </motion.div>
       </AnimatePresence>
 
-      {/* TREŚĆ — pb-20 robi miejsce dla kropek na mobile */}
-      <div className="container-max relative z-20 h-full flex flex-col justify-center px-6 md:px-12 items-center text-center pb-20 md:pb-0">
-        <motion.div
-          key={currentSlide}
-          variants={textContainerVariants as any}
-          initial="hidden"
-          animate="show"
-          className="max-w-4xl w-full"
-        >
-          {/* Subtitle / Badge */}
+      {/* Vignette overlays — keep type readable on any photo */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.85) 70%, rgba(0,0,0,0.95) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, transparent 25%, transparent 70%, rgba(0,0,0,0.85) 100%)",
+        }}
+      />
+
+      {/* Top accent line */}
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+        style={{
+          width: 240,
+          height: 2,
+          background:
+            "linear-gradient(to right, transparent, #e11d48, transparent)",
+        }}
+      />
+
+      {/* Centred content */}
+      <div className="relative z-10 flex-1 flex items-center justify-center px-6">
+        <AnimatePresence mode="wait">
           <motion.div
-            variants={textItemVariants as any}
-            className="flex items-center justify-center gap-3 mb-4 md:mb-6"
+            key={current.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="w-full max-w-4xl mx-auto flex flex-col items-center text-center"
           >
-            <span
-              className={`h-0.5 w-8 md:w-12 bg-gradient-to-r ${slides[currentSlide].color}`}
-            />
-            <span className="text-white/80 uppercase tracking-[0.2em] text-xs md:text-sm font-medium">
-              {slides[currentSlide].subtitle}
-            </span>
-            <span
-              className={`h-0.5 w-8 md:w-12 bg-gradient-to-r ${slides[currentSlide].color}`}
-            />
-          </motion.div>
-
-          {/* Tytuł — POPRAWKA: text-5xl na mobile zamiast text-6xl */}
-          <motion.h1
-            variants={textItemVariants as any}
-            className="text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-black text-white leading-[0.9] tracking-tight mb-3 md:mb-4"
-          >
-            {slides[currentSlide].title}
-          </motion.h1>
-
-          {/* Highlight */}
-          <motion.div
-            variants={textItemVariants as any}
-            className="overflow-hidden mb-5 md:mb-8"
-          >
-            <h2
-              className={`text-2xl sm:text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${slides[currentSlide].color} italic tracking-tighter`}
-            >
-              {slides[currentSlide].highlight}
-            </h2>
-          </motion.div>
-
-          {/* Opis — POPRAWKA: text-base na mobile, ukryty na bardzo małych (opcjonalnie) */}
-          <motion.p
-            variants={textItemVariants as any}
-            className="text-base sm:text-lg md:text-2xl text-gray-300 max-w-2xl mx-auto mb-8 md:mb-12 leading-relaxed font-light"
-          >
-            {slides[currentSlide].description}
-          </motion.p>
-
-          {/* CTA — POPRAWKA: mniejszy padding na mobile */}
-          <motion.div variants={textItemVariants as any}>
-            <Link
-              href={slides[currentSlide].ctaLink}
-              className="group relative inline-flex items-center gap-2 md:gap-3 px-7 py-4 md:px-10 md:py-5 bg-white text-black font-bold text-base md:text-xl rounded-full overflow-hidden transition-transform hover:scale-105 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)]"
-            >
-              <span className="relative z-10">
-                {slides[currentSlide].ctaText}
-              </span>
-              <div className="relative z-10 bg-black text-white rounded-full p-1 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1">
-                <ArrowRight size={18} />
-              </div>
-              <div
-                className={`absolute inset-0 bg-gradient-to-r ${slides[currentSlide].color} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}
-              />
-            </Link>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* STRZAŁKI (Desktop) */}
-      <div className="absolute bottom-10 right-10 z-30 hidden md:flex gap-4">
-        <button
-          onClick={() => paginate(-1)}
-          className="w-14 h-14 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all duration-300 group"
-        >
-          <ChevronLeft
-            size={24}
-            className="group-hover:-translate-x-1 transition-transform"
-          />
-        </button>
-        <button
-          onClick={() => paginate(1)}
-          className="w-14 h-14 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white hover:text-black transition-all duration-300 group"
-        >
-          <ChevronRight
-            size={24}
-            className="group-hover:translate-x-1 transition-transform"
-          />
-        </button>
-      </div>
-
-      {/* PASEK POSTĘPU + KROPKI */}
-      {/*
-       * POPRAWKA MOBILE:
-       * - bottom-5 zamiast bottom-10 — bliżej dolnej krawędzi ale nie nachodzy na CTA (bo CTA ma pb-20)
-       * - left-0 right-0 + justify-center — wyśrodkowane na mobile
-       * - Na desktop: justify-start, left-10, bottom-10 jak wcześniej
-       */}
-      <div className="absolute bottom-5 left-0 right-0 md:bottom-10 md:left-10 md:right-auto z-30 flex items-center justify-center md:justify-start gap-6">
-        {/* Pasek postępu (Desktop) */}
-        <div className="hidden md:flex items-center gap-3 text-white/50 text-sm font-mono">
-          <span>0{currentSlide + 1}</span>
-          <div className="w-32 h-[2px] bg-white/20 relative overflow-hidden rounded-full">
+            {/* Eyebrow row: number · category · live dot */}
             <motion.div
-              key={currentSlide}
-              initial={{ width: "0%" }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 8, ease: "linear" }}
-              className="absolute top-0 left-0 h-full bg-white"
-            />
-          </div>
-          <span>0{slides.length}</span>
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+              className="flex items-center justify-center gap-4 mb-10"
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 900,
+                  letterSpacing: "0.4em",
+                  color: "rgba(255,255,255,0.35)",
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {current.number}
+              </span>
+              <span
+                style={{
+                  width: 28,
+                  height: 1,
+                  background: "rgba(255,255,255,0.2)",
+                }}
+              />
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#e11d48",
+                    boxShadow: "0 0 8px #e11d48",
+                    animation: "pulse 2s infinite",
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 900,
+                    letterSpacing: "0.32em",
+                    color: "#fb7185",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {current.eyebrow}
+                </span>
+              </span>
+              <span
+                style={{
+                  width: 28,
+                  height: 1,
+                  background: "rgba(255,255,255,0.2)",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.32em",
+                  color: "rgba(255,255,255,0.35)",
+                  textTransform: "uppercase",
+                }}
+              >
+                {current.category}
+              </span>
+            </motion.div>
+
+            {/* Headline 1 */}
+            <div style={{ overflow: "hidden", marginBottom: "0.05em" }}>
+              <motion.h1
+                initial={{ y: "102%" }}
+                animate={{ y: 0 }}
+                transition={{ delay: 0.2, duration: 0.75, ease: EASE }}
+                style={{
+                  fontSize: "clamp(2.4rem, 5.5vw, 5.5rem)",
+                  fontWeight: 900,
+                  color: "#fff",
+                  lineHeight: 1.0,
+                  letterSpacing: "-0.025em",
+                  textShadow: "0 4px 30px rgba(0,0,0,0.85)",
+                }}
+              >
+                {current.headline1}
+              </motion.h1>
+            </div>
+
+            {/* Headline 2 — rose accent */}
+            <div style={{ overflow: "hidden", marginBottom: "1.6rem" }}>
+              <motion.h1
+                initial={{ y: "102%" }}
+                animate={{ y: 0 }}
+                transition={{ delay: 0.3, duration: 0.75, ease: EASE }}
+                style={{
+                  fontSize: "clamp(2.4rem, 5.5vw, 5.5rem)",
+                  fontWeight: 900,
+                  color: "#e11d48",
+                  lineHeight: 1.0,
+                  letterSpacing: "-0.025em",
+                  textShadow:
+                    "0 4px 30px rgba(0,0,0,0.85), 0 0 80px rgba(225,29,72,0.25)",
+                }}
+              >
+                {current.headline2}
+              </motion.h1>
+            </div>
+
+            {/* Description */}
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.42, duration: 0.5 }}
+              style={{
+                fontSize: "clamp(0.95rem, 1.05vw, 1.075rem)",
+                lineHeight: 1.7,
+                maxWidth: 620,
+                fontWeight: 400,
+                color: "rgba(255,255,255,0.7)",
+                letterSpacing: "0.005em",
+                textShadow: "0 1px 14px rgba(0,0,0,0.85)",
+                marginBottom: current.strip ? "2rem" : "2.5rem",
+              }}
+            >
+              {current.description}
+            </motion.p>
+
+            {/* Optional supporting strip — text-only, centred */}
+            {current.strip?.type === "tags" && (
+              <div className="mb-10">
+                <StripTags items={current.strip.items} />
+              </div>
+            )}
+            {current.strip?.type === "steps" && (
+              <div className="mb-10">
+                <StripSteps items={current.strip.items} />
+              </div>
+            )}
+            {current.strip?.type === "stats" && (
+              <div className="mb-10">
+                <StripStats items={current.strip.items} />
+              </div>
+            )}
+
+            {/* CTAs */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55, duration: 0.5 }}
+              className="flex items-center justify-center gap-3 flex-wrap"
+            >
+              <Link
+                href={current.primaryCta.href}
+                className="group inline-flex items-center gap-3 font-black rounded-full
+                  hover:scale-[1.04] active:scale-[0.97] transition-transform duration-200"
+                style={{
+                  fontSize: 13,
+                  letterSpacing: "0.02em",
+                  padding: "14px 28px",
+                  background: "#fff",
+                  color: "#000",
+                  boxShadow:
+                    "0 8px 32px rgba(0,0,0,0.5), 0 1px 3px rgba(0,0,0,0.3)",
+                }}
+              >
+                {current.primaryCta.label}
+                <span
+                  className="flex-shrink-0 flex items-center justify-center rounded-full
+                    group-hover:translate-x-0.5 transition-transform duration-200"
+                  style={{
+                    width: 26,
+                    height: 26,
+                    background: "#e11d48",
+                    boxShadow: "0 0 14px rgba(225,29,72,0.55)",
+                  }}
+                >
+                  <ArrowRight size={12} color="white" />
+                </span>
+              </Link>
+
+              <Link
+                href={current.secondaryCta.href}
+                className="inline-flex items-center font-semibold rounded-full
+                  transition-all duration-200 hover:bg-white/10 hover:border-white/35 hover:text-white"
+                style={{
+                  fontSize: 13,
+                  letterSpacing: "0.02em",
+                  padding: "13px 24px",
+                  color: "rgba(255,255,255,0.7)",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "rgba(255,255,255,0.05)",
+                  backdropFilter: "blur(6px)",
+                }}
+              >
+                {current.secondaryCta.label}
+              </Link>
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Slide controls */}
+      <div className="relative z-10 flex items-center justify-between gap-4 px-6 md:px-12 lg:px-20 py-5">
+        {/* Slide counter (left) */}
+        <div className="flex items-center gap-3">
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 900,
+              color: "#fff",
+              fontVariantNumeric: "tabular-nums",
+              letterSpacing: "0.05em",
+            }}
+          >
+            {String(slide + 1).padStart(2, "0")}
+          </span>
+          <span
+            style={{
+              width: 24,
+              height: 1,
+              background: "rgba(255,255,255,0.25)",
+            }}
+          />
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              color: "rgba(255,255,255,0.4)",
+              fontVariantNumeric: "tabular-nums",
+              letterSpacing: "0.05em",
+            }}
+          >
+            {String(SLIDES.length).padStart(2, "0")}
+          </span>
         </div>
 
-        {/* Kropki (Mobile) */}
-        <div className="flex md:hidden gap-2 items-center">
-          {slides.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => {
-                setDirection(idx > currentSlide ? 1 : -1);
-                setCurrentSlide(idx);
-              }}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                idx === currentSlide ? "w-8 bg-white" : "w-2 bg-white/40"
-              }`}
-            />
-          ))}
+        {/* Pagination dots (centre) */}
+        <SlideDots
+          total={SLIDES.length}
+          current={slide}
+          onSelect={setSlide}
+          paused={paused}
+        />
+
+        {/* Prev / Next (right) */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={prev}
+            aria-label="Previous slide"
+            className="flex items-center justify-center rounded-full transition-all hover:bg-white/10 hover:border-white/30"
+            style={{
+              width: 36,
+              height: 36,
+              border: "1px solid rgba(255,255,255,0.18)",
+              background: "rgba(255,255,255,0.04)",
+              color: "rgba(255,255,255,0.7)",
+            }}
+          >
+            <ArrowRight size={13} style={{ transform: "rotate(180deg)" }} />
+          </button>
+          <button
+            onClick={next}
+            aria-label="Next slide"
+            className="flex items-center justify-center rounded-full transition-all hover:bg-white/10 hover:border-white/30"
+            style={{
+              width: 36,
+              height: 36,
+              border: "1px solid rgba(255,255,255,0.18)",
+              background: "rgba(255,255,255,0.04)",
+              color: "rgba(255,255,255,0.7)",
+            }}
+          >
+            <ArrowRight size={13} />
+          </button>
         </div>
       </div>
+
+      {/* Bottom ticker */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.5 }}
+        className="relative z-10"
+        style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+      >
+        <Ticker />
+      </motion.div>
     </section>
   );
 }

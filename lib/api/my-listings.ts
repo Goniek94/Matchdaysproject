@@ -29,16 +29,50 @@ export const getListing = async (
 // ─── Get My Listings ──────────────────────────────────────────────────────────
 
 /**
- * Fetch all auctions belonging to the currently authenticated user
- * @param status - Optional status filter (active, upcoming, ended, sold, cancelled)
+ * Fetch the seller's own auctions.
+ *
+ * @param status   Optional status filter (active, upcoming, ended, sold, cancelled)
+ * @param archived Archive scope:
+ *                   "active"   (default) — un-archived only
+ *                   "archived"           — only the seller's archive ("History" tab)
+ *                   "all"                — both
  */
 export const getMyListings = async (
   status?: string,
+  archived: "active" | "archived" | "all" = "active",
 ): Promise<ApiResponse<MyListing[]>> => {
-  const params = status ? { status } : {};
+  const params: Record<string, string> = { archived };
+  if (status) params.status = status;
   const response = await apiClient.get<ApiResponse<MyListing[]>>(
     "/auctions/my/auctions",
     { params },
+  );
+  return response.data;
+};
+
+// ─── Archive / Unarchive ──────────────────────────────────────────────────────
+
+/**
+ * Move a closed listing (sold/ended/cancelled) to the seller's archive.
+ * Listing stays in the database — reviews and disputes still reference it.
+ */
+export const archiveListing = async (
+  id: string,
+): Promise<ApiResponse<MyListing>> => {
+  const response = await apiClient.patch<ApiResponse<MyListing>>(
+    `/auctions/${id}/archive`,
+  );
+  return response.data;
+};
+
+/**
+ * Restore a previously archived listing back to the active "My Listings" view.
+ */
+export const unarchiveListing = async (
+  id: string,
+): Promise<ApiResponse<MyListing>> => {
+  const response = await apiClient.patch<ApiResponse<MyListing>>(
+    `/auctions/${id}/unarchive`,
   );
   return response.data;
 };

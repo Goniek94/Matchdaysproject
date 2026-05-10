@@ -1,13 +1,20 @@
 "use client";
 
 /**
- * Edit Listing Page
- * Full-page edit view for a single listing.
- * Layout mirrors SmartFormSummary: left column = image gallery + listing info,
- * right column = editable form fields.
+ * Edit Listing Page (full-screen)
+ *
+ * Two-column layout:
+ *   LEFT  — large active photo + interactive thumbnail strip
+ *           (drag to reorder, click ⭐ to make main, X to delete, + to add)
+ *   RIGHT — same form sections used by the slide-in modal:
+ *           Basic / Details / Pricing & shipping.
+ *
+ * Edit-permission mirrors backend lock rule: when an auction has at least one
+ * bid, only description / images / shipping fields are editable. The other
+ * fields are visibly disabled with a banner explaining why.
  */
 
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -22,12 +29,26 @@ import {
   Eye,
   Heart,
   Loader2,
+  Star,
+  Trash2,
+  Plus,
+  Lock,
 } from "lucide-react";
 import { getListing, updateListing } from "@/lib/api/my-listings";
-import type {
-  MyListing,
-  UpdateListingPayload,
-} from "@/types/features/listings.types";
+import type { MyListing } from "@/types/features/listings.types";
+import {
+  useEditForm,
+  EditSectionBasic,
+  EditSectionDetails,
+  EditSectionPricing,
+} from "@/components/my-listings/edit";
+import {
+  uploadListingImages,
+  deleteListingImages,
+} from "@/lib/supabase/supabase";
+import { logger } from "@/lib/logger";
+
+const MAX_IMAGES = 12;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,106 +78,34 @@ export default function EditListingPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  // Listing data
   const [listing, setListing] = useState<MyListing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Active image in gallery
-  const [activeImage, setActiveImage] = useState<string | null>(null);
-
-  // Form state
-  const [form, setForm] = useState<UpdateListingPayload>({});
-  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<"success" | "error" | null>(null);
+  const [feedback, setFeedback] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
 
-  // Field errors
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  // ── Load listing ────────────────────────────────────────────────────────────
+  // Load listing
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     getListing(id)
       .then((res) => {
         if (res.success && res.data) {
-          const l = res.data;
-          setListing(l);
-          setActiveImage(l.images?.[0] ?? null);
-          // Pre-fill form with current values
-          setForm({
-            title: l.title,
-            description: l.description,
-            size: l.size,
-            condition: l.condition,
-            playerName: l.playerName ?? "",
-            playerNumber: l.playerNumber ?? "",
-            buyNowPrice: l.buyNowPrice ?? undefined,
-            shippingCost: l.shippingCost,
-            shippingTime: l.shippingTime,
-            shippingFrom: l.shippingFrom,
-          });
+          setListing(res.data);
         } else {
-          setError("Listing not found.");
+          setLoadError("Listing not found.");
         }
       })
-      .catch(() => setError("Failed to load listing."))
+      .catch(() => setLoadError("Failed to load listing."))
       .finally(() => setLoading(false));
   }, [id]);
 
-  // ── Field setter ────────────────────────────────────────────────────────────
-  const setField = <K extends keyof UpdateListingPayload>(
-    key: K,
-    value: UpdateListingPayload[K],
-  ) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    setDirty(true);
-    setFieldErrors((prev) => ({ ...prev, [key]: "" }));
-  };
-
-  // ── Validate ────────────────────────────────────────────────────────────────
-  const validate = (): UpdateListingPayload | null => {
-    const errs: Record<string, string> = {};
-    if (!form.title?.trim()) errs.title = "Title is required";
-    if ((form.title?.length ?? 0) > 120) errs.title = "Max 120 characters";
-    if (!form.description?.trim()) errs.description = "Description is required";
-    if ((form.description?.length ?? 0) > 2000)
-      errs.description = "Max 2000 characters";
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
-      return null;
-    }
-    return form;
-  };
-
-  // ── Save ────────────────────────────────────────────────────────────────────
-  const handleSave = async () => {
-    const payload = validate();
-    if (!payload || !listing) return;
-
-    setSaving(true);
-    setFeedback(null);
-
-    try {
-      const res = await updateListing(listing.id, payload);
-      if (res.success) {
-        setFeedback("success");
-        setDirty(false);
-        setTimeout(() => router.push("/my-listings"), 1400);
-      } else {
-        setFeedback("error");
-        setTimeout(() => setFeedback(null), 3000);
-      }
-    } catch {
-      setFeedback("error");
-      setTimeout(() => setFeedback(null), 3000);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ── Loading / Error states ──────────────────────────────────────────────────
+  // Loading / error gates — render before mounting form hook so its `listing`
+  // dependency is always defined.
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -164,11 +113,10 @@ export default function EditListingPage() {
       </div>
     );
   }
-
-  if (error || !listing) {
+  if (loadError || !listing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <p className="text-gray-500">{error ?? "Listing not found."}</p>
+        <p className="text-gray-500">{loadError ?? "Listing not found."}</p>
         <Link
           href="/my-listings"
           className="text-sm font-bold text-blue-600 hover:underline"
@@ -179,34 +127,222 @@ export default function EditListingPage() {
     );
   }
 
-  const images = listing.images ?? [];
+  return (
+    <EditListingPageInner
+      listing={listing}
+      onSavedOptimistic={(next) => setListing(next)}
+      saving={saving}
+      setSaving={setSaving}
+      feedback={feedback}
+      setFeedback={setFeedback}
+      onBack={() => router.push("/my-listings")}
+    />
+  );
+}
+
+// ─── Inner component (after listing loaded) ───────────────────────────────────
+
+function EditListingPageInner({
+  listing,
+  onSavedOptimistic,
+  saving,
+  setSaving,
+  feedback,
+  setFeedback,
+  onBack,
+}: {
+  listing: MyListing;
+  onSavedOptimistic: (next: MyListing) => void;
+  saving: boolean;
+  setSaving: (v: boolean) => void;
+  feedback: { kind: "success" | "error"; message: string } | null;
+  setFeedback: (
+    f: { kind: "success" | "error"; message: string } | null,
+  ) => void;
+  onBack: () => void;
+}) {
+  const { form, errors, dirty, mode, isEditable, setField, validate, reset } =
+    useEditForm(listing);
+
+  const isLocked = mode === "locked";
+  const canEditImages = isEditable("images");
+
+  // Keep "active image" in sync with form.images so re-ordering updates the canvas
+  const [activeIndex, setActiveIndex] = useState(0);
+  useEffect(() => {
+    if (activeIndex >= form.images.length) {
+      setActiveIndex(Math.max(0, form.images.length - 1));
+    }
+  }, [form.images.length, activeIndex]);
+
+  const activeImage = form.images[activeIndex] ?? null;
+
+  // ── Image manager state ─────────────────────────────────────────────────────
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const setImages = (next: string[]) => {
+    setField("images", next);
+  };
+
+  const move = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || to >= form.images.length) return;
+    const next = [...form.images];
+    const [m] = next.splice(from, 1);
+    next.splice(to, 0, m);
+    setImages(next);
+    // Follow the moved image with the active selector for an intuitive UX
+    if (activeIndex === from) setActiveIndex(to);
+    else if (activeIndex === to) setActiveIndex(from);
+  };
+
+  const setAsMain = (index: number) => move(index, 0);
+
+  const handleAddClick = () => {
+    if (!canEditImages || uploading) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+
+    const slots = MAX_IMAGES - form.images.length;
+    if (slots <= 0) {
+      setImageError(`Maximum ${MAX_IMAGES} images allowed`);
+      return;
+    }
+    setUploading(true);
+    setImageError(null);
+    try {
+      const uploaded = await uploadListingImages(files.slice(0, slots));
+      setImages([...form.images, ...uploaded.map((u) => u.url)]);
+    } catch (err) {
+      logger.error("Image upload failed", "EditListingPage", err);
+      setImageError(
+        err instanceof Error ? err.message : "Image upload failed",
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDelete = async (index: number) => {
+    if (!canEditImages) return;
+    if (form.images.length === 1) {
+      setImageError("At least one photo is required");
+      setTimeout(() => setImageError(null), 2500);
+      return;
+    }
+    const target = form.images[index];
+    setImages(form.images.filter((_, i) => i !== index));
+    try {
+      await deleteListingImages([target]);
+    } catch (err) {
+      logger.warn(
+        "Failed to delete image from storage (continuing)",
+        "EditListingPage",
+        err,
+      );
+    }
+  };
+
+  // Native HTML5 drag & drop
+  const onDragStart = (i: number) => (e: React.DragEvent) => {
+    if (!canEditImages) return;
+    setDragIndex(i);
+    e.dataTransfer.effectAllowed = "move";
+  };
+  const onDragOver = (i: number) => (e: React.DragEvent) => {
+    if (!canEditImages || dragIndex === null) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIndex(i);
+  };
+  const onDrop = (i: number) => (e: React.DragEvent) => {
+    if (!canEditImages || dragIndex === null) return;
+    e.preventDefault();
+    move(dragIndex, i);
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+  const onDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
+  // ── Save ────────────────────────────────────────────────────────────────────
+  const handleSave = async () => {
+    const payload = validate();
+    if (!payload) return;
+    if (Object.keys(payload).length === 0) {
+      setFeedback({
+        kind: "error",
+        message: "Nothing to save — no changes detected.",
+      });
+      setTimeout(() => setFeedback(null), 2500);
+      return;
+    }
+
+    setSaving(true);
+    setFeedback(null);
+
+    try {
+      const res = await updateListing(listing.id, payload);
+      if (res.success && res.data) {
+        const updated = res.data;
+        onSavedOptimistic(updated);
+        reset(updated);
+        setFeedback({ kind: "success", message: "Changes saved!" });
+        setTimeout(() => setFeedback(null), 2000);
+      } else {
+        setFeedback({
+          kind: "error",
+          message: res.message ?? "Failed to save. Please try again.",
+        });
+        setTimeout(() => setFeedback(null), 4000);
+      }
+    } catch (err) {
+      setFeedback({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Unexpected error",
+      });
+      setTimeout(() => setFeedback(null), 4000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const bidCount = listing._count?.bids ?? listing.bidCount ?? 0;
   const favCount = listing._count?.favorites ?? listing.favoritesCount ?? 0;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-24 pb-16">
-      <div className="max-w-6xl mx-auto px-4">
-        {/* ── Top bar ──────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/my-listings"
-              className="flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-gray-900 transition-colors"
+      <div className="max-w-[1600px] mx-auto px-6 xl:px-10">
+        {/* ── Top bar ────────────────────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="min-w-0">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors mb-1.5 uppercase tracking-wider"
             >
-              <ArrowLeft size={16} />
-              My Listings
-            </Link>
-            <span className="text-gray-300">/</span>
-            <span className="text-sm font-bold text-gray-900 truncate max-w-xs">
-              {listing.title}
-            </span>
+              <ArrowLeft size={14} />
+              Back to My Listings
+            </button>
+            <h1 className="text-2xl xl:text-3xl font-black text-gray-900 leading-tight truncate">
+              Edit · {listing.title}
+            </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <Link
               href={`/auction/${listing.id}`}
               target="_blank"
-              className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors bg-white"
             >
               <ExternalLink size={14} />
               View Live
@@ -214,7 +350,7 @@ export default function EditListingPage() {
             <button
               onClick={handleSave}
               disabled={saving || !dirty}
-              className="flex items-center gap-2 px-6 py-2 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
             >
               {saving ? (
                 <>
@@ -228,33 +364,48 @@ export default function EditListingPage() {
           </div>
         </div>
 
-        {/* ── Feedback banners ─────────────────────────────────────────────── */}
-        {feedback === "success" && (
+        {/* ── Lock banner ───────────────────────────────────────────────── */}
+        {isLocked && (
+          <div className="flex items-start gap-3 p-4 mb-6 bg-amber-50 border border-amber-200 rounded-2xl">
+            <Lock size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-black text-amber-800 uppercase tracking-wide">
+                Auction has bids — limited edit
+              </p>
+              <p className="text-xs text-amber-700 mt-1 leading-snug">
+                To stay fair to {bidCount} {bidCount === 1 ? "bidder" : "bidders"},
+                only the description, photos and shipping can be changed. Title,
+                price, item details and timing are locked.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Feedback banners ──────────────────────────────────────────── */}
+        {feedback?.kind === "success" && (
           <div className="flex items-center gap-3 p-4 mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl">
             <CheckCircle2
               size={20}
               className="text-emerald-600 flex-shrink-0"
             />
             <p className="text-sm font-bold text-emerald-800">
-              Changes saved! Redirecting…
+              {feedback.message}
             </p>
           </div>
         )}
-        {feedback === "error" && (
+        {feedback?.kind === "error" && (
           <div className="flex items-center gap-3 p-4 mb-6 bg-red-50 border border-red-200 rounded-2xl">
             <AlertCircle size={20} className="text-red-500 flex-shrink-0" />
-            <p className="text-sm font-bold text-red-800">
-              Failed to save. Please try again.
-            </p>
+            <p className="text-sm font-bold text-red-800">{feedback.message}</p>
           </div>
         )}
 
-        {/* ── Main 2-column layout ─────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-          {/* ── LEFT: Gallery + Listing info (3/5) ─────────────────────────── */}
-          <div className="lg:col-span-3 space-y-5">
-            {/* Main image */}
-            <div className="relative w-full aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 shadow-sm">
+        {/* ── Main 2-column layout ──────────────────────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12 items-start">
+          {/* ── LEFT: Image manager + summary (7/12 ≈ 58%) ────────────── */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Active photo */}
+            <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-md">
               {activeImage ? (
                 <Image
                   src={activeImage}
@@ -263,53 +414,177 @@ export default function EditListingPage() {
                   className="object-contain"
                   sizes="(max-width: 1024px) 100vw, 60vw"
                   priority
+                  unoptimized
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2">
                   <ImageIcon size={48} className="text-gray-300" />
+                  <p className="text-xs font-bold text-gray-400">
+                    No photos yet
+                  </p>
+                </div>
+              )}
+
+              {activeImage && activeIndex === 0 && (
+                <div className="absolute top-3 left-3 flex items-center gap-1 px-2.5 py-1 bg-amber-400 rounded-lg shadow-md">
+                  <Star size={11} fill="white" className="text-white" />
+                  <span className="text-[11px] font-black text-white tracking-widest">
+                    MAIN
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* Thumbnail strip */}
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {images.map((src, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveImage(src)}
-                    className={`relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${
-                      activeImage === src
-                        ? "border-gray-900 shadow-md"
-                        : "border-gray-200 hover:border-gray-400 opacity-70 hover:opacity-100"
-                    }`}
-                  >
-                    <Image
-                      src={src}
-                      alt={`Image ${i + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="80px"
-                    />
-                    {i === 0 && (
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[9px] font-black text-center py-0.5 tracking-widest">
-                        MAIN
-                      </div>
-                    )}
-                  </button>
-                ))}
+            {/* Image error */}
+            {imageError && (
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <AlertCircle size={14} className="text-red-500 flex-shrink-0" />
+                <p className="text-xs font-bold text-red-700">{imageError}</p>
               </div>
             )}
+
+            {/* Thumbnail strip */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black text-gray-500 uppercase tracking-widest">
+                  Photos ({form.images.length}/{MAX_IMAGES})
+                </span>
+                {canEditImages && (
+                  <span className="text-[11px] text-gray-400">
+                    Drag to reorder · click ⭐ to set main
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {form.images.map((src, i) => {
+                  const isMain = i === 0;
+                  const isActive = i === activeIndex;
+                  const isDragOver = dragOverIndex === i && dragIndex !== i;
+
+                  return (
+                    <div
+                      key={`${src}-${i}`}
+                      draggable={canEditImages}
+                      onDragStart={onDragStart(i)}
+                      onDragOver={onDragOver(i)}
+                      onDrop={onDrop(i)}
+                      onDragEnd={onDragEnd}
+                      onClick={() => setActiveIndex(i)}
+                      className={`group relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                        isActive
+                          ? "border-black shadow-md"
+                          : isMain
+                            ? "border-amber-400"
+                            : "border-gray-200 hover:border-gray-400"
+                      } ${
+                        isDragOver ? "ring-2 ring-blue-500 scale-105" : ""
+                      } ${canEditImages ? "active:cursor-grabbing" : "cursor-pointer"}`}
+                    >
+                      <Image
+                        src={src}
+                        alt={`Photo ${i + 1}`}
+                        fill
+                        className="object-cover pointer-events-none"
+                        sizes="96px"
+                        unoptimized
+                      />
+
+                      {/* Position badge */}
+                      <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/70 text-white text-[10px] font-bold flex items-center justify-center">
+                        {i + 1}
+                      </div>
+
+                      {/* MAIN badge */}
+                      {isMain && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-amber-400 text-white text-[9px] font-black text-center py-0.5 tracking-widest">
+                          MAIN
+                        </div>
+                      )}
+
+                      {/* Hover controls */}
+                      {canEditImages && (
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                          {!isMain && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAsMain(i);
+                              }}
+                              title="Set as main"
+                              className="p-1.5 rounded-md bg-amber-400 hover:bg-amber-500 text-white shadow"
+                            >
+                              <Star size={12} fill="white" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(i);
+                            }}
+                            title="Delete"
+                            className="p-1.5 rounded-md bg-red-500 hover:bg-red-600 text-white shadow"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Upload tile */}
+                {canEditImages && form.images.length < MAX_IMAGES && (
+                  <button
+                    type="button"
+                    onClick={handleAddClick}
+                    disabled={uploading}
+                    className="flex-shrink-0 w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-colors flex flex-col items-center justify-center gap-1 disabled:opacity-50"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2
+                          size={18}
+                          className="text-gray-400 animate-spin"
+                        />
+                        <span className="text-[10px] font-bold text-gray-500">
+                          Uploading…
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={20} className="text-gray-400" />
+                        <span className="text-[10px] font-bold text-gray-500">
+                          Add photo
+                        </span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFiles}
+                className="hidden"
+              />
+            </div>
 
             {/* Listing summary card */}
             <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-black text-gray-900 leading-tight">
-                    {listing.title}
+                    {form.title || listing.title}
                   </h2>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    {listing.team} · {listing.season} · {listing.size}
+                    {form.team || listing.team} · {form.season || listing.season} ·{" "}
+                    {form.size || listing.size}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -326,7 +601,6 @@ export default function EditListingPage() {
                 </div>
               </div>
 
-              {/* Stats row */}
               <div className="flex items-center gap-4 text-sm text-gray-500 border-t border-gray-100 pt-4">
                 <div className="flex items-center gap-1.5">
                   <Gavel size={14} />
@@ -352,7 +626,6 @@ export default function EditListingPage() {
                 </div>
               </div>
 
-              {/* Price */}
               <div className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">
@@ -383,259 +656,41 @@ export default function EditListingPage() {
             </div>
           </div>
 
-          {/* ── RIGHT: Edit form (2/5) ──────────────────────────────────────── */}
-          <div className="lg:col-span-2 space-y-5 lg:sticky lg:top-24">
-            {/* Basic Info */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                Basic Info
-              </h3>
-
-              {/* Title */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.title ?? ""}
-                  onChange={(e) => setField("title", e.target.value)}
-                  maxLength={120}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-all outline-none focus:ring-2 focus:ring-black/10 ${
-                    fieldErrors.title
-                      ? "border-red-400 bg-red-50"
-                      : "border-gray-200 focus:border-gray-400"
-                  }`}
-                />
-                <div className="flex justify-between mt-1">
-                  {fieldErrors.title ? (
-                    <p className="text-xs text-red-500">{fieldErrors.title}</p>
-                  ) : (
-                    <span />
-                  )}
-                  <p className="text-xs text-gray-400 ml-auto">
-                    {(form.title ?? "").length}/120
-                  </p>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  Description <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={form.description ?? ""}
-                  onChange={(e) => setField("description", e.target.value)}
-                  rows={6}
-                  maxLength={2000}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm transition-all outline-none focus:ring-2 focus:ring-black/10 resize-none ${
-                    fieldErrors.description
-                      ? "border-red-400 bg-red-50"
-                      : "border-gray-200 focus:border-gray-400"
-                  }`}
-                />
-                <div className="flex justify-between mt-1">
-                  {fieldErrors.description ? (
-                    <p className="text-xs text-red-500">
-                      {fieldErrors.description}
-                    </p>
-                  ) : (
-                    <span />
-                  )}
-                  <p className="text-xs text-gray-400 ml-auto">
-                    {(form.description ?? "").length}/2000
-                  </p>
-                </div>
-              </div>
+          {/* ── RIGHT: Edit form (5/12 ≈ 42%) ─────────────────────────── */}
+          <div className="lg:col-span-5 space-y-5">
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <EditSectionBasic
+                form={form}
+                errors={errors}
+                setField={setField}
+                isEditable={isEditable}
+              />
             </div>
 
-            {/* Jersey Details */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                Jersey Details
-              </h3>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Size
-                  </label>
-                  <select
-                    value={form.size ?? ""}
-                    onChange={(e) => setField("size", e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all bg-white"
-                  >
-                    <option value="">Select size</option>
-                    {[
-                      "XS",
-                      "S",
-                      "M",
-                      "L",
-                      "XL",
-                      "XXL",
-                      "XXXL",
-                      "Youth S",
-                      "Youth M",
-                      "Youth L",
-                    ].map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Condition
-                  </label>
-                  <select
-                    value={form.condition ?? ""}
-                    onChange={(e) => setField("condition", e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all bg-white"
-                  >
-                    <option value="">Select condition</option>
-                    {[
-                      "New with tags",
-                      "New without tags",
-                      "Excellent",
-                      "Good",
-                      "Fair",
-                      "Poor",
-                    ].map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Player Name
-                  </label>
-                  <input
-                    type="text"
-                    value={form.playerName ?? ""}
-                    onChange={(e) =>
-                      setField("playerName", e.target.value || null)
-                    }
-                    placeholder="e.g. Beckham"
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Player Number
-                  </label>
-                  <input
-                    type="text"
-                    value={form.playerNumber ?? ""}
-                    onChange={(e) =>
-                      setField("playerNumber", e.target.value || null)
-                    }
-                    placeholder="e.g. 7"
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all"
-                  />
-                </div>
-              </div>
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <EditSectionDetails
+                form={form}
+                setField={setField}
+                isEditable={isEditable}
+              />
             </div>
 
-            {/* Pricing & Shipping */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                Pricing & Shipping
-              </h3>
-
-              {/* Starting bid (read-only) */}
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <span className="text-xs font-bold text-gray-500 uppercase">
-                  Starting Bid
-                </span>
-                <span className="text-sm font-black text-gray-900">
-                  £{Number(listing.startingBid).toFixed(2)}
-                </span>
-              </div>
-
-              {/* Buy Now Price (only for non-auction) */}
-              {listing.listingType !== "auction" && (
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Buy Now Price (£)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.buyNowPrice ?? ""}
-                    onChange={(e) =>
-                      setField(
-                        "buyNowPrice",
-                        e.target.value ? Number(e.target.value) : null,
-                      )
-                    }
-                    min={0}
-                    step={0.01}
-                    placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all"
-                  />
-                </div>
-              )}
-
-              {/* Shipping */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">
-                    Shipping Cost (£)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.shippingCost ?? ""}
-                    onChange={(e) =>
-                      setField("shippingCost", Number(e.target.value))
-                    }
-                    min={0}
-                    step={0.01}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">
-                    Est. Delivery Time
-                  </label>
-                  <input
-                    type="text"
-                    value={form.shippingTime ?? ""}
-                    onChange={(e) => setField("shippingTime", e.target.value)}
-                    placeholder="3-5 business days"
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">
-                  Ships From
-                </label>
-                <input
-                  type="text"
-                  value={form.shippingFrom ?? ""}
-                  onChange={(e) => setField("shippingFrom", e.target.value)}
-                  placeholder="City, Country"
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all"
-                />
-              </div>
+            <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+              <EditSectionPricing
+                form={form}
+                errors={errors}
+                setField={setField}
+                isEditable={isEditable}
+              />
             </div>
 
-            {/* Action buttons */}
-            <div className="flex gap-3">
-              <Link
-                href="/my-listings"
+            <div className="flex gap-3 sticky bottom-4 z-20 bg-white p-3 rounded-2xl border border-gray-200 shadow-xl">
+              <button
+                onClick={onBack}
                 className="flex-1 py-3 text-center border-2 border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 Cancel
-              </Link>
+              </button>
               <button
                 onClick={handleSave}
                 disabled={saving || !dirty}

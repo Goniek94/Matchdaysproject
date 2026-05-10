@@ -11,6 +11,9 @@ import {
   Gavel,
   Check,
   Trophy,
+  ArrowDown,
+  ArrowUp,
+  TrendingUp,
 } from "lucide-react";
 import {
   SPORTS,
@@ -20,8 +23,16 @@ import {
 } from "@/lib/constants/listing/taxonomy.constants";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+// Mirrors AuctionSort in @/types/api/auction.types so the value can be sent
+// straight to the API as `sort` query param.
 
-export type SortType = "recommended" | "ending_soon" | "newest";
+export type SortType =
+  | "recommended"
+  | "newest"
+  | "ending_soon"
+  | "price_low"
+  | "price_high"
+  | "most_bids";
 
 export interface FilterState {
   search: string;
@@ -72,6 +83,9 @@ const sortOptions: { id: SortType; label: string; icon: React.ReactNode }[] = [
   { id: "recommended", label: "Recommended", icon: <Flame size={15} /> },
   { id: "ending_soon", label: "Ending Soon", icon: <Clock size={15} /> },
   { id: "newest", label: "Newest First", icon: <Trophy size={15} /> },
+  { id: "price_low", label: "Price: Low to High", icon: <ArrowUp size={15} /> },
+  { id: "price_high", label: "Price: High to Low", icon: <ArrowDown size={15} /> },
+  { id: "most_bids", label: "Most Bids", icon: <TrendingUp size={15} /> },
 ];
 
 const listingTypeOptions = [

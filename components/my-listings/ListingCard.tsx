@@ -27,6 +27,11 @@ import {
   Zap,
   Heart,
   RefreshCw,
+  Archive,
+  ArchiveRestore,
+  ShieldCheck,
+  ShieldAlert,
+  Loader2,
 } from "lucide-react";
 import type {
   MyListing,
@@ -114,6 +119,10 @@ interface ListingCardProps {
   onUpdate?: (id: string, payload: UpdateListingPayload) => Promise<boolean>;
   onBoost?: (listingId: string, tier: string) => Promise<boolean>;
   onRelist?: (id: string, payload: RelistPayload) => Promise<boolean>;
+  onArchive?: (id: string) => Promise<boolean>;
+  onUnarchive?: (id: string) => Promise<boolean>;
+  /** Whether the card is rendered in the seller's archive view. */
+  isArchived?: boolean;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -156,9 +165,12 @@ export default function ListingCard({
   onUpdate,
   onBoost,
   onRelist,
+  onArchive,
+  onUnarchive,
+  isArchived = false,
 }: ListingCardProps) {
   const [confirmAction, setConfirmAction] = useState<
-    "delete" | "cancel" | null
+    "delete" | "cancel" | "archive" | null
   >(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showBoost, setShowBoost] = useState(false);
@@ -168,18 +180,30 @@ export default function ListingCard({
   const thumbnail = listing.images?.[0] ?? null;
   const bidCount = listing._count?.bids ?? listing.bidCount ?? 0;
   const favCount = listing._count?.favorites ?? listing.favoritesCount ?? 0;
-  const isEditable = ["active", "upcoming"].includes(listing.status);
-  // ended and cancelled can also be edited (title/description before relisting)
-  const canEditEnded = ["ended", "cancelled"].includes(listing.status);
-  const canBoost = ["active", "upcoming"].includes(listing.status);
-  const canDelete = bidCount === 0 && listing.status !== "sold";
-  const canCancel = ["active", "upcoming"].includes(listing.status);
-  const canRelist = ["ended", "cancelled"].includes(listing.status);
+
+  const isClosed = ["sold", "ended", "cancelled"].includes(listing.status);
+  // Active edits are blocked once the listing is closed
+  const isEditable = !isArchived && ["active", "upcoming"].includes(listing.status);
+  const canEditEnded = !isArchived && ["ended", "cancelled"].includes(listing.status);
+  const canBoost = !isArchived && ["active", "upcoming"].includes(listing.status);
+  // Backend now allows delete on any closed listing (sold/ended/cancelled), with
+  // bids cascade-deleting. Active+upcoming with bids still blocked.
+  const canDelete = isClosed || bidCount === 0;
+  const canCancel = !isArchived && ["active", "upcoming"].includes(listing.status);
+  const canRelist = !isArchived && ["ended", "cancelled"].includes(listing.status);
+  // Archive ⇄ Unarchive — only meaningful for closed listings
+  const canArchive = !isArchived && isClosed && !!onArchive;
+  const canUnarchive = isArchived && !!onUnarchive;
 
   const handleConfirm = async () => {
     if (confirmAction === "delete") await onDelete(listing.id);
     if (confirmAction === "cancel") await onCancel(listing.id);
+    if (confirmAction === "archive" && onArchive) await onArchive(listing.id);
     setConfirmAction(null);
+  };
+
+  const handleUnarchive = async () => {
+    if (onUnarchive) await onUnarchive(listing.id);
   };
 
   const handleSaveEdit = async (
@@ -226,8 +250,11 @@ export default function ListingCard({
             {statusCfg.label}
           </div>
 
+          {/* AI verification badge — top-right of image, above other flags */}
+          <AiScoreBadge score={listing.authenticityScore} status={listing.status} />
+
           {/* Featured / Rare badges */}
-          <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+          <div className="absolute top-3 right-3 flex flex-col gap-1 items-end" style={{ marginTop: 32 }}>
             {listing.featured && (
               <span className="px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-black rounded-full uppercase tracking-wide">
                 Featured
@@ -316,11 +343,25 @@ export default function ListingCard({
 
           {/* Confirm action overlay */}
           {confirmAction && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-center">
-              <p className="text-xs font-bold text-red-800 mb-2">
+            <div
+              className={`rounded-xl p-3 text-center border ${
+                confirmAction === "archive"
+                  ? "bg-amber-50 border-amber-200"
+                  : "bg-red-50 border-red-200"
+              }`}
+            >
+              <p
+                className={`text-xs font-bold mb-2 ${
+                  confirmAction === "archive"
+                    ? "text-amber-800"
+                    : "text-red-800"
+                }`}
+              >
                 {confirmAction === "delete"
                   ? "Delete this listing permanently?"
-                  : "Cancel this auction?"}
+                  : confirmAction === "cancel"
+                    ? "Cancel this auction?"
+                    : "Move to archive? You can restore it later."}
               </p>
               <div className="flex gap-2">
                 <button
@@ -331,7 +372,11 @@ export default function ListingCard({
                 </button>
                 <button
                   onClick={handleConfirm}
-                  className="flex-1 py-1.5 text-xs font-bold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  className={`flex-1 py-1.5 text-xs font-bold text-white rounded-lg transition-colors ${
+                    confirmAction === "archive"
+                      ? "bg-amber-600 hover:bg-amber-700"
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
                 >
                   Yes, confirm
                 </button>
@@ -409,12 +454,36 @@ export default function ListingCard({
                 </button>
               )}
 
+              {/* Archive (closed listings only) */}
+              {canArchive && (
+                <button
+                  onClick={() => setConfirmAction("archive")}
+                  className="flex items-center justify-center gap-1 px-3 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-xs font-bold text-amber-700 transition-colors"
+                  title="Move to archive"
+                >
+                  <Archive size={12} />
+                  Archive
+                </button>
+              )}
+
+              {/* Restore from archive */}
+              {canUnarchive && (
+                <button
+                  onClick={handleUnarchive}
+                  className="flex items-center justify-center gap-1 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 transition-colors"
+                  title="Restore from archive"
+                >
+                  <ArchiveRestore size={12} />
+                  Restore
+                </button>
+              )}
+
               {/* Delete */}
               {canDelete && (
                 <button
                   onClick={() => setConfirmAction("delete")}
                   className="flex items-center justify-center px-2.5 py-2 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-xs font-bold text-red-600 transition-colors"
-                  title="Delete listing"
+                  title="Delete listing permanently"
                 >
                   <Trash2 size={13} />
                 </button>
@@ -451,5 +520,68 @@ export default function ListingCard({
         />
       )}
     </>
+  );
+}
+
+// ─── AI score badge ────────────────────────────────────────────────────────
+// Renders the listing's authenticity score in the top-right of the image:
+//   - null score on a fresh PENDING_APPROVAL listing → "Scanning…" spinner
+//   - >= 90  → emerald "Verified 92"
+//   - 60–89  → amber  "Review 75"
+//   - < 60   → rose   "Flagged 42"
+//   - null on a published listing → no badge (worker hasn't run yet on legacy data)
+function AiScoreBadge({
+  score,
+  status,
+}: {
+  score?: number | null;
+  status: AuctionStatus;
+}) {
+  // Fresh listing waiting for AI scan
+  if (score == null && status === "PENDING_APPROVAL" as AuctionStatus) {
+    return (
+      <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur border border-gray-200 text-gray-600 text-[10px] font-black uppercase tracking-wide shadow-sm">
+        <Loader2 size={11} className="animate-spin" />
+        Scanning
+      </div>
+    );
+  }
+
+  if (score == null) return null;
+
+  const rounded = Math.round(score);
+  const tier =
+    rounded >= 90
+      ? {
+          label: "Verified",
+          icon: ShieldCheck,
+          bg: "bg-emerald-500",
+          text: "text-white",
+        }
+      : rounded >= 60
+        ? {
+            label: "Review",
+            icon: ShieldAlert,
+            bg: "bg-amber-500",
+            text: "text-white",
+          }
+        : {
+            label: "Flagged",
+            icon: ShieldAlert,
+            bg: "bg-rose-500",
+            text: "text-white",
+          };
+
+  const Icon = tier.icon;
+  return (
+    <div
+      className={`absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full ${tier.bg} ${tier.text} text-[10px] font-black uppercase tracking-wide shadow-md`}
+      title={`AI authenticity score: ${rounded}/100`}
+    >
+      <Icon size={11} strokeWidth={2.8} />
+      <span>{tier.label}</span>
+      <span className="opacity-80">·</span>
+      <span className="tabular-nums">{rounded}</span>
+    </div>
   );
 }

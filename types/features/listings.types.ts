@@ -76,6 +76,9 @@ export interface MyListing {
   featured: boolean;
   views: number;
 
+  // AI verification score (0-100, set asynchronously by the AI worker after publish)
+  authenticityScore?: number | null;
+
   // Shipping
   shippingCost: number;
   shippingTime: string;
@@ -104,20 +107,61 @@ export interface MyListing {
 // UPDATE LISTING PAYLOAD
 // ============================================
 
+/**
+ * Fields the seller can edit on an existing auction.
+ *
+ * Backend lock rule (AuctionsService.update):
+ * - listingType "buy_now"                          → all fields editable while open
+ * - listingType "auction"/"auction_buy_now"
+ *     • bidCount === 0 → all fields editable
+ *     • bidCount  > 0  → only description, images and shipping*
+ *                        (price/details locked once people are bidding)
+ */
 export interface UpdateListingPayload {
+  // Basic
   title?: string;
   description?: string;
   images?: string[];
+
+  // Categorisation
+  category?: string;
+  itemType?: string;
+  league?: string;
+  team?: string;
+  season?: string;
+
+  // Item details
+  size?: string;
+  sizeEU?: string;
+  sizeUK?: string;
+  condition?: string;
+  tagCondition?: string;
+  manufacturer?: string;
+  model?: string;
+  countryOfProduction?: string;
+  productionYear?: string;
+  serialCode?: string;
+  playerName?: string | null;
+  playerNumber?: string | null;
+
+  // Authenticity
+  hasAutograph?: boolean;
+  autographDetails?: string;
+  isVintage?: boolean;
+  vintageYear?: string;
+
+  // Pricing & timing
+  startingBid?: number;
+  bidIncrement?: number;
   buyNowPrice?: number | null;
+  startTime?: string;
   endTime?: string;
+  listingType?: AuctionListingType;
+
+  // Shipping
   shippingCost?: number;
   shippingTime?: string;
   shippingFrom?: string;
-  // Auction details (editable before auction starts)
-  size?: string;
-  condition?: string;
-  playerName?: string | null;
-  playerNumber?: string | null;
 }
 
 // ============================================

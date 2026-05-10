@@ -3,7 +3,7 @@
  */
 
 export { useEditForm } from "./useEditForm";
-export type { EditFormState, EditFormErrors } from "./useEditForm";
+export type { EditFormState, EditFormErrors, EditMode } from "./useEditForm";
 export { default as EditPanelHeader } from "./EditPanelHeader";
 export { default as EditSectionBasic } from "./EditSectionBasic";
 export { default as EditSectionDetails } from "./EditSectionDetails";

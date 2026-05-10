@@ -8,7 +8,6 @@ import { getAuctions } from "@/lib/api/auctions.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import type { AuctionDisplayDto } from "@/lib/utils/auction-adapter";
 import type { AuctionDto } from "@/types/api/auction.types";
-import { useAuth } from "@/lib/context/AuthContext";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -80,17 +79,17 @@ function pickWeighted<T>(pool: T[], count: number): T[] {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
-  const { isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [hotAdapted, setHotAdapted] = useState<AuctionDisplayDto[]>([]);
   const [lastCall, setLastCall] = useState<AuctionDisplayDto[]>([]);
+  const [buyNow, setBuyNow] = useState<AuctionDisplayDto[]>([]);
   const [forYou, setForYou] = useState<AuctionDisplayDto[]>([]);
 
   useEffect(() => {
     async function fetchAuctions() {
       try {
         setIsLoading(true);
-        const result = await getAuctions({ page: 1, limit: 24 });
+        const result = await getAuctions({ page: 1, limit: 24, status: "active" });
         const data: AuctionDto[] = result.success ? (result.data?.auctions ?? []) : [];
 
         // 🔥 HOT OFFERS — top-9 by score, pick 3 randomly once on load
@@ -118,6 +117,13 @@ export default function HomePage() {
               .slice(0, 6);
         setLastCall(adaptAuctionsForDisplay(lastCallFinal));
 
+        // 🛒 BUY NOW — buy_now and auction_buy_now listings, newest first
+        const buyNowRaw = [...data]
+          .filter((a) => a.listingType === "buy_now" || a.listingType === "auction_buy_now")
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 6);
+        setBuyNow(adaptAuctionsForDisplay(buyNowRaw));
+
         // 💎 FOR YOU — rare + verified, exclude hot pool IDs
         const hotIds = new Set(hotPool.map((a) => a.id));
         const forYouRaw = [...data]
@@ -131,6 +137,7 @@ export default function HomePage() {
       } catch {
         setHotAdapted([]);
         setLastCall([]);
+        setBuyNow([]);
         setForYou([]);
       } finally {
         setIsLoading(false);
@@ -194,8 +201,34 @@ export default function HomePage() {
 
           <div className="border-t border-gray-200" />
 
-          {/* ── 3. FOR YOU ──────────────────────────────────────────────────── */}
-          {(isAuthenticated || isLoading) && (
+          {/* ── 3. BUY NOW ──────────────────────────────────────────────────── */}
+          {(isLoading || buyNow.length > 0) && (
+            <div>
+              <SectionHeader
+                emoji="🛒"
+                label="Buy Now"
+                title="Instant Deals"
+                subtitle="No bidding required — buy immediately at a fixed price."
+              />
+              {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {buyNow.map((auction) => (
+                    <AuctionCard key={auction.id} auction={auction} />
+                  ))}
+                </div>
+              )}
+              <ViewAllButton href="/auctions?listingType=buy_now" />
+            </div>
+          )}
+
+          <div className="border-t border-gray-200" />
+
+          {/* ── 4. FOR YOU ──────────────────────────────────────────────────── */}
+          {(isLoading || forYou.length > 0) && (
             <div>
               <SectionHeader
                 emoji="💎"
@@ -207,7 +240,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {[1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)}
                 </div>
-              ) : forYou.length > 0 ? (
+              ) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {forYou.map((auction) => (
@@ -216,7 +249,7 @@ export default function HomePage() {
                   </div>
                   <ViewAllButton href="/auctions" />
                 </>
-              ) : null}
+              )}
             </div>
           )}
 

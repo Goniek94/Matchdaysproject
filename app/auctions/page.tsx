@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import AuctionCard from "@/components/home/AuctionCard";
 import { getAuctions } from "@/lib/api/auctions.api";
 import { adaptAuctionsForDisplay } from "@/lib/utils/auction-adapter";
 import type { AuctionDisplayDto } from "@/lib/utils/auction-adapter";
+import type { AuctionSort } from "@/types/api/auction.types";
 import { Search, Filter, X } from "lucide-react";
 import AuctionsSidebar, {
   FilterState,
@@ -23,16 +24,24 @@ const ITEM_LABELS: Record<string, string> = Object.fromEntries(
   ITEM_CATEGORIES.map((c) => [c.id, c.label]),
 );
 
-const parseTimeLeft = (timeStr: string): number => {
-  let totalMinutes = 0;
-  const days = timeStr.match(/(\d+)d/);
-  const hours = timeStr.match(/(\d+)h/);
-  const minutes = timeStr.match(/(\d+)m/);
-  if (days) totalMinutes += parseInt(days[1]) * 24 * 60;
-  if (hours) totalMinutes += parseInt(hours[1]) * 60;
-  if (minutes) totalMinutes += parseInt(minutes[1]);
-  return totalMinutes || 999999;
+const SORT_LABELS: Record<AuctionSort, string> = {
+  recommended: "Recommended",
+  newest: "Newest",
+  ending_soon: "Ending Soon",
+  price_low: "Price ↑",
+  price_high: "Price ↓",
+  most_bids: "Most Bids",
 };
+
+// Debounce hook — delays propagating a value until it stops changing
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
 export default function AuctionsPage(): JSX.Element {
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
@@ -41,70 +50,73 @@ export default function AuctionsPage(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Fetch from API whenever server-side filters change
-  const fetchAuctions = useCallback(async (f: FilterState) => {
-    try {
-      setIsLoading(true);
-      const result = await getAuctions({
-        page: 1,
-        limit: 60,
-        category: f.sport !== "all" ? f.sport : undefined,
-        itemType: f.itemCategory !== "all" ? f.itemCategory : undefined,
-        league: f.league || undefined,
-        listingType:
-          f.listingType !== "all" ? (f.listingType as "auction" | "buy_now") : undefined,
-      });
+  // Debounce search to avoid hitting the API on every keystroke
+  const debouncedSearch = useDebounce(filters.search, 350);
 
-      if (result.success && result.data) {
-        const adapted = adaptAuctionsForDisplay(result.data.auctions);
-        setAuctions(adapted);
-        setTotalCount(result.data.total);
-      } else {
+  // Cancellation guard — if a newer fetch starts before the previous resolves,
+  // ignore the stale response.
+  const fetchSeq = useRef(0);
+
+  const fetchAuctions = useCallback(
+    async (f: FilterState, search: string) => {
+      const mySeq = ++fetchSeq.current;
+      try {
+        setIsLoading(true);
+        const result = await getAuctions({
+          page: 1,
+          limit: 60,
+          q: search.trim() || undefined,
+          category: f.sport !== "all" ? f.sport : undefined,
+          itemType: f.itemCategory !== "all" ? f.itemCategory : undefined,
+          league: f.league || undefined,
+          listingType:
+            f.listingType !== "all"
+              ? (f.listingType as "auction" | "buy_now")
+              : undefined,
+          sort: f.sort,
+        });
+
+        // Stale response — newer fetch is in flight
+        if (mySeq !== fetchSeq.current) return;
+
+        if (result.success && result.data) {
+          setAuctions(adaptAuctionsForDisplay(result.data.auctions));
+          setTotalCount(result.data.total);
+        } else {
+          setAuctions([]);
+          setTotalCount(0);
+        }
+      } catch {
+        if (mySeq !== fetchSeq.current) return;
         setAuctions([]);
         setTotalCount(0);
+      } finally {
+        if (mySeq === fetchSeq.current) setIsLoading(false);
       }
-    } catch {
-      setAuctions([]);
-      setTotalCount(0);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
-  // Re-fetch when server-side filters change (sport, itemCategory, league, listingType)
+  // Re-fetch on any server-side filter change (incl. debounced search and sort)
   useEffect(() => {
-    fetchAuctions(filters);
+    fetchAuctions(filters, debouncedSearch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.sport, filters.itemCategory, filters.league, filters.listingType]);
+  }, [
+    filters.sport,
+    filters.itemCategory,
+    filters.league,
+    filters.listingType,
+    filters.sort,
+    debouncedSearch,
+  ]);
 
-  // Client-side: search text + sort (no extra API call)
-  const filteredAuctions = useMemo(() => {
-    let result = [...auctions];
-
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(
-        (item) =>
-          item.title.toLowerCase().includes(q) ||
-          item.seller.name.toLowerCase().includes(q),
-      );
-    }
-
-    if (filters.sort === "ending_soon") {
-      result.sort((a, b) => parseTimeLeft(a.endTime) - parseTimeLeft(b.endTime));
-    } else if (filters.sort === "newest") {
-      // already newest-first from API (orderBy createdAt desc)
-    }
-
-    return result;
-  }, [auctions, filters.search, filters.sort]);
-
-  // Active filter tags
+  // Active filter chips
   const activeTags: { label: string; onRemove: () => void }[] = [];
   if (filters.sport !== "all")
     activeTags.push({
       label: SPORT_LABELS[filters.sport] ?? filters.sport,
-      onRemove: () => setFilters((f) => ({ ...f, sport: "all", itemCategory: "all" })),
+      onRemove: () =>
+        setFilters((f) => ({ ...f, sport: "all", itemCategory: "all" })),
     });
   if (filters.itemCategory !== "all")
     activeTags.push({
@@ -121,6 +133,11 @@ export default function AuctionsPage(): JSX.Element {
       label: filters.listingType === "buy_now" ? "Buy Now" : "Auction",
       onRemove: () => setFilters((f) => ({ ...f, listingType: "all" })),
     });
+  if (filters.sort !== "recommended")
+    activeTags.push({
+      label: `Sort: ${SORT_LABELS[filters.sort]}`,
+      onRemove: () => setFilters((f) => ({ ...f, sort: "recommended" })),
+    });
   if (filters.search)
     activeTags.push({
       label: `"${filters.search}"`,
@@ -135,7 +152,7 @@ export default function AuctionsPage(): JSX.Element {
             <AuctionsSidebar
               filters={filters}
               onChange={setFilters}
-              resultCount={filteredAuctions.length}
+              resultCount={totalCount}
               isMobileOpen={isMobileFiltersOpen}
               onMobileClose={() => setIsMobileFiltersOpen(false)}
             />
@@ -149,8 +166,10 @@ export default function AuctionsPage(): JSX.Element {
                   </h1>
                   <p className="text-gray-500">
                     {isLoading
-                      ? "Loading..."
-                      : `Showing ${filteredAuctions.length} of ${totalCount} items`}
+                      ? "Searching…"
+                      : totalCount === 0
+                        ? "No items found"
+                        : `${totalCount.toLocaleString()} ${totalCount === 1 ? "item" : "items"} found`}
                   </p>
                 </div>
               </div>
@@ -197,9 +216,9 @@ export default function AuctionsPage(): JSX.Element {
                     />
                   ))}
                 </div>
-              ) : filteredAuctions.length > 0 ? (
+              ) : auctions.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredAuctions.map((auction) => (
+                  {auctions.map((auction) => (
                     <AuctionCard
                       key={auction.id}
                       auction={auction}
@@ -222,7 +241,9 @@ export default function AuctionsPage(): JSX.Element {
                     No items found
                   </h3>
                   <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                    We couldn&apos;t find any items matching your current filters.
+                    {filters.search
+                      ? `Nothing matched "${filters.search}". Try a different keyword or remove some filters.`
+                      : "We couldn't find any items matching your current filters."}
                   </p>
                   <button
                     onClick={() => setFilters(EMPTY_FILTERS)}

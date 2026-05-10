@@ -2,7 +2,13 @@
 
 /**
  * useMyListings Hook
- * Manages fetching, filtering, updating and deleting the current user's listings
+ *
+ * Manages fetching, filtering and mutations for the seller's own auctions.
+ * Tracks two orthogonal axes:
+ *   - statusFilter (all/active/upcoming/ended/sold/cancelled) — UI tabs
+ *   - scope        (active/archived)                          — toggle "Archive view"
+ *
+ * The backend exposes both via /auctions/my/auctions?status=...&archived=...
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -12,6 +18,8 @@ import {
   deleteListing,
   cancelListing,
   relistListing,
+  archiveListing,
+  unarchiveListing,
 } from "@/lib/api/my-listings";
 import type {
   MyListing,
@@ -21,63 +29,66 @@ import type {
 } from "@/types/features/listings.types";
 import type { RelistPayload } from "@/components/my-listings/RelistAuctionModal";
 
-// ─── Return type ──────────────────────────────────────────────────────────────
+export type ListingScope = "active" | "archived";
 
 interface UseMyListingsReturn {
   listings: MyListing[];
   filteredListings: MyListing[];
   stats: ListingStats;
   statusFilter: ListingStatusFilter;
+  scope: ListingScope;
   loading: boolean;
   error: string | null;
 
   setStatusFilter: (filter: ListingStatusFilter) => void;
+  setScope: (scope: ListingScope) => void;
   refresh: () => Promise<void>;
   update: (id: string, payload: UpdateListingPayload) => Promise<boolean>;
   remove: (id: string) => Promise<boolean>;
   cancel: (id: string) => Promise<boolean>;
   relist: (id: string, payload: RelistPayload) => Promise<boolean>;
+  archive: (id: string) => Promise<boolean>;
+  unarchive: (id: string) => Promise<boolean>;
 }
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useMyListings(): UseMyListingsReturn {
   const [listings, setListings] = useState<MyListing[]>([]);
   const [statusFilter, setStatusFilter] = useState<ListingStatusFilter>("all");
+  const [scope, setScope] = useState<ListingScope>("active");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ── Fetch all listings ──────────────────────────────────────────────────────
+  // ── Fetch listings for the current scope ─────────────────────────────────
   const fetchListings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-
-      const response = await getMyListings();
-
+      const response = await getMyListings(undefined, scope);
       if (response.success && response.data) {
         setListings(response.data);
       } else {
         setError(response.message || "Failed to load listings");
       }
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message || "Failed to load listings");
+      setError(
+        (err as { message?: string })?.message || "Failed to load listings",
+      );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [scope]);
 
   useEffect(() => {
     fetchListings();
   }, [fetchListings]);
 
-  // ── Filtered listings based on active status filter ─────────────────────────
+  // ── Derived: filtered by status tab ──────────────────────────────────────
   const filteredListings =
     statusFilter === "all"
       ? listings
       : listings.filter((l) => l.status === statusFilter);
 
-  // ── Compute stats from all listings ────────────────────────────────────────
+  // ── Stats over the current scope ─────────────────────────────────────────
   const stats: ListingStats = {
     total: listings.length,
     active: listings.filter((l) => l.status === "active").length,
@@ -87,16 +98,14 @@ export function useMyListings(): UseMyListingsReturn {
     cancelled: listings.filter((l) => l.status === "cancelled").length,
   };
 
-  // ── Update listing ──────────────────────────────────────────────────────────
+  // ── Mutations ────────────────────────────────────────────────────────────
   const update = async (
     id: string,
     payload: UpdateListingPayload,
   ): Promise<boolean> => {
     try {
       const response = await updateListing(id, payload);
-
       if (response.success && response.data) {
-        // Optimistically update local state
         setListings((prev) =>
           prev.map((l) => (l.id === id ? { ...l, ...response.data! } : l)),
         );
@@ -104,35 +113,33 @@ export function useMyListings(): UseMyListingsReturn {
       }
       return false;
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message || "Failed to update listing");
+      setError(
+        (err as { message?: string })?.message || "Failed to update listing",
+      );
       return false;
     }
   };
 
-  // ── Delete listing ──────────────────────────────────────────────────────────
   const remove = async (id: string): Promise<boolean> => {
     try {
       const response = await deleteListing(id);
-
       if (response.success) {
-        // Remove from local state
         setListings((prev) => prev.filter((l) => l.id !== id));
         return true;
       }
       return false;
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message || "Failed to delete listing");
+      setError(
+        (err as { message?: string })?.message || "Failed to delete listing",
+      );
       return false;
     }
   };
 
-  // ── Cancel listing ──────────────────────────────────────────────────────────
   const cancel = async (id: string): Promise<boolean> => {
     try {
       const response = await cancelListing(id);
-
       if (response.success && response.data) {
-        // Update status in local state
         setListings((prev) =>
           prev.map((l) =>
             l.id === id ? { ...l, status: "cancelled" as const } : l,
@@ -142,29 +149,24 @@ export function useMyListings(): UseMyListingsReturn {
       }
       return false;
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message || "Failed to cancel listing");
+      setError(
+        (err as { message?: string })?.message || "Failed to cancel listing",
+      );
       return false;
     }
   };
 
-  // ── Relist listing ──────────────────────────────────────────────────────────
   const relist = async (
     id: string,
     payload: RelistPayload,
   ): Promise<boolean> => {
     try {
       const response = await relistListing(id, payload);
-
       if (response.success && response.data) {
-        // Update listing in local state with new active status
         setListings((prev) =>
           prev.map((l) =>
             l.id === id
-              ? {
-                  ...l,
-                  ...response.data!,
-                  status: "active" as const,
-                }
+              ? { ...l, ...response.data!, status: "active" as const }
               : l,
           ),
         );
@@ -172,7 +174,50 @@ export function useMyListings(): UseMyListingsReturn {
       }
       return false;
     } catch (err: unknown) {
-      setError((err as { message?: string })?.message || "Failed to relist listing");
+      setError(
+        (err as { message?: string })?.message || "Failed to relist listing",
+      );
+      return false;
+    }
+  };
+
+  /**
+   * Archiving / unarchiving moves the listing between the two scopes.
+   * If we're currently viewing the source scope, the row disappears from view.
+   */
+  const archive = async (id: string): Promise<boolean> => {
+    try {
+      const response = await archiveListing(id);
+      if (response.success) {
+        setListings((prev) =>
+          scope === "active" ? prev.filter((l) => l.id !== id) : prev,
+        );
+        return true;
+      }
+      return false;
+    } catch (err: unknown) {
+      setError(
+        (err as { message?: string })?.message || "Failed to archive listing",
+      );
+      return false;
+    }
+  };
+
+  const unarchive = async (id: string): Promise<boolean> => {
+    try {
+      const response = await unarchiveListing(id);
+      if (response.success) {
+        setListings((prev) =>
+          scope === "archived" ? prev.filter((l) => l.id !== id) : prev,
+        );
+        return true;
+      }
+      return false;
+    } catch (err: unknown) {
+      setError(
+        (err as { message?: string })?.message ||
+          "Failed to restore listing",
+      );
       return false;
     }
   };
@@ -182,13 +227,17 @@ export function useMyListings(): UseMyListingsReturn {
     filteredListings,
     stats,
     statusFilter,
+    scope,
     loading,
     error,
     setStatusFilter,
+    setScope,
     refresh: fetchListings,
     update,
     remove,
     cancel,
     relist,
+    archive,
+    unarchive,
   };
 }

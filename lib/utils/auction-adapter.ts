@@ -222,10 +222,10 @@ export const mapFormDataToCreateAuctionDto = (
     shippingTime: "3-5 business days",
     shippingFrom: "Poland",
 
-    // Flags
-    verified: data.verificationStatus === "AI_VERIFIED_HIGH",
-    rare: data.verification?.isVintage || data.verification?.hasAutograph,
-    featured: false,
+    // verified / rare / featured intentionally not sent — the backend rejects
+    // them on CreateAuctionDto (sellers were flagging their own listings as
+    // "Featured/Verified"). The AI worker sets verified=true when score >= 90,
+    // and admins flip rare/featured via dedicated routes.
 
     // Completion mode: tells backend whether to start as PENDING_APPROVAL (MANUAL) or active (AI)
     completionMode: data.completionMode ?? "MANUAL",

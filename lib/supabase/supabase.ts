@@ -206,7 +206,16 @@ export const uploadPhotos = async (
 
       const publicUrl = await uploadPhoto(photo.url, fileName, mimeType);
 
-      return { url: publicUrl || photo.url, typeHint: photo.typeHint };
+      // CRITICAL: never fall back to the base64 data URL — it would balloon
+      // the listing payload to MBs in the DB and slow every list response.
+      // Throwing here aborts the create-listing flow with a clear error.
+      if (!publicUrl) {
+        throw new Error(
+          `Failed to upload image ${index + 1}. Please retry — your draft is preserved.`,
+        );
+      }
+
+      return { url: publicUrl, typeHint: photo.typeHint };
     }),
   );
 

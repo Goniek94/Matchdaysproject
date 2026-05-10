@@ -135,6 +135,14 @@ export interface AuctionListDto {
 
 // ─── Filters ─────────────────────────────────────────────────────────────────
 
+export type AuctionSort =
+  | "recommended"
+  | "newest"
+  | "ending_soon"
+  | "price_low"
+  | "price_high"
+  | "most_bids";
+
 export interface AuctionFilters {
   page?: number;
   limit?: number;
@@ -142,16 +150,14 @@ export interface AuctionFilters {
   itemType?: string;    // item category: "jersey_shirt" | "boots_cleats" | etc.
   league?: string;      // "Premier League" | "NBA" | etc.
   team?: string;
+  season?: string;
   status?: AuctionStatus | "all";
   listingType?: AuctionListingType;
-  q?: string;           // server-side full-text search (title, description, team, league)
-  search?: string;      // client-side local filter (used in /auctions page)
-  sortBy?: "endDate" | "price" | "bids" | "createdAt";
-  order?: "asc" | "desc";
+  q?: string;           // server-side full-text search across title/description/team/player/manufacturer
+  sort?: AuctionSort;   // server-side sort order
   minPrice?: number;
   maxPrice?: number;
   condition?: string;
-  brand?: string;
 }
 
 // ─── Create / Update DTOs ─────────────────────────────────────────────────────
@@ -204,36 +210,107 @@ export interface CreateAuctionDto {
   shippingTime: string;
   shippingFrom: string;
 
-  // Flags
-  verified?: boolean;
-  rare?: boolean;
-  featured?: boolean;
+  // verified / rare / featured intentionally NOT in the create payload —
+  // backend rejects them (sellers were flagging their own listings as
+  // "Featured/Verified"). They're set server-side by the AI worker and admin.
 
   // Flow control (tells backend whether to start as PENDING_APPROVAL or active)
   completionMode?: string;
 }
 
+/**
+ * Mirrors backend UpdateAuctionDto (apps/backend/src/modules/auctions/dto/update-auction.dto.ts).
+ * Lock-after-bid is enforced server-side; the client may freely send any subset.
+ */
 export interface UpdateAuctionDto {
+  // Basic
   title?: string;
   description?: string;
   images?: string[];
+
+  // Categorisation
+  category?: string;
+  itemType?: string;
+  league?: string;
+  team?: string;
+  season?: string;
+
+  // Item details
+  size?: string;
+  sizeEU?: string;
+  sizeUK?: string;
+  condition?: string;
+  tagCondition?: string;
+  manufacturer?: string;
+  model?: string;
+  countryOfProduction?: string;
+  productionYear?: string;
+  serialCode?: string;
+  playerName?: string | null;
+  playerNumber?: string | null;
+
+  // Authenticity
+  hasAutograph?: boolean;
+  autographDetails?: string;
+  isVintage?: boolean;
+  vintageYear?: string;
+
+  // Pricing & timing
+  startingBid?: number;
+  bidIncrement?: number;
   buyNowPrice?: number | null;
+  startTime?: string;
   endTime?: string;
+  listingType?: AuctionListingType;
+
+  // Shipping
   shippingCost?: number;
   shippingTime?: string;
   shippingFrom?: string;
-  size?: string;
-  condition?: string;
-  playerName?: string | null;
-  playerNumber?: string | null;
 }
 
+/**
+ * Mirrors backend RelistAuctionDto. Same surface as UpdateAuctionDto plus a
+ * required `endTime` (relisting always sets a new deadline).
+ */
 export interface RelistAuctionDto {
   endTime: string;
+
+  startTime?: string;
   listingType?: AuctionListingType;
   startingBid?: number;
-  buyNowPrice?: number;
+  buyNowPrice?: number | null;
   bidIncrement?: number;
+
   title?: string;
   description?: string;
+  images?: string[];
+
+  category?: string;
+  itemType?: string;
+  league?: string;
+  team?: string;
+  season?: string;
+
+  size?: string;
+  sizeEU?: string;
+  sizeUK?: string;
+  condition?: string;
+  tagCondition?: string;
+  manufacturer?: string;
+  model?: string;
+  countryOfProduction?: string;
+  productionYear?: string;
+  serialCode?: string;
+  playerName?: string | null;
+  playerNumber?: string | null;
+
+  hasAutograph?: boolean;
+  autographDetails?: string;
+  isVintage?: boolean;
+  vintageYear?: string;
+
+  shippingCost?: number;
+  shippingTime?: string;
+  shippingFrom?: string;
 }

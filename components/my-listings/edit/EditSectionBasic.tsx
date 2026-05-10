@@ -2,7 +2,7 @@
 
 /**
  * EditSectionBasic
- * Title and description fields for the edit form
+ * Title and description fields. Title may be locked after the first bid.
  */
 
 import type { EditFormState, EditFormErrors } from "./useEditForm";
@@ -14,13 +14,17 @@ interface EditSectionBasicProps {
     key: K,
     value: EditFormState[K],
   ) => void;
+  isEditable: (key: keyof EditFormState) => boolean;
 }
 
 export default function EditSectionBasic({
   form,
   errors,
   setField,
+  isEditable,
 }: EditSectionBasicProps) {
+  const lockedTitle = !isEditable("title");
+
   return (
     <div className="space-y-4">
       <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
@@ -36,12 +40,15 @@ export default function EditSectionBasic({
           type="text"
           value={form.title}
           onChange={(e) => setField("title", e.target.value)}
+          disabled={lockedTitle}
           maxLength={120}
           placeholder="e.g. Manchester United 1999 Home Jersey"
           className={`w-full px-4 py-3 rounded-xl border text-sm transition-all outline-none focus:ring-2 focus:ring-black/10 ${
-            errors.title
-              ? "border-red-400 bg-red-50"
-              : "border-gray-200 focus:border-gray-400"
+            lockedTitle
+              ? "border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed"
+              : errors.title
+                ? "border-red-400 bg-red-50"
+                : "border-gray-200 focus:border-gray-400 bg-white"
           }`}
         />
         <div className="flex justify-between mt-1">
@@ -56,7 +63,7 @@ export default function EditSectionBasic({
         </div>
       </div>
 
-      {/* Description */}
+      {/* Description — always editable */}
       <div>
         <label className="block text-xs font-bold text-gray-700 mb-1.5">
           Description <span className="text-red-500">*</span>
@@ -67,7 +74,7 @@ export default function EditSectionBasic({
           rows={5}
           maxLength={2000}
           placeholder="Describe the condition, history, authenticity details..."
-          className={`w-full px-4 py-3 rounded-xl border text-sm transition-all outline-none focus:ring-2 focus:ring-black/10 resize-none ${
+          className={`w-full px-4 py-3 rounded-xl border text-sm transition-all outline-none focus:ring-2 focus:ring-black/10 resize-none bg-white ${
             errors.description
               ? "border-red-400 bg-red-50"
               : "border-gray-200 focus:border-gray-400"

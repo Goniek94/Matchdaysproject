@@ -71,10 +71,11 @@ const CATEGORY_MAP: Record<string, string> = {
   equipment: "sports_equipment",
 };
 
-export const analyzeListing = async (
+/** Build the payload that both sync and async endpoints accept. */
+const buildAnalyzePayload = async (
   category: string,
   photos: Array<{ url: string; typeHint: string }>,
-): Promise<ApiResponse<AIAnalysisResult>> => {
+): Promise<AnalyzeListingDto> => {
   const backendCategory = CATEGORY_MAP[category] || category;
 
   const validPhotos = photos
@@ -95,15 +96,41 @@ export const analyzeListing = async (
     mimeType: "image/jpeg",
   }));
 
-  const payload: AnalyzeListingDto = {
-    category: backendCategory,
-    photos: photoDtos,
-  };
+  return { category: backendCategory, photos: photoDtos };
+};
 
+/**
+ * Synchronous AI analysis — request blocks until Gemini returns. Use only when
+ * the user is actively watching a spinner (LegitCheck, in-wizard preview).
+ */
+export const analyzeListing = async (
+  category: string,
+  photos: Array<{ url: string; typeHint: string }>,
+): Promise<ApiResponse<AIAnalysisResult>> => {
+  const payload = await buildAnalyzePayload(category, photos);
   const response = await apiClient.post<ApiResponse<AIAnalysisResult>>(
     "/ai/analyze",
     payload,
   );
+  return response.data;
+};
 
+/**
+ * Fire-and-forget AI analysis — enqueues a Bull job and returns 202 with the
+ * jobId immediately. Use for post-publish background verification so the user
+ * isn't stuck waiting 5–15s after pressing "Publish".
+ *
+ * Pass `auctionId` to have the worker write the score back to that auction
+ * (auto-publish when score ≥90, otherwise mark for manual review).
+ */
+export const analyzeListingAsync = async (
+  category: string,
+  photos: Array<{ url: string; typeHint: string }>,
+  auctionId?: string,
+): Promise<ApiResponse<{ jobId: string; status: string }>> => {
+  const payload = await buildAnalyzePayload(category, photos);
+  const response = await apiClient.post<
+    ApiResponse<{ jobId: string; status: string }>
+  >("/ai/analyze-async", { ...payload, auctionId });
   return response.data;
 };

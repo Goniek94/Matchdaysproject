@@ -15,6 +15,8 @@ import {
   Package,
   AlertCircle,
   List,
+  Archive,
+  Layers,
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useMyListings } from "@/lib/hooks/useMyListings";
@@ -50,14 +52,18 @@ export default function MyListingsPage() {
     filteredListings,
     stats,
     statusFilter,
+    scope,
     loading,
     error,
     setStatusFilter,
+    setScope,
     refresh,
     remove,
     cancel,
     update,
     relist,
+    archive,
+    unarchive,
   } = useMyListings();
 
   // Redirect unauthenticated users
@@ -135,6 +141,9 @@ export default function MyListingsPage() {
     return true;
   };
 
+  const handleArchive = async (id: string): Promise<boolean> => archive(id);
+  const handleUnarchive = async (id: string): Promise<boolean> => unarchive(id);
+
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-24 lg:pb-16">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -177,6 +186,32 @@ export default function MyListingsPage() {
               <span>New Listing</span>
             </Link>
           </div>
+        </div>
+
+        {/* ── Scope toggle: Active / Archive ─────────────────────────────── */}
+        <div className="mb-5 flex items-center gap-2 bg-white border border-gray-200 rounded-2xl p-1.5 w-fit shadow-sm">
+          <button
+            onClick={() => setScope("active")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              scope === "active"
+                ? "bg-black text-white shadow"
+                : "text-gray-500 hover:text-gray-900"
+            }`}
+          >
+            <Layers size={14} />
+            Active
+          </button>
+          <button
+            onClick={() => setScope("archived")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              scope === "archived"
+                ? "bg-black text-white shadow"
+                : "text-gray-500 hover:text-gray-900"
+            }`}
+          >
+            <Archive size={14} />
+            Archive
+          </button>
         </div>
 
         {/* ── Stats / Filter Tabs ──────────────────────────────────────────── */}
@@ -247,6 +282,9 @@ export default function MyListingsPage() {
                   onUpdate={handleUpdate}
                   onBoost={handleBoost}
                   onRelist={handleRelist}
+                  onArchive={handleArchive}
+                  onUnarchive={handleUnarchive}
+                  isArchived={scope === "archived"}
                 />
               ))}
             </div>

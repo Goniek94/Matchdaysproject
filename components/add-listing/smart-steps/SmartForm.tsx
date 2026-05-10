@@ -6,12 +6,9 @@ import { SmartFormData, INITIAL_STATE, Photo } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
 import { SuccessView } from "./steps";
 import { SmartFormSummary } from "./summary";
-import {
-  createAuctionFromForm,
-  updateListingVerification,
-} from "@/lib/api/auctions.api";
+import { createAuctionFromForm } from "@/lib/api/auctions.api";
 import { uploadPhotos } from "@/lib/supabase";
-import { analyzeListing } from "@/lib/api/ai";
+import { analyzeListingAsync } from "@/lib/api/ai";
 import { logger } from "@/lib/logger";
 
 // AI path: 5 steps (Category → Photos → Mode → AI Analysis → Pricing)
@@ -100,28 +97,37 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
           .map((p) => ({ url: p.url, typeHint: p.typeHint || "front_far" }));
 
         if (bgPhotos.length > 0 && result.data?.id) {
-          const listingId = result.data.id;
-          analyzeListing(photoGroupKey, bgPhotos)
-            .then((aiResult) => {
-              if (aiResult.success && aiResult.data) {
-                updateListingVerification(
-                  listingId,
-                  aiResult.data.authenticityScore,
-                  aiResult.data as unknown as Record<string, unknown>,
-                );
-              }
-            })
-            .catch(() => {});
+          // Fire-and-forget — backend queues the Gemini job, returns 202
+          // immediately, and the worker writes the score back to the auction
+          // (auto-publishes if ≥90). User gets a notification when done.
+          analyzeListingAsync(photoGroupKey, bgPhotos, result.data.id).catch(
+            (err) => logger.warn("Background AI enqueue failed", "SmartForm", err),
+          );
         }
       } else {
         logger.error("[Publish] Failed", "SmartForm", {
           message: result.message,
         });
-        alert(`Failed to create listing: ${result.message}`);
+        const detail = Array.isArray(result.message)
+          ? result.message.join("\n• ")
+          : result.message;
+        alert(`Failed to create listing:\n\n• ${detail}`);
       }
     } catch (error) {
       logger.error("[Publish] Exception", "SmartForm", error);
-      alert("An error occurred while publishing. Please try again.");
+      // Surface validation errors from the backend so users (and we) can see
+      // exactly which field is rejected — opaque "try again" wastes everyone's time.
+      const err = error as {
+        message?: string | string[];
+        error?: string;
+        status?: number;
+      };
+      const detail = Array.isArray(err.message)
+        ? err.message.join("\n• ")
+        : err.message || err.error || "Unknown error";
+      alert(
+        `Failed to publish (${err.status ?? "?"}):\n\n• ${detail}`,
+      );
     } finally {
       setIsPublishing(false);
     }

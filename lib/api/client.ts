@@ -137,7 +137,24 @@ apiClient.interceptors.response.use(
     }
 
     // ── Return formatted error ──
-    return Promise.reject(buildError(error));
+    const built = buildError(error);
+    // Loud, plain-text logging for 4xx — Object in DevTools is collapsed by
+    // default, so we also dump message/error as a string so it's readable
+    // without expanding anything.
+    if (error.response && error.response.status >= 400) {
+      const url = `${error.config?.method?.toUpperCase()} ${error.config?.url}`;
+      // eslint-disable-next-line no-console
+      console.error(
+        `🔴 API ${built.status} on ${url}\n` +
+          `   message: ${
+            Array.isArray(built.message)
+              ? "\n     • " + built.message.join("\n     • ")
+              : built.message
+          }\n` +
+          `   error:   ${built.error}`,
+      );
+    }
+    return Promise.reject(built);
   },
 );
 
