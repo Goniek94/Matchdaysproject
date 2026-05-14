@@ -8,6 +8,8 @@
 // ============================================
 
 export type AuctionStatus =
+  | "PENDING_APPROVAL"
+  | "rejected"
   | "upcoming"
   | "active"
   | "ended"
@@ -78,6 +80,11 @@ export interface MyListing {
 
   // AI verification score (0-100, set asynchronously by the AI worker after publish)
   authenticityScore?: number | null;
+  // Full AI analysis blob — same shape as AIAnalysisResult. Used by the
+  // "View AI analysis" modal on the listing card so sellers can come back
+  // to the defects, condition details and authenticity notes that were
+  // produced when they listed the item.
+  aiData?: import("./listing.types").AIAnalysisResult | null;
 
   // Shipping
   shippingCost: number;

@@ -6,6 +6,8 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export type AuctionStatus =
+  | "PENDING_APPROVAL"
+  | "rejected"
   | "upcoming"
   | "active"
   | "ended"

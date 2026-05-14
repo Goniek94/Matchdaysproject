@@ -67,22 +67,31 @@ function SkeletonCard() {
   );
 }
 
-// ─── Weighted random pick (stable per session, changes on refresh) ─────────────
-
-function pickWeighted<T>(pool: T[], count: number): T[] {
-  if (pool.length <= count) return pool;
-  // Shuffle using Math.random (changes on each page load/refresh)
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+/**
+ * Pads an array of items to `targetCount` by cycling through a fallback pool.
+ * Used to keep card rows visually full even when a category (e.g. buy-now)
+ * is undersupplied — better to show a repeated real listing than an empty
+ * slot, until the marketplace has enough inventory.
+ */
+function padFromPool<T>(items: T[], targetCount: number, pool: T[]): T[] {
+  if (items.length >= targetCount || pool.length === 0) return items;
+  const result = [...items];
+  let i = 0;
+  while (result.length < targetCount) {
+    result.push(pool[i % pool.length]);
+    i++;
+  }
+  return result;
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [hotAdapted, setHotAdapted] = useState<AuctionDisplayDto[]>([]);
+  // "Live Now" — the marketplace pulse, two 3-card rows side-by-side.
+  const [liveBids, setLiveBids] = useState<AuctionDisplayDto[]>([]);
+  const [liveBuyNow, setLiveBuyNow] = useState<AuctionDisplayDto[]>([]);
   const [lastCall, setLastCall] = useState<AuctionDisplayDto[]>([]);
-  const [buyNow, setBuyNow] = useState<AuctionDisplayDto[]>([]);
   const [forYou, setForYou] = useState<AuctionDisplayDto[]>([]);
 
   useEffect(() => {
@@ -92,52 +101,62 @@ export default function HomePage() {
         const result = await getAuctions({ page: 1, limit: 24, status: "active" });
         const data: AuctionDto[] = result.success ? (result.data?.auctions ?? []) : [];
 
-        // 🔥 HOT OFFERS — top-9 by score, pick 3 randomly once on load
-        const hotPool = [...data]
-          .sort((a, b) =>
-            ((b.rare ? 10 : 0) + (b.views ?? 0) * 0.5 + (b.bidCount ?? 0) * 2) -
-            ((a.rare ? 10 : 0) + (a.views ?? 0) * 0.5 + (a.bidCount ?? 0) * 2)
-          )
-          .slice(0, 9);
-        const hotPicked = pickWeighted(hotPool, 3);
-        setHotAdapted(adaptAuctionsForDisplay(hotPicked));
-
-        // ⏰ LAST CALL — auctions only (never buy_now), ending within 7h, sorted soonest first
+        // 🔥 LIVE BIDS — top 4 auctions by recent bid activity. If we don't
+        //    have 4 yet, cycle through whatever active listings exist so the
+        //    row stays visually full (better than empty slots while the
+        //    marketplace bootstraps).
         const auctionsOnly = data.filter((a) => a.listingType !== "buy_now");
+        const bidScoreA = (a: AuctionDto) =>
+          (a.bidCount ?? 0) * 3 + (a.views ?? 0) * 0.2 + (a.rare ? 5 : 0);
+        const liveBidsRaw = [...auctionsOnly]
+          .sort((a, b) => bidScoreA(b) - bidScoreA(a))
+          .slice(0, 4);
+        const liveBidsPadded = padFromPool(liveBidsRaw, 4, data);
+        setLiveBids(adaptAuctionsForDisplay(liveBidsPadded));
+
+        // 🛒 LIVE BUY NOW — 4 buy-now items, newest first, padded from the
+        //    overall pool if short.
+        const buyNowOnly = data.filter(
+          (a) => a.listingType === "buy_now" || a.listingType === "auction_buy_now",
+        );
+        const liveBuyNowRaw = [...buyNowOnly]
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 4);
+        const liveBuyNowPadded = padFromPool(liveBuyNowRaw, 4, data);
+        setLiveBuyNow(adaptAuctionsForDisplay(liveBuyNowPadded));
+
+        // ⏰ LAST CALL — auctions ending within 7h, 8 cards in a 4-col grid.
         const in7h = Date.now() + 7 * 60 * 60 * 1000;
         const lastCallRaw = [...auctionsOnly]
           .filter((a) => new Date(a.endTime).getTime() <= in7h)
           .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime())
-          .slice(0, 6);
-        // Fallback: if nothing ending in 7h, show 6 soonest auctions overall
+          .slice(0, 8);
         const lastCallFinal = lastCallRaw.length > 0
           ? lastCallRaw
           : [...auctionsOnly]
               .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime())
-              .slice(0, 6);
-        setLastCall(adaptAuctionsForDisplay(lastCallFinal));
+              .slice(0, 8);
+        const lastCallPadded = padFromPool(lastCallFinal, 8, data);
+        setLastCall(adaptAuctionsForDisplay(lastCallPadded));
 
-        // 🛒 BUY NOW — buy_now and auction_buy_now listings, newest first
-        const buyNowRaw = [...data]
-          .filter((a) => a.listingType === "buy_now" || a.listingType === "auction_buy_now")
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-          .slice(0, 6);
-        setBuyNow(adaptAuctionsForDisplay(buyNowRaw));
-
-        // 💎 FOR YOU — rare + verified, exclude hot pool IDs
-        const hotIds = new Set(hotPool.map((a) => a.id));
+        // 💎 FOR YOU — rare + verified, excluding what's already shown in Live Now.
+        const featuredIds = new Set([
+          ...liveBidsRaw.map((a) => a.id),
+          ...liveBuyNowRaw.map((a) => a.id),
+        ]);
         const forYouRaw = [...data]
-          .filter((a) => !hotIds.has(a.id))
+          .filter((a) => !featuredIds.has(a.id))
           .sort((a, b) =>
             ((b.rare ? 8 : 0) + (b.verified ? 5 : 0) + (b.bidCount ?? 0) * 1.5) -
             ((a.rare ? 8 : 0) + (a.verified ? 5 : 0) + (a.bidCount ?? 0) * 1.5)
           )
           .slice(0, 4);
-        setForYou(adaptAuctionsForDisplay(forYouRaw));
+        const forYouPadded = padFromPool(forYouRaw, 4, data);
+        setForYou(adaptAuctionsForDisplay(forYouPadded));
       } catch {
-        setHotAdapted([]);
+        setLiveBids([]);
+        setLiveBuyNow([]);
         setLastCall([]);
-        setBuyNow([]);
         setForYou([]);
       } finally {
         setIsLoading(false);
@@ -153,26 +172,86 @@ export default function HomePage() {
       <section className="py-12 md:py-16 px-4 bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
         <div className="w-full max-w-7xl mx-auto space-y-12">
 
-          {/* ── 1. HOT OFFERS ───────────────────────────────────────────────── */}
+          {/* ── 1. LIVE NOW ─────────────────────────────────────────────────── */}
+          {/* The marketplace pulse — bidding action + instant-buy stock in
+              a single block so the homepage feels alive the moment you land. */}
           <div>
             <SectionHeader
-              emoji="🔥"
-              label="Featured"
-              title="Hot Offers"
-              subtitle="Rare and most-viewed picks — refreshes every time you visit."
+              emoji="⚡"
+              label="Live now"
+              title="The Market, Right Now"
+              subtitle="What's getting bid up and what's ready to take home today."
             />
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
+
+            {/* Two parallel rows of 3 — auctions on top, buy-now below.
+                Each sub-block has its own micro-header and "View all". */}
+            <div className="space-y-10">
+              {/* Live bids */}
+              <div>
+                <div className="flex items-baseline justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-100 text-rose-700 text-[10px] font-black uppercase tracking-widest">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                      Bidding
+                    </span>
+                    <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
+                      Hot bids on jerseys
+                    </h3>
+                  </div>
+                  <Link
+                    href="/auctions?listingType=auction"
+                    className="hidden sm:inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-colors"
+                  >
+                    All auctions
+                    <ArrowRight size={11} />
+                  </Link>
+                </div>
+                {isLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map((i) => <SkeletonCard key={`b-${i}`} />)}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {liveBids.map((auction, i) => (
+                      <AuctionCard key={`bid-${auction.id}-${i}`} auction={auction} />
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {hotAdapted.map((auction) => (
-                  <AuctionCard key={auction.id} auction={auction} />
-                ))}
+
+              {/* Live buy-now */}
+              <div>
+                <div className="flex items-baseline justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Buy now
+                    </span>
+                    <h3 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
+                      Available today
+                    </h3>
+                  </div>
+                  <Link
+                    href="/auctions?listingType=buy_now"
+                    className="hidden sm:inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-colors"
+                  >
+                    All buy now
+                    <ArrowRight size={11} />
+                  </Link>
+                </div>
+                {isLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map((i) => <SkeletonCard key={`n-${i}`} />)}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {liveBuyNow.map((auction, i) => (
+                      <AuctionCard key={`buy-${auction.id}-${i}`} auction={auction} />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-            <ViewAllButton href="/auctions" />
+            </div>
           </div>
 
           <div className="border-t border-gray-200" />
@@ -186,13 +265,13 @@ export default function HomePage() {
               subtitle="These auctions are almost over. Last chance to place your bid."
             />
             {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <SkeletonCard key={i} />)}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {lastCall.map((auction) => (
-                  <AuctionCard key={auction.id} auction={auction} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {lastCall.map((auction, i) => (
+                  <AuctionCard key={`last-${auction.id}-${i}`} auction={auction} />
                 ))}
               </div>
             )}
@@ -201,33 +280,7 @@ export default function HomePage() {
 
           <div className="border-t border-gray-200" />
 
-          {/* ── 3. BUY NOW ──────────────────────────────────────────────────── */}
-          {(isLoading || buyNow.length > 0) && (
-            <div>
-              <SectionHeader
-                emoji="🛒"
-                label="Buy Now"
-                title="Instant Deals"
-                subtitle="No bidding required — buy immediately at a fixed price."
-              />
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonCard key={i} />)}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {buyNow.map((auction) => (
-                    <AuctionCard key={auction.id} auction={auction} />
-                  ))}
-                </div>
-              )}
-              <ViewAllButton href="/auctions?listingType=buy_now" />
-            </div>
-          )}
-
-          <div className="border-t border-gray-200" />
-
-          {/* ── 4. FOR YOU ──────────────────────────────────────────────────── */}
+          {/* ── 3. FOR YOU ──────────────────────────────────────────────────── */}
           {(isLoading || forYou.length > 0) && (
             <div>
               <SectionHeader
@@ -243,8 +296,8 @@ export default function HomePage() {
               ) : (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {forYou.map((auction) => (
-                      <AuctionCard key={auction.id} auction={auction} />
+                    {forYou.map((auction, i) => (
+                      <AuctionCard key={`fy-${auction.id}-${i}`} auction={auction} />
                     ))}
                   </div>
                   <ViewAllButton href="/auctions" />
@@ -259,7 +312,7 @@ export default function HomePage() {
               href="/auctions"
               className="inline-flex items-center gap-1.5 text-xs font-black text-black hover:text-gray-600 transition-colors uppercase tracking-widest group"
             >
-              Browse all auctions
+              Browse the full market
               <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>

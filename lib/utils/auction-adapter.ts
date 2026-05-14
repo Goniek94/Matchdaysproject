@@ -91,14 +91,24 @@ export const adaptAuctionForDisplay = (
   itemType: auction.itemType || "shirt",
   league: auction.league ?? undefined,
   seller: {
-    name: auction.seller?.username || "Unknown",
-    avatar: auction.seller?.avatar,
+    // Try username first, then name, then email prefix as last resort.
+    // seller relation may be missing if backend version doesn't include it yet.
+    name:
+      auction.seller?.username ||
+      (auction.seller as any)?.name ||
+      (auction.seller as any)?.firstName ||
+      (auction.seller as any)?.email?.split("@")[0] ||
+      // Last resort: shorten the sellerId UUID to a readable handle
+      (auction.sellerId ? `user_${auction.sellerId.slice(0, 6)}` : "Unknown"),
+    // Treat empty string as no avatar (avoids broken <Image> src)
+    avatar: auction.seller?.avatar || undefined,
     rating: auction.seller?.rating ?? 0,
     reviews: auction.seller?.reviews ?? 0,
   },
   country: {
     name: auction.shippingFrom || "Poland",
-    code: "PL",
+    // Use seller's country if available, fallback to shippingFrom country code
+    code: (auction.seller as any)?.country?.toUpperCase().slice(0, 2) || "PL",
   },
 });
 
@@ -176,7 +186,11 @@ export const mapFormDataToCreateAuctionDto = (
     // Taxonomy: AI detects → sport (DB: category), item type (DB: itemType), league (DB: league)
     // AI result overrides user selection; user selection is the fallback
     category: data.aiData?.sport || data.sport || "other",
-    itemType: data.aiData?.itemCategory || data.itemCategory || data.categorySlug || "jersey_shirt",
+    itemType:
+      data.aiData?.itemCategory ||
+      data.itemCategory ||
+      data.categorySlug ||
+      "jersey_shirt",
     league: data.aiData?.league || data.league || undefined,
     listingType,
 

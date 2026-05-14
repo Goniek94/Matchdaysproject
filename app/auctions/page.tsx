@@ -159,10 +159,10 @@ export default function AuctionsPage(): JSX.Element {
 
             <div className="flex-1 w-full">
               {/* Header */}
-              <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b border-gray-200">
+              <div className="mb-5 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                   <h1 className="text-3xl sm:text-4xl font-black text-black tracking-tighter mb-2">
-                    Marketplace
+                    Market
                   </h1>
                   <p className="text-gray-500">
                     {isLoading
@@ -172,6 +172,34 @@ export default function AuctionsPage(): JSX.Element {
                         : `${totalCount.toLocaleString()} ${totalCount === 1 ? "item" : "items"} found`}
                   </p>
                 </div>
+              </div>
+
+              {/* Quick listing type tabs — the most useful filter, lifted to the top */}
+              <div className="mb-6 pb-6 border-b border-gray-200 flex flex-wrap items-center gap-2">
+                {(
+                  [
+                    { id: "all", label: "All items" },
+                    { id: "auction", label: "Auctions" },
+                    { id: "buy_now", label: "Buy now" },
+                  ] as const
+                ).map((opt) => {
+                  const isActive = filters.listingType === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() =>
+                        setFilters({ ...filters, listingType: opt.id })
+                      }
+                      className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all border-2 ${
+                        isActive
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Active filter tags */}

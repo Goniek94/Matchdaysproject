@@ -24,13 +24,19 @@ import {
   AlertTriangle,
   Bell,
   Mail,
+  Wallet,
 } from "lucide-react";
 import { useNotifications } from "@/lib/context/NotificationContext";
 
 export default function Navbar() {
   const router = useRouter();
   const { itemCount } = useCart();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+
+  // While the auth state is still being confirmed, never flash the
+  // logged-out CTA over a session that's actually valid. We render the
+  // logged-out variant only once the backend has explicitly answered.
+  const showLoggedOut = !isAuthenticated && !authLoading;
   const { count: watchlistCount } = useWatchlist();
   const { unreadCount } = useNotifications();
   const [scrolled, setScrolled] = useState(false);
@@ -75,7 +81,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: "Home", href: "/" },
-    { name: "Auctions", href: "/auctions" },
+    { name: "Market", href: "/auctions" },
     { name: "AI Tools", href: "/aitools" },
     { name: "Matchdays Arena", href: "/arena", highlight: true },
     { name: "Contact", href: "/contact" },
@@ -130,7 +136,7 @@ export default function Navbar() {
             </button>
 
             <div className="hidden lg:flex items-center gap-4">
-              {!isAuthenticated ? (
+              {showLoggedOut ? (
                 <>
                   <button
                     onClick={() => setIsLoginModalOpen(true)}
@@ -145,7 +151,7 @@ export default function Navbar() {
                     Register
                   </Link>
                 </>
-              ) : (
+              ) : isAuthenticated ? (
                 <div className="flex items-center gap-3">
                   <Link
                     href="/add-listing"
@@ -189,6 +195,7 @@ export default function Navbar() {
                       </div>
                       <div className="py-2">
                         <DropdownItem href="/dashboard" icon={<LayoutDashboard size={20} />} text="Dashboard" onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/wallet" icon={<Wallet size={20} />} text="Wallet" onClick={() => setIsProfileOpen(false)} />
                         <DropdownItem href="/my-listings" icon={<List size={20} />} text="Your Listings" onClick={() => setIsProfileOpen(false)} />
                         <DropdownItem href="/notifications" icon={<Bell size={20} />} text="Notifications" badge={unreadCount > 0 ? unreadCount : undefined} onClick={() => setIsProfileOpen(false)} />
                         <DropdownItem href="/messages" icon={<MessageCircle size={20} />} text="Messages" onClick={() => setIsProfileOpen(false)} />
@@ -223,7 +230,7 @@ export default function Navbar() {
                 </Link>
 
               </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -358,6 +365,14 @@ export default function Navbar() {
                   My Listings
                 </Link>
                 <Link
+                  href="/wallet"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-base uppercase tracking-wide text-white/80 hover:bg-white/[0.08] hover:text-white transition-all active:scale-95"
+                >
+                  <Wallet size={18} className="text-white/40" />
+                  Wallet
+                </Link>
+                <Link
                   href="/history"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold text-base uppercase tracking-wide text-white/80 hover:bg-white/[0.08] hover:text-white transition-all active:scale-95"
@@ -379,7 +394,7 @@ export default function Navbar() {
 
           {/* Auth dół */}
           <div className="px-4 pb-8 mt-auto flex flex-col gap-3">
-            {!isAuthenticated ? (
+            {showLoggedOut ? (
               <>
                 <button
                   onClick={() => {
@@ -398,7 +413,7 @@ export default function Navbar() {
                   REGISTER
                 </Link>
               </>
-            ) : (
+            ) : isAuthenticated ? (
               <button
                 onClick={handleLogout}
                 className="w-full py-3.5 text-red-500 font-bold flex items-center justify-center gap-2 hover:text-red-400 transition-colors uppercase text-sm tracking-wide"
@@ -406,7 +421,7 @@ export default function Navbar() {
                 <LogOut size={18} />
                 LOGOUT
               </button>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

@@ -48,6 +48,18 @@ const STATUS_CONFIG: Record<
   AuctionStatus,
   { label: string; color: string; bg: string; icon: React.ReactNode }
 > = {
+  PENDING_APPROVAL: {
+    label: "Under review",
+    color: "text-amber-800",
+    bg: "bg-amber-50 border-amber-200",
+    icon: <Hourglass size={13} />,
+  },
+  rejected: {
+    label: "Rejected",
+    color: "text-red-700",
+    bg: "bg-red-50 border-red-200",
+    icon: <Ban size={13} />,
+  },
   active: {
     label: "Active",
     color: "text-emerald-700",

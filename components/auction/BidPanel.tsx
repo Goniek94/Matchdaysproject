@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
-import { Heart, LogIn, AlertCircle, Crown } from "lucide-react";
+import { Heart, LogIn, AlertCircle, Crown, Truck } from "lucide-react";
 import Link from "next/link";
+import { useShippingEstimate } from "@/lib/hooks/useShippingEstimate";
+import { formatShippingRange } from "@/lib/api/shipping";
 
 interface BidPanelProps {
   auctionId?: string;
@@ -18,6 +20,10 @@ interface BidPanelProps {
   onPlaceBid?: (amount: number) => void;
   disabled?: boolean;
   isEnded?: boolean;
+  /** Seller's country (auction.shippingFrom) — used to estimate shipping to buyer. */
+  shippingFromCountry?: string | null;
+  /** Item taxonomy category — affects weight assumption in shipping estimate. */
+  itemCategory?: string | null;
 }
 
 /**
@@ -38,9 +44,20 @@ export default function BidPanel({
   onPlaceBid,
   disabled = false,
   isEnded = false,
+  shippingFromCountry,
+  itemCategory,
 }: BidPanelProps) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { isInWatchlist, toggleWatchlist } = useWatchlist();
+
+  // Shipping context so the bidder always sees "your final cost = bid + shipping".
+  const buyerCountry = user?.country?.trim() || null;
+  const { estimate: shipEstimate } = useShippingEstimate({
+    fromCountry: shippingFromCountry || undefined,
+    toCountry: buyerCountry || shippingFromCountry || undefined,
+    itemCategory,
+    enabled: !!shippingFromCountry,
+  });
 
   const [bidAmount, setBidAmount] = useState("");
   const [timeLeft, setTimeLeft] = useState(initialSeconds);
@@ -183,6 +200,43 @@ export default function BidPanel({
         </div>
         <div className="text-xs text-gray-400 mt-1">
           {bidCount} {bidCount === 1 ? "bid" : "bids"} • Min. increment: €5
+        </div>
+      </div>
+
+      {/* Shipping reminder — bidder always needs to know the final price
+          isn't just the hammer price. Shows the estimated range to their
+          country if logged in + country set; otherwise generic prompt.
+          Pulls from the same zone calculator used elsewhere on the page. */}
+      <div className="mt-3 mb-1 flex items-start gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+        <Truck size={13} className="text-amber-300 mt-0.5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          {shipEstimate && buyerCountry ? (
+            <>
+              <p className="text-[11px] text-amber-100 leading-snug">
+                Final price <span className="font-bold">does not include shipping</span> —
+                add{" "}
+                <span className="font-extrabold text-amber-200">
+                  {formatShippingRange(shipEstimate.standard)}
+                </span>{" "}
+                to {shipEstimate.toCountry}.
+              </p>
+              <p className="text-[10px] text-amber-200/60 mt-0.5">
+                Standard {shipEstimate.standard.carrier} ·{" "}
+                {shipEstimate.standard.daysMin}–{shipEstimate.standard.daysMax}{" "}
+                business days
+              </p>
+            </>
+          ) : (
+            <p className="text-[11px] text-amber-100 leading-snug">
+              <span className="font-bold">Shipping is added on top</span> of your
+              winning bid.
+              {!isAuthenticated
+                ? " Sign in to see the exact cost to your country."
+                : !buyerCountry
+                  ? " Set your country in profile to see the exact cost."
+                  : ""}
+            </p>
+          )}
         </div>
       </div>
 

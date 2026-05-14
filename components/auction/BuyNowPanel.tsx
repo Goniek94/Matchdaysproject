@@ -6,7 +6,9 @@ import { useCart } from "@/lib/CartContext";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
 import { useAuth } from "@/lib/context/AuthContext";
 import LoginModal from "@/components/auth/LoginModal";
-import { ShoppingCart, Heart, Plus } from "lucide-react";
+import { ShoppingCart, Heart, Plus, Truck } from "lucide-react";
+import { useShippingEstimate } from "@/lib/hooks/useShippingEstimate";
+import { formatShippingRange } from "@/lib/api/shipping";
 
 interface BuyNowPanelProps {
   price: number;
@@ -20,6 +22,10 @@ interface BuyNowPanelProps {
     rating: number;
   };
   onAddToWatchlist?: () => void;
+  /** Seller's country (auction.shippingFrom) — used to estimate shipping. */
+  shippingFromCountry?: string | null;
+  /** Item taxonomy category — affects weight assumption. */
+  itemCategory?: string | null;
 }
 
 export default function BuyNowPanel({
@@ -31,11 +37,21 @@ export default function BuyNowPanel({
   endTime,
   seller,
   onAddToWatchlist,
+  shippingFromCountry,
+  itemCategory,
 }: BuyNowPanelProps) {
   const router = useRouter();
   const { addToCart, items } = useCart();
   const { isInWatchlist, toggleWatchlist } = useWatchlist();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+
+  const buyerCountry = user?.country?.trim() || null;
+  const { estimate: shipEstimate } = useShippingEstimate({
+    fromCountry: shippingFromCountry || undefined,
+    toCountry: buyerCountry || shippingFromCountry || undefined,
+    itemCategory,
+    enabled: !!shippingFromCountry,
+  });
 
   const [justAdded, setJustAdded] = useState(false);
   const [watchlistFeedback, setWatchlistFeedback] = useState<string | null>(
@@ -100,7 +116,7 @@ export default function BuyNowPanel({
     <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
     <div className="bg-black text-white p-8 rounded-[2px] mb-8">
       {/* Price Section */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="text-xs uppercase tracking-widest text-white/60 mb-2">
           Buy Now Price
         </div>
@@ -109,6 +125,41 @@ export default function BuyNowPanel({
         </div>
         <div className="text-sm text-white/70">
           Fixed price • Immediate purchase available
+        </div>
+      </div>
+
+      {/* Shipping reminder — same pattern as BidPanel so buyers see the
+          full cost no matter which way they're buying. */}
+      <div className="mb-6 flex items-start gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+        <Truck size={13} className="text-amber-300 mt-0.5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          {shipEstimate && buyerCountry ? (
+            <>
+              <p className="text-[11px] text-amber-100 leading-snug">
+                Price <span className="font-bold">does not include shipping</span> —
+                add{" "}
+                <span className="font-extrabold text-amber-200">
+                  {formatShippingRange(shipEstimate.standard)}
+                </span>{" "}
+                to {shipEstimate.toCountry}.
+              </p>
+              <p className="text-[10px] text-amber-200/60 mt-0.5">
+                Standard {shipEstimate.standard.carrier} ·{" "}
+                {shipEstimate.standard.daysMin}–{shipEstimate.standard.daysMax}{" "}
+                business days
+              </p>
+            </>
+          ) : (
+            <p className="text-[11px] text-amber-100 leading-snug">
+              <span className="font-bold">Shipping is added on top</span> of the
+              price.
+              {!isAuthenticated
+                ? " Sign in to see the exact cost to your country."
+                : !buyerCountry
+                  ? " Set your country in profile to see the exact cost."
+                  : ""}
+            </p>
+          )}
         </div>
       </div>
 

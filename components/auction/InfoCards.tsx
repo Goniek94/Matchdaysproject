@@ -1,19 +1,25 @@
 export default function InfoCards() {
+  // Trust strip below the listing details — promises we can actually keep at
+  // launch. Anything aspirational (free shipping, 30-day returns) belongs in
+  // marketing copy, not on a public listing where the buyer expects truth.
   const cards = [
     {
       icon: "📦",
-      title: "Free Shipping",
-      description: "Tracked delivery across Poland, Czechia, and Slovakia",
+      title: "Tracked Shipping",
+      description:
+        "Live carrier rates calculated to your country. Tracking number on every order.",
     },
     {
       icon: "✓",
-      title: "Authenticity Guarantee",
-      description: "Every item verified by our expert team",
+      title: "AI Authenticity Check",
+      description:
+        "Every item scanned by our AI and reviewed by a moderator before going live.",
     },
     {
       icon: "🔒",
       title: "Buyer Protection",
-      description: "30-day return policy on all purchases",
+      description:
+        "Funds held in escrow until you confirm the item matches the listing.",
     },
   ];
 

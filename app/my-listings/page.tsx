@@ -6,7 +6,7 @@
  * with filtering, stats and management actions (cancel, delete)
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,6 +17,7 @@ import {
   List,
   Archive,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useMyListings } from "@/lib/hooks/useMyListings";
@@ -25,6 +26,10 @@ import {
   ListingsStats,
   ListingsEmptyState,
 } from "@/components/my-listings";
+import AIReportsView from "@/components/my-listings/reports/AIReportsView";
+
+/** Top-level view mode for the My Listings page. */
+type ViewMode = "listings" | "reports";
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
@@ -65,6 +70,10 @@ export default function MyListingsPage() {
     archive,
     unarchive,
   } = useMyListings();
+
+  // Top-level view: the listing grid (default) or the AI Reports archive.
+  // Reports reuse the same fetched data — no extra API call.
+  const [viewMode, setViewMode] = useState<ViewMode>("listings");
 
   // Redirect unauthenticated users
   useEffect(() => {
@@ -188,12 +197,15 @@ export default function MyListingsPage() {
           </div>
         </div>
 
-        {/* ── Scope toggle: Active / Archive ─────────────────────────────── */}
+        {/* ── View toggle: Listings (scope active/archive) / Reports ─────── */}
         <div className="mb-5 flex items-center gap-2 bg-white border border-gray-200 rounded-2xl p-1.5 w-fit shadow-sm">
           <button
-            onClick={() => setScope("active")}
+            onClick={() => {
+              setViewMode("listings");
+              setScope("active");
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              scope === "active"
+              viewMode === "listings" && scope === "active"
                 ? "bg-black text-white shadow"
                 : "text-gray-500 hover:text-gray-900"
             }`}
@@ -202,9 +214,12 @@ export default function MyListingsPage() {
             Active
           </button>
           <button
-            onClick={() => setScope("archived")}
+            onClick={() => {
+              setViewMode("listings");
+              setScope("archived");
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              scope === "archived"
+              viewMode === "listings" && scope === "archived"
                 ? "bg-black text-white shadow"
                 : "text-gray-500 hover:text-gray-900"
             }`}
@@ -212,16 +227,30 @@ export default function MyListingsPage() {
             <Archive size={14} />
             Archive
           </button>
+          <button
+            onClick={() => setViewMode("reports")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+              viewMode === "reports"
+                ? "bg-black text-white shadow"
+                : "text-gray-500 hover:text-gray-900"
+            }`}
+            title="View saved AI authenticity reports for your listings"
+          >
+            <ShieldCheck size={14} />
+            AI Reports
+          </button>
         </div>
 
-        {/* ── Stats / Filter Tabs ──────────────────────────────────────────── */}
-        <div className="mb-6">
-          <ListingsStats
-            stats={stats}
-            activeFilter={statusFilter}
-            onFilterChange={setStatusFilter}
-          />
-        </div>
+        {/* ── Stats / Filter Tabs ── (only meaningful in Listings mode) ────── */}
+        {viewMode === "listings" && (
+          <div className="mb-6">
+            <ListingsStats
+              stats={stats}
+              activeFilter={statusFilter}
+              onFilterChange={setStatusFilter}
+            />
+          </div>
+        )}
 
         {/* ── Error state ──────────────────────────────────────────────────── */}
         {error && (
@@ -245,11 +274,14 @@ export default function MyListingsPage() {
         {/* ── Content ──────────────────────────────────────────────────────── */}
         {loading ? (
           /* Loading skeletons */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
               <ListingCardSkeleton key={i} />
             ))}
           </div>
+        ) : viewMode === "reports" ? (
+          /* AI Reports view — same data, different lens */
+          <AIReportsView listings={filteredListings} />
         ) : filteredListings.length === 0 ? (
           /* Empty state */
           <div className="bg-white rounded-3xl border border-gray-200 shadow-sm">
@@ -272,7 +304,7 @@ export default function MyListingsPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {filteredListings.map((listing) => (
                 <ListingCard
                   key={listing.id}

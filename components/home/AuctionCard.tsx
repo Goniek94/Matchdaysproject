@@ -18,6 +18,7 @@ import { useWatchlist } from "@/lib/context/WatchlistContext";
 import { useAuth } from "@/lib/context/AuthContext";
 import AuctionPreviewModal from "@/components/home/AuctionPreviewModal";
 import LoginModal from "@/components/auth/LoginModal";
+import ShippingEstimate from "@/components/auction/ShippingEstimate";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,8 @@ interface Auction {
   rare: boolean;
   featured?: boolean;
   type: "auction" | "buy_now";
+  /** Taxonomy itemType from the adapter — used by ShippingEstimate to pick weight class. */
+  itemType?: string;
   seller: {
     name: string;
     avatar?: string;
@@ -247,6 +250,13 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
                   </span>
                   <span className={`text-base font-bold ${ending ? "text-red-400" : "text-gray-400"}`}>€</span>
                 </div>
+                {/* Shipping hint — kept tiny so it doesn't fight the price */}
+                <ShippingEstimate
+                  fromCountry={auction.country?.code}
+                  itemCategory={auction.itemType}
+                  variant="compact"
+                  className="mt-1"
+                />
               </div>
 
               {/* Bids + Likes */}

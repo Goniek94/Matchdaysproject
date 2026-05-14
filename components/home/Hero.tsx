@@ -454,7 +454,12 @@ export default function Hero() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       className="relative w-full bg-black overflow-hidden flex flex-col"
-      style={{ height: "82vh", minHeight: 620 }}
+      // Sized to comfortably hold the centred content + slide controls +
+      // ticker without clipping the eyebrow row at top. Was 58vh/480 — that
+      // was clipping on tablet and short laptops because the content stack
+      // (eyebrow + 2 headlines + description + strip + CTAs) needs ~520px
+      // alone, then the bottom controls + ticker eat another ~120px.
+      style={{ height: "min(720px, 70vh)", minHeight: 620 }}
     >
       {/* Background images cross-fade */}
       <AnimatePresence initial={false} mode="popLayout">
@@ -521,7 +526,7 @@ export default function Hero() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.5 }}
-              className="flex items-center justify-center gap-4 mb-10"
+              className="flex items-center justify-center gap-4 mb-6"
             >
               <span
                 style={{
@@ -590,17 +595,17 @@ export default function Hero() {
               </span>
             </motion.div>
 
-            {/* Headline 1 */}
+            {/* Headline 1 — smaller, leaves more room for content below */}
             <div style={{ overflow: "hidden", marginBottom: "0.05em" }}>
               <motion.h1
                 initial={{ y: "102%" }}
                 animate={{ y: 0 }}
                 transition={{ delay: 0.2, duration: 0.75, ease: EASE }}
                 style={{
-                  fontSize: "clamp(2.4rem, 5.5vw, 5.5rem)",
+                  fontSize: "clamp(1.6rem, 3.6vw, 3.4rem)",
                   fontWeight: 900,
                   color: "#fff",
-                  lineHeight: 1.0,
+                  lineHeight: 1.05,
                   letterSpacing: "-0.025em",
                   textShadow: "0 4px 30px rgba(0,0,0,0.85)",
                 }}
@@ -610,16 +615,16 @@ export default function Hero() {
             </div>
 
             {/* Headline 2 — rose accent */}
-            <div style={{ overflow: "hidden", marginBottom: "1.6rem" }}>
+            <div style={{ overflow: "hidden", marginBottom: "1.2rem" }}>
               <motion.h1
                 initial={{ y: "102%" }}
                 animate={{ y: 0 }}
                 transition={{ delay: 0.3, duration: 0.75, ease: EASE }}
                 style={{
-                  fontSize: "clamp(2.4rem, 5.5vw, 5.5rem)",
+                  fontSize: "clamp(1.6rem, 3.6vw, 3.4rem)",
                   fontWeight: 900,
                   color: "#e11d48",
-                  lineHeight: 1.0,
+                  lineHeight: 1.05,
                   letterSpacing: "-0.025em",
                   textShadow:
                     "0 4px 30px rgba(0,0,0,0.85), 0 0 80px rgba(225,29,72,0.25)",
@@ -635,14 +640,14 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.42, duration: 0.5 }}
               style={{
-                fontSize: "clamp(0.95rem, 1.05vw, 1.075rem)",
-                lineHeight: 1.7,
+                fontSize: "clamp(0.9rem, 1.05vw, 1.05rem)",
+                lineHeight: 1.6,
                 maxWidth: 620,
                 fontWeight: 400,
                 color: "rgba(255,255,255,0.7)",
                 letterSpacing: "0.005em",
                 textShadow: "0 1px 14px rgba(0,0,0,0.85)",
-                marginBottom: current.strip ? "2rem" : "2.5rem",
+                marginBottom: current.strip ? "1.4rem" : "1.8rem",
               }}
             >
               {current.description}
@@ -650,17 +655,17 @@ export default function Hero() {
 
             {/* Optional supporting strip — text-only, centred */}
             {current.strip?.type === "tags" && (
-              <div className="mb-10">
+              <div className="mb-6">
                 <StripTags items={current.strip.items} />
               </div>
             )}
             {current.strip?.type === "steps" && (
-              <div className="mb-10">
+              <div className="mb-6">
                 <StripSteps items={current.strip.items} />
               </div>
             )}
             {current.strip?.type === "stats" && (
-              <div className="mb-10">
+              <div className="mb-6">
                 <StripStats items={current.strip.items} />
               </div>
             )}
@@ -723,7 +728,7 @@ export default function Hero() {
       </div>
 
       {/* Slide controls */}
-      <div className="relative z-10 flex items-center justify-between gap-4 px-6 md:px-12 lg:px-20 py-5">
+      <div className="relative z-10 flex items-center justify-between gap-4 px-6 md:px-12 lg:px-20 py-3.5">
         {/* Slide counter (left) */}
         <div className="flex items-center gap-3">
           <span

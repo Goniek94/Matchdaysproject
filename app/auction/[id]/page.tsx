@@ -8,6 +8,7 @@ import Link from "next/link";
 import ImageGallery from "@/components/auction/ImageGallery";
 import BidPanel from "@/components/auction/BidPanel";
 import BuyNowPanel from "@/components/auction/BuyNowPanel";
+import ShippingEstimate from "@/components/auction/ShippingEstimate";
 import SellerInfo from "@/components/auction/SellerInfo";
 import BidHistory from "@/components/auction/BidHistory";
 import InfoCards from "@/components/auction/InfoCards";
@@ -415,7 +416,12 @@ export default function AuctionDetailPage() {
       return "Excellent";
     if (lower.includes("good")) return "Good";
     if (lower.includes("fair") || lower.includes("visible wear")) return "Fair";
-    if (lower.includes("poor") || lower.includes("heavy wear")) return "Poor";
+    if (
+      lower.includes("damaged") ||
+      lower.includes("poor") ||
+      lower.includes("heavy wear")
+    )
+      return "Damaged";
     return raw.charAt(0).toUpperCase() + raw.slice(1).split(/[\s\-.,]/)[0];
   };
 
@@ -816,6 +822,8 @@ export default function AuctionDetailPage() {
                     onPlaceBid={handlePlaceBid}
                     disabled={bidding || auctionEnded}
                     isEnded={auctionEnded}
+                    shippingFromCountry={auction.shippingFrom}
+                    itemCategory={auction.itemType}
                   />
                 ) : (
                   <BuyNowPanel
@@ -826,9 +834,16 @@ export default function AuctionDetailPage() {
                     image={auction.images?.[0] || ""}
                     endTime={auction.endTime}
                     seller={auction.seller}
+                    shippingFromCountry={auction.shippingFrom}
+                    itemCategory={auction.itemType}
                   />
                 )}
               </div>
+              {/* Shipping estimate to buyer — sits between bid panel and seller card */}
+              <ShippingEstimate
+                fromCountry={auction.shippingFrom}
+                itemCategory={auction.itemType}
+              />
               {/* Seller card */}
               {auction.seller && (
                 <div className="bg-white rounded-[2px] border border-gray-200 overflow-hidden">
@@ -988,9 +1003,18 @@ export default function AuctionDetailPage() {
                   image={auction.images?.[0] || ""}
                   endTime={auction.endTime}
                   seller={auction.seller}
+                  shippingFromCountry={auction.shippingFrom}
+                  itemCategory={auction.itemType}
                 />
               )}
             </div>
+
+            {/* Shipping estimate — desktop only */}
+            <ShippingEstimate
+              fromCountry={auction.shippingFrom}
+              itemCategory={auction.itemType}
+              className="hidden lg:block"
+            />
 
             {/* Seller Card — desktop only */}
             {auction.seller && (
@@ -1006,44 +1030,11 @@ export default function AuctionDetailPage() {
               </div>
             )}
 
-            {/* Shipping summary */}
-            <div className="bg-white rounded-[2px] p-5 border border-gray-200">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">
-                Shipping
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500 uppercase text-[10px] tracking-widest font-medium">
-                    Cost
-                  </span>
-                  <span
-                    className={`font-bold text-sm ${auction.shippingCost === 0 ? "text-green-600" : "text-gray-900"}`}
-                  >
-                    {auction.shippingCost > 0
-                      ? `€${auction.shippingCost}`
-                      : "Free"}
-                  </span>
-                </div>
-                {auction.shippingFrom && auction.shippingFrom !== "N/A" && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 uppercase text-[10px] tracking-widest font-medium">
-                      From
-                    </span>
-                    <span className="font-medium text-sm text-gray-900">
-                      {auction.shippingFrom}
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500 uppercase text-[10px] tracking-widest font-medium">
-                    Delivery
-                  </span>
-                  <span className="font-medium text-sm text-gray-900">
-                    {auction.shippingTime}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Shipping summary card removed — was hard-coding "Free" whenever
+                shippingCost defaulted to 0 (which is the schema default for
+                every listing). The dynamic <ShippingEstimate> above already
+                shows the real seller→buyer cost via the zone calculator,
+                so this card was both misleading and redundant. */}
           </div>
         </div>
       </div>
