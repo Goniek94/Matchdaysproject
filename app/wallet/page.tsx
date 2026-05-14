@@ -1,12 +1,13 @@
 "use client";
 
-// Wallet is per-user (balance, transactions, Stripe redirect handling) — there's
-// nothing useful to prerender. Opting out of static generation also sidesteps
-// the Next 14 "useSearchParams must be wrapped in Suspense" build error that
-// surfaced once we started reading ?deposit=success from the Stripe return URL.
+// Wallet is per-user (balance, transactions, Stripe redirect handling) — no
+// static prerender. force-dynamic alone wasn't enough on Vercel's prerender
+// pass because useSearchParams() forces a CSR bailout — the actual fix is
+// the <Suspense> wrapper at the bottom of this file. We keep force-dynamic
+// too so Next doesn't waste time trying anyway.
 export const dynamic = "force-dynamic";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
@@ -421,7 +422,7 @@ function AmountModal({
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default function WalletPage() {
+function WalletPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
@@ -612,5 +613,24 @@ export default function WalletPage() {
         busy={actionBusy}
       />
     </div>
+  );
+}
+
+// Suspense wrapper — Next.js 14 requires any tree that calls useSearchParams()
+// to sit under a Suspense boundary during the static prerender pass, otherwise
+// the build hard-fails with "missing-suspense-with-csr-bailout". Fallback is a
+// pair of pulsing skeletons that match the real layout so there's no jank.
+export default function WalletPageRoute() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen pt-24 pb-16 px-4 max-w-4xl mx-auto">
+          <div className="h-44 bg-gray-100 rounded-3xl animate-pulse" />
+          <div className="mt-6 h-64 bg-gray-100 rounded-3xl animate-pulse" />
+        </div>
+      }
+    >
+      <WalletPage />
+    </Suspense>
   );
 }
