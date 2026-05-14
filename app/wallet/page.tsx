@@ -1,5 +1,11 @@
 "use client";
 
+// Wallet is per-user (balance, transactions, Stripe redirect handling) — there's
+// nothing useful to prerender. Opting out of static generation also sidesteps
+// the Next 14 "useSearchParams must be wrapped in Suspense" build error that
+// surfaced once we started reading ?deposit=success from the Stripe return URL.
+export const dynamic = "force-dynamic";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
