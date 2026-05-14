@@ -1,23 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ProfileSettings,
   AccountSettings,
+  WalletSettings,
   NotificationSettings,
   SecuritySettings,
   DangerZone,
 } from "@/components/settings";
-import { User, Settings, Bell, Shield, AlertTriangle } from "lucide-react";
+import { User, Settings, Bell, Shield, AlertTriangle, Wallet } from "lucide-react";
+
+type TabId =
+  | "profile"
+  | "account"
+  | "wallet"
+  | "notifications"
+  | "security"
+  | "danger";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<
-    "profile" | "account" | "notifications" | "security" | "danger"
-  >("profile");
+  const [activeTab, setActiveTab] = useState<TabId>("profile");
 
-  const tabs = [
+  // Deep-link support: /settings#bank-account focuses the Wallet tab.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#bank-account") {
+      setActiveTab("wallet");
+    }
+  }, []);
+
+  const tabs: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: "profile", label: "Profile", icon: <User size={20} /> },
     { id: "account", label: "Account", icon: <Settings size={20} /> },
+    { id: "wallet", label: "Wallet & Payouts", icon: <Wallet size={20} /> },
     {
       id: "notifications",
       label: "Notifications",
@@ -52,16 +68,7 @@ export default function SettingsPage() {
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() =>
-                      setActiveTab(
-                        tab.id as
-                          | "profile"
-                          | "account"
-                          | "notifications"
-                          | "security"
-                          | "danger"
-                      )
-                    }
+                    onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-semibold text-left ${
                       activeTab === tab.id
                         ? "bg-black text-white"
@@ -80,6 +87,7 @@ export default function SettingsPage() {
           <div className="lg:col-span-3">
             {activeTab === "profile" && <ProfileSettings />}
             {activeTab === "account" && <AccountSettings />}
+            {activeTab === "wallet" && <WalletSettings />}
             {activeTab === "notifications" && <NotificationSettings />}
             {activeTab === "security" && <SecuritySettings />}
             {activeTab === "danger" && <DangerZone />}

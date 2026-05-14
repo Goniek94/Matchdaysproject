@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Star,
   Gavel,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ import {
 export type DashboardTab =
   | "overview"
   | "listings"
+  | "scoring"
   | "bids"
   | "messages"
   | "aitools"
@@ -51,6 +53,7 @@ interface DashboardSidebarProps {
 const NAV_ITEMS: NavItem[] = [
   { id: "overview",    icon: LayoutDashboard, label: "Overview" },
   { id: "listings",   icon: List,            label: "My Listings" },
+  { id: "scoring",    icon: ShieldCheck,     label: "Scoring" },
   { id: "bids",       icon: Gavel,           label: "My Bids" },
   { id: "messages",   icon: MessageCircle,   label: "Messages" },
   { id: "aitools",    icon: Sparkles,        label: "AI Tools" },

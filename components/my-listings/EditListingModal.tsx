@@ -16,6 +16,7 @@
 
 import { useState, useEffect } from "react";
 import { CheckCircle2, AlertCircle, Lock } from "lucide-react";
+import toast from "react-hot-toast";
 import type {
   MyListing,
   UpdateListingPayload,
@@ -82,12 +83,16 @@ export default function EditListingModal({
 
       if (ok) {
         setFeedback({ kind: "success", message: "Changes saved successfully!" });
+        // Toast persists outside the modal, so the user still sees the
+        // confirmation after the slide-out animation.
+        toast.success("Listing updated", { duration: 3000 });
         setTimeout(() => onClose(), 1400);
       } else {
         setFeedback({
           kind: "error",
           message: "Failed to save. Please check the form and try again.",
         });
+        toast.error("Could not save changes");
         setTimeout(() => setFeedback(null), 3500);
       }
     } catch (err) {
@@ -95,6 +100,7 @@ export default function EditListingModal({
       const msg =
         err instanceof Error ? err.message : "Unexpected error while saving.";
       setFeedback({ kind: "error", message: msg });
+      toast.error(msg);
       setTimeout(() => setFeedback(null), 4000);
     }
   };

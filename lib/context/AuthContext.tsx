@@ -14,10 +14,31 @@ import React, {
   useCallback,
 } from "react";
 import { authApi } from "@/lib/api";
-import { clearAuthData, setAuthData } from "@/lib/api/config";
+import { clearAuthData, getUserData, setAuthData } from "@/lib/api/config";
 import type { UserData, ApiResponse } from "@/lib/api/config";
 import type { RegisterData } from "@/lib/api/auth";
 import { logger } from "@/lib/logger";
+
+/**
+ * Read cached auth state synchronously so the very first React render can
+ * already show the logged-in UI. We still revalidate against the backend
+ * in the background — if the cached session is stale, the navbar swaps
+ * to logged-out only AFTER the API confirms it.
+ *
+ * Returns null/false during SSR (no localStorage), so the server renders
+ * the logged-out variant; the client hydration step then upgrades to the
+ * cached state without a flash because both paths render identical HTML
+ * for the navbar shell.
+ */
+function readCachedAuth(): { user: UserData | null; isAuthenticated: boolean } {
+  if (typeof window === "undefined") {
+    return { user: null, isAuthenticated: false };
+  }
+  const hasFlag = localStorage.getItem("isLoggedIn") === "true";
+  if (!hasFlag) return { user: null, isAuthenticated: false };
+  const cached = getUserData();
+  return { user: cached, isAuthenticated: !!cached };
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,9 +68,14 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<UserData | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Hydrate from localStorage on the very first render — eliminates the
+  // "flash of logged-out navbar" between mount and the /auth/me API response.
+  const cached = readCachedAuth();
+  const [user, setUser] = useState<UserData | null>(cached.user);
+  const [isAuthenticated, setIsAuthenticated] = useState(cached.isAuthenticated);
+  // isLoading reflects "we still need to confirm with the backend".
+  // If we have no cached session, there's nothing to confirm.
+  const [isLoading, setIsLoading] = useState(cached.isAuthenticated);
   const [error, setError] = useState<string | null>(null);
 
   // ── Cleanup helper ──────────────────────────────────────────────────────────
@@ -64,45 +90,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   // ── Initialize auth on app start ────────────────────────────────────────────
+  // Strategy: trust the localStorage cache for the optimistic render (already
+  // applied in useState), then revalidate in the background.
+  //  - Backend 401/403 → session is truly dead → log out
+  //  - Network error / timeout → keep cached session, just stop loading
+  //    (next request will hit the axios refresh interceptor anyway)
   const initializeAuth = useCallback(async () => {
+    const hasSessionFlag =
+      typeof window !== "undefined" &&
+      localStorage.getItem("isLoggedIn") === "true";
+
+    if (!hasSessionFlag) {
+      // No cached session — nothing to validate. Already correct from useState.
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // Check session flag first - avoids unnecessary 401 errors for guests
-      // Same pattern as Marketplace AuthContext
-      const hasSessionFlag =
-        typeof window !== "undefined" &&
-        localStorage.getItem("isLoggedIn") === "true";
-
-      if (!hasSessionFlag) {
-        setUser(null);
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-
       // Verify with backend via HTTP-Only cookie
       const response = await authApi.checkAuth();
 
       if (response.success && response.data) {
+        // Session confirmed — refresh cached profile (rating, level, etc. may
+        // have changed server-side since the last login).
         setUser(response.data);
         setIsAuthenticated(true);
         setAuthData(response.data);
-        // Ensure flag is set
         if (typeof window !== "undefined") {
           localStorage.setItem("isLoggedIn", "true");
         }
       } else {
+        // Backend explicitly says "not you" — kill the session
         handleLogoutCleanup();
       }
     } catch (err: unknown) {
-      const status = (err as { status?: number; response?: { status?: number } })?.status
-        ?? (err as { response?: { status?: number } })?.response?.status;
-      // Silently ignore 401 - user is simply not logged in
-      if (status !== 401) {
-        logger.warn("Auth initialization failed", "AuthContext", err);
+      const status =
+        (err as { status?: number; response?: { status?: number } })?.status ??
+        (err as { response?: { status?: number } })?.response?.status;
+
+      if (status === 401 || status === 403) {
+        // Backend rejected the cookie — log out for real
+        handleLogoutCleanup();
+      } else {
+        // Network error / timeout / 5xx — keep the optimistic logged-in state.
+        // The next authenticated API call will retry via the axios refresh
+        // interceptor and only then log out if refresh actually fails.
+        logger.warn(
+          "Auth revalidation failed (network/server) — keeping cached session",
+          "AuthContext",
+          err,
+        );
       }
-      handleLogoutCleanup();
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +148,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     initializeAuth();
+  }, [initializeAuth]);
+
+  // Revalidate when the tab regains focus. Catches the case where the user
+  // was on /add-listing for several minutes (uploads + AI analysis), the
+  // 15-minute access token expired, and switching back should restore them
+  // via the refresh-token cookie rather than show a stale "logged in" state.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const onFocus = () => {
+      if (localStorage.getItem("isLoggedIn") !== "true") return;
+      // Fire-and-forget — initializeAuth already handles errors gracefully.
+      void initializeAuth();
+    };
+
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, [initializeAuth]);
 
   // ── Login ───────────────────────────────────────────────────────────────────

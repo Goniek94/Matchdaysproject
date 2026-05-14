@@ -121,9 +121,16 @@ apiClient.interceptors.response.use(
     }
 
     // ── Handle 431 Request Header Fields Too Large ──
+    // Note: we used to clearAuthData() here, but 431 isn't an auth signal —
+    // it's usually a cookie-size problem from third-party scripts or an
+    // overgrown header. Clearing the session was punishing the user for
+    // a browser issue. Just log it; the user can clear cookies manually
+    // if it persists.
     if (error.response?.status === 431) {
-      logger.error("Request headers too large — clearing auth data", "apiClient");
-      clearAuthData();
+      logger.error(
+        "Request headers too large (431) — session left intact",
+        "apiClient",
+      );
     }
 
     // ── Handle network errors ──

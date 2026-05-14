@@ -8,6 +8,7 @@ import {
   DashboardSidebar,
   DashboardOverview,
   DashboardListings,
+  DashboardScoring,
   DashboardBids,
   DashboardMessages,
   DashboardAiTools,
@@ -107,6 +108,8 @@ export default function DashboardPage() {
         );
       case "listings":
         return <DashboardListings />;
+      case "scoring":
+        return <DashboardScoring />;
       case "bids":
         return <DashboardBids />;
       case "messages":

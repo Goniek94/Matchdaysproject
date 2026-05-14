@@ -11,12 +11,12 @@ import type { EditFormState } from "./useEditForm";
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "Youth", "Other"];
 const CONDITIONS = [
-  { value: "new_with_tags", label: "New with tags" },
-  { value: "new_without_tags", label: "New without tags" },
+  { value: "bnwt", label: "Brand New With Tags" },
+  { value: "bnwot", label: "Brand New Without Tags" },
   { value: "excellent", label: "Excellent" },
   { value: "good", label: "Good" },
   { value: "fair", label: "Fair" },
-  { value: "poor", label: "Poor" },
+  { value: "damaged", label: "Damaged" },
 ];
 
 interface EditSectionDetailsProps {
