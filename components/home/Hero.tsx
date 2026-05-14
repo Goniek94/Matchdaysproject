@@ -153,6 +153,8 @@ const TICKER = [
   "Motorsport",
   "Vintage Kits",
   "AI Verified",
+  "EU Shipping",
+  "Live Bidding",
 ];
 
 function Ticker() {
