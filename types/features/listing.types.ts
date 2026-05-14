@@ -88,6 +88,42 @@ export interface Category {
 // AI ANALYSIS TYPES
 // ============================================
 
+// ============================================
+// AI DEFECT TYPES
+// ============================================
+
+export type DefectSeverity = "minor" | "moderate" | "major";
+
+export type DefectType =
+  | "stain"
+  | "tear"
+  | "hole"
+  | "fading"
+  | "pilling"
+  | "loose_thread"
+  | "print_crack"
+  | "badge_damage"
+  | "collar_wear"
+  | "hem_damage"
+  | "number_peeling"
+  | "sponsor_peeling"
+  | "odour_note"
+  | string;
+
+export interface AIDefect {
+  /** Type of defect detected by AI */
+  type: DefectType;
+  /** Severity level of the defect */
+  severity: DefectSeverity;
+  /** Location on the item (e.g. "front chest", "left sleeve", "back collar") */
+  location: string;
+  /** One-sentence description of what is visible */
+  description: string;
+}
+
+/** Cross-check verdict comparing seller's declared condition with photo evidence. */
+export type UserConditionMatch = "match" | "lower" | "higher";
+
 /**
  * AI analysis result returned from the backend (/ai/analyze endpoint).
  * This is the flat structure returned by Gemini Vision via NestJS.
@@ -112,6 +148,17 @@ export interface AIAnalysisResult {
   sizeUK?: string;
   productionYear?: string;
   condition: string;
+  /** Detailed description of the item's physical state (fabric, colour vibrancy, wear) */
+  conditionDetails?: string;
+  /** List of visible defects detected by AI — empty array if none found */
+  defects?: AIDefect[];
+  /**
+   * Verdict comparing seller's declared condition (from pre-analysis form) with
+   * what AI sees in photos. Only present when userDeclaredCondition was supplied.
+   */
+  userConditionMatch?: UserConditionMatch;
+  /** One-sentence explanation of the discrepancy with specific visual evidence. */
+  userConditionNote?: string;
   countryOfProduction: string;
   serialCode: string;
   playerName?: string;
@@ -122,6 +169,27 @@ export interface AIAnalysisResult {
   priceMin: number;
   priceSuggested: number;
   priceMax: number;
+  /**
+   * How well the price is anchored in real market data. "high" = AI found
+   * 5+ recent comparable sales via Google Search grounding; "medium" = 2–4;
+   * "low" = niche/rare item with little public data.
+   */
+  priceConfidence?: "high" | "medium" | "low";
+  /**
+   * Free-text bullet points the AI cited for its pricing — e.g.
+   * "eBay sold last 90 days: 6 results, €72–98 average €83".
+   */
+  priceSources?: string[];
+  /**
+   * Web pages Gemini consulted via Google Search Grounding while pricing
+   * (verifiable links shown to the seller so they can audit the basis).
+   */
+  groundingCitations?: { title: string | null; uri: string | null }[];
+  /**
+   * The actual Google Search queries the model issued.
+   * Useful for transparency + UI ("AI searched for: …").
+   */
+  groundingSearchQueries?: string[];
   authenticityScore: number;
   authenticityLabel: string;
   authenticityNotes: string;
@@ -169,6 +237,14 @@ export interface SmartFormData {
   size: string;
   sizeEU: string;
   sizeUK: string;
+  /**
+   * Free-text measurements provided by the seller alongside the size tag —
+   * e.g. "Chest 52cm · Length 70cm · Sleeves 22cm". Sent to AI as user
+   * context so the description can quote them, and surfaced to buyers in
+   * the listing details. Optional — pin-sharp size tags often make this
+   * redundant, but jerseys vary across decades / cuts.
+   */
+  measurements: string;
   productionYear: string;
   condition: string;
   countryOfProduction: string;
@@ -244,6 +320,7 @@ export const INITIAL_FORM_STATE: SmartFormData = {
   size: "",
   sizeEU: "",
   sizeUK: "",
+  measurements: "",
   productionYear: "",
   condition: "excellent",
   countryOfProduction: "",

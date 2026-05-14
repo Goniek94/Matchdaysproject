@@ -73,7 +73,7 @@ export function DetailsForm({ data, update }: DetailsFormProps) {
           <option value="excellent">Excellent — Like New</option>
           <option value="good">Good — Minor Wear</option>
           <option value="fair">Fair — Visible Wear</option>
-          <option value="poor">Poor — Heavy Wear</option>
+          <option value="damaged">Damaged — Heavy Wear</option>
         </select>
       </div>
 

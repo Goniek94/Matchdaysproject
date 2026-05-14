@@ -101,7 +101,8 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
           // immediately, and the worker writes the score back to the auction
           // (auto-publishes if ≥90). User gets a notification when done.
           analyzeListingAsync(photoGroupKey, bgPhotos, result.data.id).catch(
-            (err) => logger.warn("Background AI enqueue failed", "SmartForm", err),
+            (err) =>
+              logger.warn("Background AI enqueue failed", "SmartForm", err),
           );
         }
       } else {
@@ -125,9 +126,7 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       const detail = Array.isArray(err.message)
         ? err.message.join("\n• ")
         : err.message || err.error || "Unknown error";
-      alert(
-        `Failed to publish (${err.status ?? "?"}):\n\n• ${detail}`,
-      );
+      alert(`Failed to publish (${err.status ?? "?"}):\n\n• ${detail}`);
     } finally {
       setIsPublishing(false);
     }
@@ -140,7 +139,7 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
   if (isPublished) {
     return (
       <SuccessView
-        status="live"
+        status="pending"
         title={data.title || "Your Listing"}
         listingId={publishedListingId || undefined}
         imageUrl={publishedPhotos[0]?.url || ""}
@@ -161,6 +160,7 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       <div className="min-h-screen pb-24 pt-24 px-4 max-w-7xl mx-auto">
         <SmartFormSummary
           data={data}
+          update={update}
           onPublish={handlePublish}
           onBack={handleBackNavigation}
           isPublishing={isPublishing}
@@ -173,15 +173,17 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
   // Ukrywamy główne przyciski nawigacyjne na krokach, które mają własną nawigację
   // Steps that manage their own navigation buttons
   const hideNavButtons =
-    step === 1 || step === 2 || step === 4 ||        // step 4 = CompletionMode (own nav)
-    (step === 5 && data.completionMode === "AI") ||  // StepAISummary
-    (step === 6 && data.completionMode === "AI");    // StepEditListing
+    step === 1 ||
+    step === 2 ||
+    step === 4 || // step 4 = CompletionMode (own nav)
+    (step === 5 && data.completionMode === "AI") || // StepAISummary
+    (step === 6 && data.completionMode === "AI"); // StepEditListing
 
   return (
     <div className="min-h-screen pb-24 pt-20">
       {/* Progress Bar */}
-      <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 mb-4 py-3 px-4 transition-all">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
+      <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 mb-4 py-3 px-6 transition-all">
+        <div className="max-w-6xl mx-auto flex items-center gap-4">
           <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-black transition-all duration-500 ease-out"
@@ -194,7 +196,9 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
         </div>
       </div>
 
-      <div className={`px-4 mx-auto ${step === 6 && data.completionMode === "AI" ? "max-w-6xl" : "max-w-4xl"}`}>
+      <div
+        className={`px-6 mx-auto ${step === 6 && data.completionMode === "AI" ? "max-w-7xl" : "max-w-6xl"}`}
+      >
         <SmartFormSteps
           step={step}
           data={data}

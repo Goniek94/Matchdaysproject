@@ -2,7 +2,6 @@ export { default as SummaryHeader } from "./SummaryHeader";
 export { default as ImageGallery } from "./ImageGallery";
 export { default as TitleCard } from "./TitleCard";
 export { default as DescriptionCard } from "./DescriptionCard";
-export { default as VerificationDetails } from "./VerificationDetails";
 export { default as PricingCard } from "./PricingCard";
 export { default as ProductDetails } from "./ProductDetails";
 export { default as AIVerificationCard } from "./AIVerificationCard";

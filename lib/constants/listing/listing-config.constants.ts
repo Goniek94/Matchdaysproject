@@ -25,12 +25,19 @@ export const LISTING_TYPES = {
 // AUCTION DURATIONS
 // ============================================
 
+// Auction listings only. Buy-now listings have no duration cap — they stay
+// up until sold or manually cancelled. Hard ceiling at 7 days keeps the
+// marketplace alive (no stale listings) and forces faster price discovery.
 export const AUCTION_DURATIONS = [
   { id: "24h", label: "24 hours" },
+  { id: "48h", label: "48 hours" },
   { id: "3d", label: "3 days" },
+  { id: "5d", label: "5 days" },
   { id: "7d", label: "7 days" },
-  { id: "14d", label: "14 days" },
 ] as const;
+
+/** Max allowed auction duration in milliseconds — used for backend validation parity. */
+export const AUCTION_MAX_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 // ============================================
 // CURRENCY

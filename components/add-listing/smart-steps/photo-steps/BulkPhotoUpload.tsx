@@ -3,7 +3,9 @@
 import { useRef, useState, useCallback, DragEvent } from "react";
 
 import { Upload, X, CheckCircle2, ChevronRight, Image as ImageIcon } from "lucide-react";
+import toast from "react-hot-toast";
 import type { SmartFormData, Photo } from "@/types/features/listing.types";
+import { PHOTO_LIMITS } from "@/lib/constants/listing/listing-config.constants";
 import { cn } from "@/lib/utils";
 
 interface BulkPhotoUploadProps {
@@ -49,15 +51,39 @@ export default function BulkPhotoUpload({
   const processFiles = useCallback(
     async (files: FileList | null) => {
       if (!files || files.length === 0) return;
+
+      const currentCount = data.photos.length;
+      const remaining = PHOTO_LIMITS.MAX - currentCount;
+
+      if (remaining <= 0) {
+        toast.error(`Photo limit reached (max ${PHOTO_LIMITS.MAX}).`);
+        return;
+      }
+
       setIsProcessing(true);
 
       const newPhotos: Photo[] = [];
+      let skippedDuplicates = 0;
+      let skippedNonImage = 0;
+      let droppedOverLimit = 0;
 
       for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) continue;
+        if (!file.type.startsWith("image/")) {
+          skippedNonImage++;
+          continue;
+        }
+
+        // Stop accepting once we'd exceed the cap — let the user know how many didn't fit
+        if (newPhotos.length >= remaining) {
+          droppedOverLimit++;
+          continue;
+        }
 
         const hash = await hashFile(file);
-        if (hashSetRef.current.has(hash)) continue;
+        if (hashSetRef.current.has(hash)) {
+          skippedDuplicates++;
+          continue;
+        }
         hashSetRef.current.add(hash);
 
         await new Promise<void>((resolve) => {
@@ -77,6 +103,16 @@ export default function BulkPhotoUpload({
 
       if (newPhotos.length > 0) {
         update("photos", [...data.photos, ...newPhotos]);
+      }
+
+      if (droppedOverLimit > 0) {
+        toast.error(
+          `Only ${newPhotos.length} added — photo limit is ${PHOTO_LIMITS.MAX}. Skipped ${droppedOverLimit}.`,
+        );
+      } else if (skippedDuplicates > 0) {
+        toast(`${skippedDuplicates} duplicate photo${skippedDuplicates === 1 ? "" : "s"} skipped.`);
+      } else if (skippedNonImage > 0) {
+        toast.error(`${skippedNonImage} file${skippedNonImage === 1 ? "" : "s"} skipped — not an image.`);
       }
 
       setIsProcessing(false);
@@ -121,6 +157,7 @@ export default function BulkPhotoUpload({
   };
 
   const canContinue = bulkPhotos.length >= 2;
+  const atLimit = data.photos.length >= PHOTO_LIMITS.MAX;
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -146,19 +183,35 @@ export default function BulkPhotoUpload({
 
       {/* Drop zone */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragOver={(e) => {
+          if (atLimit) return;
+          e.preventDefault();
+          setIsDragging(true);
+        }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={(e) => {
           e.preventDefault();
           setIsDragging(false);
+          if (atLimit) {
+            toast.error(`Photo limit reached (max ${PHOTO_LIMITS.MAX}).`);
+            return;
+          }
           processFiles(e.dataTransfer.files);
         }}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => {
+          if (atLimit) {
+            toast.error(`Photo limit reached (max ${PHOTO_LIMITS.MAX}).`);
+            return;
+          }
+          inputRef.current?.click();
+        }}
         className={cn(
-          "relative rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 py-10 px-6 cursor-pointer transition-all",
-          isDragging
-            ? "border-black bg-gray-50 scale-[1.01]"
-            : "border-gray-300 bg-white hover:border-gray-500 hover:bg-gray-50",
+          "relative rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 py-10 px-6 transition-all",
+          atLimit
+            ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-60"
+            : isDragging
+              ? "border-black bg-gray-50 scale-[1.01] cursor-pointer"
+              : "border-gray-300 bg-white hover:border-gray-500 hover:bg-gray-50 cursor-pointer",
         )}
       >
         <input
@@ -178,10 +231,16 @@ export default function BulkPhotoUpload({
         </div>
         <div className="text-center">
           <p className="text-base font-bold text-gray-800">
-            {isDragging ? "Drop photos here" : "Click or drag photos here"}
+            {atLimit
+              ? `Photo limit reached (${PHOTO_LIMITS.MAX} of ${PHOTO_LIMITS.MAX})`
+              : isDragging
+                ? "Drop photos here"
+                : "Click or drag photos here"}
           </p>
           <p className="text-sm text-gray-400 mt-0.5">
-            Select multiple at once — JPG, PNG, WEBP
+            {atLimit
+              ? "Remove a photo to add another"
+              : `Select multiple at once — JPG, PNG, WEBP · up to ${PHOTO_LIMITS.MAX} photos`}
           </p>
         </div>
         {isProcessing && (
@@ -196,7 +255,7 @@ export default function BulkPhotoUpload({
         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-bold text-gray-900 uppercase tracking-widest">
-              Uploaded ({bulkPhotos.length})
+              Uploaded ({bulkPhotos.length}/{PHOTO_LIMITS.MAX})
             </span>
             {bulkPhotos.length >= 2 && (
               <span className="flex items-center gap-1.5 text-xs font-bold text-green-600">
@@ -239,14 +298,18 @@ export default function BulkPhotoUpload({
                 </button>
               </div>
             ))}
-            {/* Add more tile */}
-            <button
-              onClick={() => inputRef.current?.click()}
-              className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 hover:border-gray-400 hover:bg-gray-50 transition-all"
-            >
-              <ImageIcon size={20} className="text-gray-400" />
-              <span className="text-[11px] text-gray-400 font-medium">Add more</span>
-            </button>
+            {/* Add more tile — hidden when at limit */}
+            {!atLimit && (
+              <button
+                onClick={() => inputRef.current?.click()}
+                className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 hover:border-gray-400 hover:bg-gray-50 transition-all"
+              >
+                <ImageIcon size={20} className="text-gray-400" />
+                <span className="text-[11px] text-gray-400 font-medium">
+                  Add more ({PHOTO_LIMITS.MAX - data.photos.length} left)
+                </span>
+              </button>
+            )}
           </div>
         </div>
       )}

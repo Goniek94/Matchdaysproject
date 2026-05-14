@@ -13,6 +13,21 @@ export interface PhotoDto {
 export interface AnalyzeListingDto {
   category: string;
   photos: PhotoDto[];
+  /** Seller's declared condition from the pre-analysis step (bnwt/bnwot/excellent/good/fair/damaged). */
+  userDeclaredCondition?: string;
+  /** Seller's free-text defects description from the pre-analysis step. */
+  userDeclaredDefects?: string;
+  /** Seller's item history / provenance text from the pre-analysis step. */
+  userItemHistory?: string;
+  /** Seller-provided measurements (e.g. "Chest 52cm · Length 70cm"). AI quotes these in the listing description. */
+  userMeasurements?: string;
+}
+
+export interface UserAnalysisContext {
+  userDeclaredCondition?: string;
+  userDeclaredDefects?: string;
+  userItemHistory?: string;
+  userMeasurements?: string;
 }
 
 const stripDataUrlPrefix = (dataUrl: string): string => {
@@ -75,6 +90,7 @@ const CATEGORY_MAP: Record<string, string> = {
 const buildAnalyzePayload = async (
   category: string,
   photos: Array<{ url: string; typeHint: string }>,
+  userContext?: UserAnalysisContext,
 ): Promise<AnalyzeListingDto> => {
   const backendCategory = CATEGORY_MAP[category] || category;
 
@@ -96,21 +112,42 @@ const buildAnalyzePayload = async (
     mimeType: "image/jpeg",
   }));
 
-  return { category: backendCategory, photos: photoDtos };
+  return {
+    category: backendCategory,
+    photos: photoDtos,
+    userDeclaredCondition: userContext?.userDeclaredCondition?.trim() || undefined,
+    userDeclaredDefects: userContext?.userDeclaredDefects?.trim() || undefined,
+    userItemHistory: userContext?.userItemHistory?.trim() || undefined,
+    userMeasurements: userContext?.userMeasurements?.trim() || undefined,
+  };
 };
 
 /**
  * Synchronous AI analysis — request blocks until Gemini returns. Use only when
  * the user is actively watching a spinner (LegitCheck, in-wizard preview).
+ *
+ * `userContext` carries the seller's declarations from the pre-analysis form
+ * so the backend prompt can cross-check them against photo evidence and
+ * populate userConditionMatch/userConditionNote in the response.
+ *
+ * Timeout override: Gemini with Google Search Grounding can spend 15–25 s
+ * generating + multiple search round-trips, plus we POST a large base64
+ * payload. The default 30 s axios timeout was clipping legitimate requests
+ * mid-flight — users saw "Analysis Failed" and assumed their session had
+ * died. 120 s gives Gemini comfortable headroom even on a slow upstream.
  */
+const AI_ANALYZE_TIMEOUT_MS = 120_000;
+
 export const analyzeListing = async (
   category: string,
   photos: Array<{ url: string; typeHint: string }>,
+  userContext?: UserAnalysisContext,
 ): Promise<ApiResponse<AIAnalysisResult>> => {
-  const payload = await buildAnalyzePayload(category, photos);
+  const payload = await buildAnalyzePayload(category, photos, userContext);
   const response = await apiClient.post<ApiResponse<AIAnalysisResult>>(
     "/ai/analyze",
     payload,
+    { timeout: AI_ANALYZE_TIMEOUT_MS },
   );
   return response.data;
 };
@@ -127,10 +164,14 @@ export const analyzeListingAsync = async (
   category: string,
   photos: Array<{ url: string; typeHint: string }>,
   auctionId?: string,
+  userContext?: UserAnalysisContext,
 ): Promise<ApiResponse<{ jobId: string; status: string }>> => {
-  const payload = await buildAnalyzePayload(category, photos);
+  const payload = await buildAnalyzePayload(category, photos, userContext);
+  // /ai/analyze-async returns 202 quickly with a jobId — Bull does the heavy
+  // work in the background. Still bump the timeout: posting the base64
+  // payload alone can be slow on flaky connections.
   const response = await apiClient.post<
     ApiResponse<{ jobId: string; status: string }>
-  >("/ai/analyze-async", { ...payload, auctionId });
+  >("/ai/analyze-async", { ...payload, auctionId }, { timeout: 60_000 });
   return response.data;
 };

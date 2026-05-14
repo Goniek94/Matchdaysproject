@@ -37,7 +37,7 @@ export default function StepPricing({ data, update }: StepProps) {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-100">
         {/* Header */}
         <div className="mb-8">

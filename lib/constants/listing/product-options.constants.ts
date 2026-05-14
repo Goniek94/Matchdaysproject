@@ -13,7 +13,7 @@ export const CONDITIONS = [
   { id: "excellent", label: "Excellent - Like New" },
   { id: "good", label: "Good - Minor Wear" },
   { id: "fair", label: "Fair - Visible Wear" },
-  { id: "poor", label: "Poor - Heavy Wear" },
+  { id: "damaged", label: "Damaged - Heavy Wear" },
 ] as const;
 
 // ============================================

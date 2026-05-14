@@ -1,16 +1,19 @@
 import { CheckCircle2 } from "lucide-react";
 
-/** Header section with success icon and title */
+/** Header section - left-aligned, editorial style */
 const SummaryHeader = () => (
-  <div className="text-center space-y-2">
-    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 text-green-600">
-      <CheckCircle2 size={28} />
+  <div className="space-y-1">
+    <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600 shrink-0">
+        <CheckCircle2 size={18} />
+      </div>
+      <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">
+        Final Review
+      </h2>
     </div>
-    <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">
-      Final Review
-    </h2>
-    <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-      Review your listing before publishing. Everything looks great!
+    <p className="text-sm text-muted-foreground pl-10">
+      Check your listing before publishing — you can still go back and edit
+      anything.
     </p>
   </div>
 );

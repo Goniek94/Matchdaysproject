@@ -12,7 +12,7 @@ const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
 
 export default function StepProductDetailsManual({ data, update }: StepProps) {
   return (
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="w-full max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 border border-gray-100">
         {/* Header */}
         <div className="mb-8">
@@ -157,7 +157,7 @@ export default function StepProductDetailsManual({ data, update }: StepProps) {
                 <option value="excellent">Excellent - Like New</option>
                 <option value="good">Good - Minor Wear</option>
                 <option value="fair">Fair - Visible Wear</option>
-                <option value="poor">Poor - Heavy Wear</option>
+                <option value="damaged">Damaged - Heavy Wear</option>
               </select>
             </div>
           </div>
