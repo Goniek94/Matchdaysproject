@@ -8,12 +8,13 @@ import Link from "next/link";
 import {
   Shield, Truck, Lock, ArrowLeft, CheckCircle, AlertCircle,
   MapPin, Package, Zap, Building2, Clock, Edit2, CreditCard,
-  Landmark, Wallet, ChevronDown,
+  Wallet, ChevronDown,
 } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
-import { buyNow } from "@/lib/api/auctions.api";
+import { ordersApi, type PaymentMethod as OrderPaymentMethod } from "@/lib/api";
 import { getMyAddress } from "@/lib/api/users";
+import { getWallet, formatMoney, type WalletSummary } from "@/lib/api/wallet";
 
 // ─── Delivery options ─────────────────────────────────────────────────────────
 
@@ -54,19 +55,72 @@ function getDeliveryOptions(sellerCountry: string, buyerCountry: string): Delive
 // ─── Address card ─────────────────────────────────────────────────────────────
 
 interface SavedAddress {
-  street: string;
-  postalCode: string;
-  city: string;
-  country: string;
+  street: string | null;
+  postalCode: string | null;
+  city: string | null;
+  country: string | null;
 }
 
-function AddressCard({ addr, name, email }: { addr: SavedAddress | null; name: string; email: string }) {
-  if (!addr) return (
-    <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-800">
-      <AlertCircle size={16} className="flex-shrink-0" />
-      <span>No saved address. <Link href="/settings" className="font-bold underline">Add address in settings</Link></span>
-    </div>
+/**
+ * Returns true if the address has the minimum fields a courier needs.
+ * Backend stores them as nullable strings so partially-filled rows are
+ * common (user filled country only, etc); we don't trust the row's mere
+ * existence as a green light.
+ */
+function isAddressUsable(addr: SavedAddress | null): boolean {
+  if (!addr) return false;
+  return Boolean(
+    addr.street?.trim() &&
+      addr.postalCode?.trim() &&
+      addr.city?.trim() &&
+      addr.country?.trim(),
   );
+}
+
+function AddressCard({
+  addr,
+  name,
+  email,
+}: {
+  addr: SavedAddress | null;
+  name: string;
+  email: string;
+}) {
+  const usable = isAddressUsable(addr);
+
+  // No row, OR row exists but the courier-relevant fields are blank.
+  // Either way, we want the buyer to fill it in before they hit "Pay".
+  if (!usable) {
+    const missing: string[] = [];
+    if (!addr?.street?.trim()) missing.push("street");
+    if (!addr?.postalCode?.trim()) missing.push("postal code");
+    if (!addr?.city?.trim()) missing.push("city");
+    if (!addr?.country?.trim()) missing.push("country");
+
+    return (
+      <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+        <AlertCircle size={16} className="flex-shrink-0 mt-0.5 text-amber-600" />
+        <div className="flex-1 text-sm text-amber-800">
+          <p className="font-bold">
+            {addr ? "Your address is incomplete" : "No saved address"}
+          </p>
+          <p className="text-amber-700/80 mt-0.5">
+            {addr
+              ? `Missing: ${missing.join(", ")}. Add it before paying so the seller knows where to ship.`
+              : "Please add your delivery address before checking out."}
+          </p>
+          <Link
+            href="/settings#address"
+            className="inline-block mt-2 font-bold underline underline-offset-2 hover:text-amber-900"
+          >
+            {addr ? "Complete address in settings →" : "Add address in settings →"}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Address is fully usable — render the saved card.
   return (
     <div className="p-5 bg-gray-50 rounded-2xl border border-gray-200">
       <div className="flex items-start justify-between gap-3">
@@ -76,12 +130,17 @@ function AddressCard({ addr, name, email }: { addr: SavedAddress | null; name: s
           </div>
           <div>
             <p className="font-bold text-gray-900">{name}</p>
-            <p className="text-sm text-gray-500 mt-0.5">{addr.street}</p>
-            <p className="text-sm text-gray-500">{addr.postalCode} {addr.city}, {addr.country}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{addr!.street}</p>
+            <p className="text-sm text-gray-500">
+              {addr!.postalCode} {addr!.city}, {addr!.country}
+            </p>
             <p className="text-sm text-gray-400 mt-0.5">{email}</p>
           </div>
         </div>
-        <Link href="/settings" className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-black transition-colors flex-shrink-0">
+        <Link
+          href="/settings"
+          className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-black transition-colors flex-shrink-0"
+        >
           <Edit2 size={13} /> Edit
         </Link>
       </div>
@@ -178,82 +237,93 @@ function SellerDeliverySection({
 
 // ─── Payment card ─────────────────────────────────────────────────────────────
 
-type PaymentMethod = "card" | "paypal" | "bank";
+/**
+ * Backend-supported payment methods. NO fake card form — the buyer either
+ * pays from the in-app wallet (instant debit + escrow), or gets redirected
+ * to Stripe-hosted Checkout where Stripe handles PCI, 3-D Secure, SCA and
+ * card storage. We never touch raw card data.
+ */
+type PaymentMethod = OrderPaymentMethod;
+
+interface PaymentCardMeta {
+  label: string;
+  sublabel: string;
+  icon: React.ReactNode;
+}
 
 function PaymentCard({
-  method, selected, onSelect, cardNumber, setCardNumber, cardExpiry, setCardExpiry, cardCvc, setCardCvc,
+  method,
+  selected,
+  onSelect,
+  disabled,
+  detail,
 }: {
-  method: PaymentMethod; selected: boolean; onSelect: () => void;
-  cardNumber: string; setCardNumber: (v: string) => void;
-  cardExpiry: string; setCardExpiry: (v: string) => void;
-  cardCvc: string; setCardCvc: (v: string) => void;
+  method: PaymentMethod;
+  selected: boolean;
+  onSelect: () => void;
+  disabled?: boolean;
+  detail?: React.ReactNode;
 }) {
-  const meta: Record<PaymentMethod, { label: string; sublabel: string; icon: React.ReactNode }> = {
-    card:   { label: "Credit / Debit Card", sublabel: "Visa, Mastercard, Amex",        icon: <CreditCard size={18}/> },
-    paypal: { label: "PayPal",              sublabel: "Pay with your PayPal account",   icon: <Wallet size={18}/> },
-    bank:   { label: "Bank Transfer",       sublabel: "Manual transfer – 1–2 days delay", icon: <Landmark size={18}/> },
+  const meta: Record<PaymentMethod, PaymentCardMeta> = {
+    WALLET: {
+      label: "Matchdays Wallet",
+      sublabel: "Instant — escrowed until you confirm delivery",
+      icon: <Wallet size={18} />,
+    },
+    STRIPE_CARD: {
+      label: "Credit / Debit Card",
+      sublabel: "Secure Stripe Checkout · Visa, Mastercard, Apple Pay",
+      icon: <CreditCard size={18} />,
+    },
   };
   const m = meta[method];
 
-  const handleCardNumber = (v: string) => {
-    const d = v.replace(/\D/g, "").slice(0, 16);
-    setCardNumber(d.replace(/(.{4})/g, "$1 ").trim());
-  };
-  const handleExpiry = (v: string) => {
-    const d = v.replace(/\D/g, "").slice(0, 4);
-    setCardExpiry(d.length > 2 ? `${d.slice(0,2)}/${d.slice(2)}` : d);
-  };
-
   return (
-    <div className={`rounded-2xl border-2 overflow-hidden transition-all ${selected ? "border-black" : "border-gray-200"}`}>
-      <button type="button" onClick={onSelect}
-        className={`w-full flex items-center gap-4 p-4 text-left transition-colors ${selected ? "bg-black text-white" : "bg-white text-gray-900 hover:bg-gray-50"}`}>
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${selected ? "bg-white/20" : "bg-gray-100"}`}>
-          <span className={selected ? "text-white" : "text-gray-600"}>{m.icon}</span>
+    <div
+      className={`rounded-2xl border-2 overflow-hidden transition-all ${
+        selected ? "border-black" : "border-gray-200"
+      } ${disabled ? "opacity-60" : ""}`}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        disabled={disabled}
+        className={`w-full flex items-center gap-4 p-4 text-left transition-colors ${
+          selected
+            ? "bg-black text-white"
+            : "bg-white text-gray-900 hover:bg-gray-50"
+        } ${disabled ? "cursor-not-allowed" : ""}`}
+      >
+        <div
+          className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            selected ? "bg-white/20" : "bg-gray-100"
+          }`}
+        >
+          <span className={selected ? "text-white" : "text-gray-600"}>
+            {m.icon}
+          </span>
         </div>
         <div className="flex-1">
           <p className="font-bold text-sm">{m.label}</p>
-          <p className={`text-xs mt-0.5 ${selected ? "text-white/70" : "text-gray-500"}`}>{m.sublabel}</p>
+          <p
+            className={`text-xs mt-0.5 ${
+              selected ? "text-white/70" : "text-gray-500"
+            }`}
+          >
+            {m.sublabel}
+          </p>
         </div>
-        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selected ? "border-white" : "border-gray-300"}`}>
-          {selected && <div className="w-2.5 h-2.5 rounded-full bg-white"/>}
+        <div
+          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+            selected ? "border-white" : "border-gray-300"
+          }`}
+        >
+          {selected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
         </div>
       </button>
 
-      {selected && method === "card" && (
-        <div className="p-4 bg-gray-50 space-y-3 border-t border-gray-100">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Card number</label>
-            <input value={cardNumber} onChange={e => handleCardNumber(e.target.value)} placeholder="0000 0000 0000 0000"
-              className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 placeholder:text-gray-300" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">Expiry</label>
-              <input value={cardExpiry} onChange={e => handleExpiry(e.target.value)} placeholder="MM/YY"
-                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 placeholder:text-gray-300" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1">CVC</label>
-              <input value={cardCvc} onChange={e => setCardCvc(e.target.value.replace(/\D/g,"").slice(0,4))} placeholder="•••" type="password"
-                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 placeholder:text-gray-300" />
-            </div>
-          </div>
-          <p className="text-[11px] text-gray-400 flex items-center gap-1"><Lock size={10}/> Your card details are encrypted and never stored.</p>
-        </div>
-      )}
-      {selected && method === "paypal" && (
-        <div className="p-4 bg-gray-50 border-t border-gray-100">
-          <p className="text-sm text-gray-500">You will be redirected to PayPal to complete the payment securely.</p>
-        </div>
-      )}
-      {selected && method === "bank" && (
-        <div className="p-4 bg-gray-50 border-t border-gray-100 space-y-1.5">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Transfer details</p>
-          <p className="text-sm text-gray-700">Account: <span className="font-mono font-bold">PL12 3456 7890 1234 5678 9012 3456</span></p>
-          <p className="text-sm text-gray-500">Title: your order ID (sent after placing order)</p>
-          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-2">Order will be confirmed once payment is received (1–2 business days).</p>
-        </div>
+      {selected && detail && (
+        <div className="p-4 bg-gray-50 border-t border-gray-100">{detail}</div>
       )}
     </div>
   );
@@ -268,10 +338,9 @@ function CheckoutContent() {
 
   const [address, setAddress]         = useState<SavedAddress | null>(null);
   const [loadingAddr, setLoadingAddr] = useState(true);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
-  const [cardNumber, setCardNumber]   = useState("");
-  const [cardExpiry, setCardExpiry]   = useState("");
-  const [cardCvc, setCardCvc]         = useState("");
+  const [wallet, setWallet]           = useState<WalletSummary | null>(null);
+  const [loadingWallet, setLoadingWallet] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("WALLET");
   const [submitting, setSubmitting]   = useState(false);
   const [result, setResult]           = useState<"success" | "error" | null>(null);
   const [errorMsg, setErrorMsg]       = useState("");
@@ -307,11 +376,28 @@ function CheckoutContent() {
   }, [sellerGroups, buyerCountry]);
 
   useEffect(() => {
-    if (!isAuthenticated) { setLoadingAddr(false); return; }
+    if (!isAuthenticated) {
+      setLoadingAddr(false);
+      setLoadingWallet(false);
+      return;
+    }
     getMyAddress()
-      .then((res: any) => { if (res?.address) setAddress(res.address); })
+      .then((res: any) => {
+        // Backend wraps in { data: { address } }; older shape returned address at root.
+        const addr = res?.data?.address ?? res?.address ?? null;
+        if (addr) setAddress(addr);
+      })
       .catch(() => {})
       .finally(() => setLoadingAddr(false));
+
+    // Wallet balance — shown next to the WALLET payment option so the buyer
+    // can tell at a glance whether they have enough to cover this purchase.
+    getWallet()
+      .then((res) => {
+        if (res.data) setWallet(res.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingWallet(false));
   }, [isAuthenticated]);
 
   // Compute total shipping across all seller groups
@@ -329,27 +415,152 @@ function CheckoutContent() {
 
   const allDeliveriesSelected = sellerGroups.every(g => selectedDeliveries[g.sellerName]);
 
+  // Stripe Checkout sessions only cover ONE order at a time — for a multi-item
+  // cart we'd have to chain redirects through several Stripe pages, which is
+  // a confusing UX. For now: nudge the buyer toward the wallet path (or paying
+  // sellers one-by-one). This guard is in addition to the per-method server
+  // validation; we just want to fail fast in the UI before the network call.
+  const stripeBlockedReason: string | null =
+    paymentMethod === "STRIPE_CARD" && items.length > 1
+      ? "Card payment supports one item at a time. Use Wallet to checkout the whole cart, or pay items individually."
+      : null;
+
+  const walletBalanceNumber = wallet ? parseFloat(wallet.balance) : 0;
+  const walletInsufficient =
+    paymentMethod === "WALLET" &&
+    !loadingWallet &&
+    walletBalanceNumber < totalPrice;
+
+  /**
+   * Snapshot the buyer's shipping address into the order at pay-time. We
+   * normalise to the {street/postalCode/city/country} shape regardless of
+   * how the backend stored it — backend just records the JSON verbatim.
+   */
+  function buildShippingAddressSnapshot(): Record<string, unknown> | undefined {
+    if (!address) return undefined;
+    return {
+      street: address.street,
+      postalCode: address.postalCode,
+      city: address.city,
+      country: address.country,
+      recipientName: userName || undefined,
+      recipientEmail: userEmail || undefined,
+    };
+  }
+
   const handleSubmit = async () => {
-    if (!isAuthenticated)      { setErrorMsg("You must be logged in.");              setResult("error"); return; }
-    if (!allDeliveriesSelected){ setErrorMsg("Please select a delivery method for each seller."); setResult("error"); return; }
-    if (items.length === 0)    { setErrorMsg("Your cart is empty.");                setResult("error"); return; }
-    if (paymentMethod === "card" && (!cardNumber || !cardExpiry || !cardCvc)) {
-      setErrorMsg("Please fill in all card details."); setResult("error"); return;
+    if (!isAuthenticated) {
+      setErrorMsg("You must be logged in.");
+      setResult("error");
+      return;
+    }
+    if (items.length === 0) {
+      setErrorMsg("Your cart is empty.");
+      setResult("error");
+      return;
+    }
+    if (!isAddressUsable(address)) {
+      setErrorMsg(
+        "Your delivery address is missing or incomplete. Open Settings to add a full street / postal / city / country.",
+      );
+      setResult("error");
+      return;
+    }
+    if (!allDeliveriesSelected) {
+      setErrorMsg("Please select a delivery method for each seller.");
+      setResult("error");
+      return;
+    }
+    if (stripeBlockedReason) {
+      setErrorMsg(stripeBlockedReason);
+      setResult("error");
+      return;
+    }
+    if (walletInsufficient) {
+      setErrorMsg(
+        `Wallet balance is too low — you need ${formatMoney(totalPrice)} but have ${formatMoney(wallet?.balance ?? 0)}. Top up your wallet or pick a different payment method.`,
+      );
+      setResult("error");
+      return;
     }
 
+    setSubmitting(true);
+    setResult(null);
+
+    const shippingAddress = buildShippingAddressSnapshot();
+
     try {
-      setSubmitting(true);
-      setResult(null);
+      // STRIPE_CARD: guarded above to exactly one item → create order +
+      // redirect to the hosted checkout URL. The actual PAID transition
+      // happens later via the Stripe webhook, so we leave the cart intact
+      // — `?paid=1` on /orders/:id triggers the post-payment fetch.
+      if (paymentMethod === "STRIPE_CARD") {
+        const item = items[0];
+        const createRes = await ordersApi.createFromBuyNow(item.id);
+        if (!createRes.success || !createRes.data) {
+          setErrorMsg(createRes.message ?? "Could not start the purchase.");
+          setResult("error");
+          return;
+        }
+        const orderId = createRes.data.id;
+        const payRes = await ordersApi.pay(orderId, {
+          paymentMethod: "STRIPE_CARD",
+          shippingAddress,
+        });
+        if (!payRes.success || !payRes.data) {
+          setErrorMsg(payRes.message ?? "Could not start Stripe Checkout.");
+          setResult("error");
+          return;
+        }
+        // Belt + braces — narrow on the discriminant before redirecting.
+        if (payRes.data.paid === false && payRes.data.checkoutUrl) {
+          // Leave the cart populated; the buyer can come back if they
+          // abandon. We DON'T clear here — only after a successful return
+          // (page /orders/:id?paid=1) will the cart be cleared.
+          window.location.assign(payRes.data.checkoutUrl);
+          return;
+        }
+        // Backend should always return paid=false for STRIPE_CARD, but if
+        // somehow we already got an order back, fall through to success.
+        clearCart();
+        setResult("success");
+        setTimeout(() => router.push(`/orders/${orderId}`), 1500);
+        return;
+      }
+
+      // WALLET: process each item sequentially. We deliberately don't run
+      // these in parallel — sellers like to see "you have a paid order"
+      // notifications land in stable order, and a single shared wallet has
+      // optimistic locks that serialise debits anyway.
       const errors: string[] = [];
       for (const item of items) {
         try {
-          const res = await buyNow(item.id);
-          if (!res.success) errors.push(`${item.title}: ${res.message ?? "Purchase failed"}`);
+          const createRes = await ordersApi.createFromBuyNow(item.id);
+          if (!createRes.success || !createRes.data) {
+            errors.push(`${item.title}: ${createRes.message ?? "Could not start order."}`);
+            continue;
+          }
+          const orderId = createRes.data.id;
+          const payRes = await ordersApi.pay(orderId, {
+            paymentMethod: "WALLET",
+            shippingAddress,
+          });
+          if (!payRes.success || !payRes.data?.paid) {
+            errors.push(`${item.title}: ${payRes.message ?? "Wallet payment failed."}`);
+          }
         } catch (itemErr: any) {
-          errors.push(`${item.title}: ${itemErr?.message || itemErr?.error || "Purchase failed"}`);
+          errors.push(
+            `${item.title}: ${itemErr?.message || itemErr?.error || "Purchase failed"}`,
+          );
         }
       }
-      if (errors.length > 0) { setErrorMsg(errors.join(" · ")); setResult("error"); return; }
+
+      if (errors.length > 0) {
+        setErrorMsg(errors.join(" · "));
+        setResult("error");
+        return;
+      }
+
       clearCart();
       setResult("success");
       setTimeout(() => router.push("/history"), 3000);
@@ -463,14 +674,55 @@ function CheckoutContent() {
                 <h2 className="text-lg font-bold text-gray-900">Payment Method</h2>
               </div>
               <div className="space-y-2.5">
-                {(["card", "paypal", "bank"] as PaymentMethod[]).map(m => (
-                  <PaymentCard key={m} method={m}
-                    selected={paymentMethod === m} onSelect={() => setPaymentMethod(m)}
-                    cardNumber={cardNumber} setCardNumber={setCardNumber}
-                    cardExpiry={cardExpiry} setCardExpiry={setCardExpiry}
-                    cardCvc={cardCvc} setCardCvc={setCardCvc}
-                  />
-                ))}
+                <PaymentCard
+                  method="WALLET"
+                  selected={paymentMethod === "WALLET"}
+                  onSelect={() => setPaymentMethod("WALLET")}
+                  detail={
+                    <div className="text-sm space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500">Available balance</span>
+                        <span className="font-bold text-gray-900">
+                          {loadingWallet
+                            ? "…"
+                            : formatMoney(wallet?.balance ?? 0)}
+                        </span>
+                      </div>
+                      {walletInsufficient && (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-start gap-2">
+                          <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
+                          Your balance is below the order total. Top up your
+                          wallet, or pick the card option.
+                        </p>
+                      )}
+                      <p className="text-[11px] text-gray-400 flex items-center gap-1">
+                        <Lock size={10}/> Funds are held in escrow until you confirm delivery.
+                      </p>
+                    </div>
+                  }
+                />
+                <PaymentCard
+                  method="STRIPE_CARD"
+                  selected={paymentMethod === "STRIPE_CARD"}
+                  onSelect={() => setPaymentMethod("STRIPE_CARD")}
+                  detail={
+                    <div className="text-sm space-y-2">
+                      <p className="text-gray-500">
+                        You will be redirected to Stripe&apos;s secure checkout
+                        page to complete the payment.
+                      </p>
+                      {stripeBlockedReason && (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 flex items-start gap-2">
+                          <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
+                          {stripeBlockedReason}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-gray-400 flex items-center gap-1">
+                        <Lock size={10}/> Cards processed by Stripe — we never store your card details.
+                      </p>
+                    </div>
+                  }
+                />
               </div>
             </div>
 
@@ -528,7 +780,7 @@ function CheckoutContent() {
                 })}
               </div>
 
-              <div className="border-t border-gray-100 pt-4 mb-6">
+              <div className="border-t border-gray-100 pt-4 mb-4">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-gray-900">Total</span>
                   <span className="text-2xl font-black text-gray-900">
@@ -537,18 +789,81 @@ function CheckoutContent() {
                 </div>
               </div>
 
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || !allDeliveriesSelected}
-                className="w-full py-4 bg-black text-white font-bold rounded-2xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-              >
-                <Lock size={15} />
-                {submitting
-                  ? "Processing…"
-                  : items.length > 1
-                    ? `Place ${items.length} orders`
-                    : "Place Order"}
-              </button>
+              {/* Wallet balance preview — surfaced here (above the fold) so
+                  the buyer can tell at a glance whether they have enough
+                  to pay from wallet, without scrolling down to step 3. */}
+              {paymentMethod === "WALLET" && (
+                <div
+                  className={`mb-4 flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-xs ${
+                    walletInsufficient
+                      ? "bg-amber-50 border border-amber-200 text-amber-800"
+                      : "bg-emerald-50 border border-emerald-100 text-emerald-800"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Wallet size={13} />
+                    Wallet balance
+                  </span>
+                  <span className="font-bold">
+                    {loadingWallet
+                      ? "…"
+                      : formatMoney(wallet?.balance ?? 0)}
+                  </span>
+                </div>
+              )}
+
+              {/* If the wallet is short, swap the disabled "Pay" button for
+                  a live "Top up" CTA. Letting the user act on the blocker
+                  is much better UX than greying out the only visible button. */}
+              {paymentMethod === "WALLET" && walletInsufficient ? (
+                <Link
+                  href="/wallet?deposit=open"
+                  className="w-full py-4 bg-amber-500 text-white font-bold rounded-2xl hover:bg-amber-600 transition-all flex items-center justify-center gap-2 text-sm"
+                >
+                  <Wallet size={15} />
+                  Top up wallet to continue
+                </Link>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={
+                    submitting ||
+                    !allDeliveriesSelected ||
+                    !isAddressUsable(address) ||
+                    Boolean(stripeBlockedReason)
+                  }
+                  className="w-full py-4 bg-black text-white font-bold rounded-2xl hover:bg-gray-800 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                >
+                  <Lock size={15} />
+                  {submitting
+                    ? "Processing…"
+                    : paymentMethod === "STRIPE_CARD"
+                      ? "Continue to Stripe"
+                      : items.length > 1
+                        ? `Pay ${items.length} orders from wallet`
+                        : "Pay from wallet"}
+                </button>
+              )}
+
+              {/* Plain-text blockers so the user knows WHY the button is
+                  disabled without having to guess. */}
+              {!submitting && (
+                <div className="mt-2 text-[11px] text-gray-500 space-y-0.5">
+                  {!isAddressUsable(address) && (
+                    <p className="text-amber-700">
+                      • Complete your delivery address above.
+                    </p>
+                  )}
+                  {!allDeliveriesSelected && (
+                    <p className="text-amber-700">
+                      • Pick a delivery method for each seller.
+                    </p>
+                  )}
+                  {stripeBlockedReason && (
+                    <p className="text-amber-700">• {stripeBlockedReason}</p>
+                  )}
+                </div>
+              )}
 
               <div className="mt-5 pt-5 border-t border-gray-100 space-y-2.5">
                 <div className="flex items-center gap-2.5 text-xs text-gray-500">

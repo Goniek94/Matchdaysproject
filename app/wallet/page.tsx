@@ -36,6 +36,22 @@ import {
 } from "@/lib/api/wallet";
 import { cn } from "@/lib/utils";
 
+/**
+ * Normalise whatever an API/network catch hands us into a readable string.
+ * Axios-style errors put the server payload under `response.data.message`
+ * (and that can be a string or an array of validation lines). React-Hot-Toast
+ * needs a plain string, so flatten + fall back to the supplied default.
+ */
+function errorMessage(err: unknown, fallback: string): string {
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const e = err as { message?: unknown };
+    if (Array.isArray(e.message)) return e.message.filter(Boolean).join(" • ");
+    if (typeof e.message === "string" && e.message) return e.message;
+  }
+  return fallback;
+}
+
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function BalanceHero({
@@ -438,11 +454,17 @@ function WalletPage() {
     try {
       const [w, tx] = await Promise.all([getWallet(), listTransactions({ limit: 20 })]);
       if (w.success && w.data) setWallet(w.data);
-      // listTransactions returns { items, total, ... } spread on ApiResponse
-      const items = (tx as any).items ?? (tx.data as any)?.items;
+      // listTransactions returns { items, total, ... } spread on ApiResponse —
+      // narrow via unknown rather than `any` so eslint stays quiet.
+      const txObj = tx as unknown as {
+        items?: WalletTransaction[];
+        data?: { items?: WalletTransaction[] };
+      };
+      const items = txObj.items ?? txObj.data?.items;
       if (items) setTransactions(items);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Could not load wallet.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Could not load wallet.";
+      toast.error(msg);
     } finally {
       setRefreshing(false);
       setLoading(false);
@@ -482,10 +504,8 @@ function WalletPage() {
       } else {
         toast.error(res.message ?? "Could not start the deposit.");
       }
-    } catch (err: any) {
-      toast.error(
-        Array.isArray(err?.message) ? err.message.join(" • ") : err?.message ?? "Deposit failed.",
-      );
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Deposit failed."));
     } finally {
       setActionBusy(false);
       setDepositOpen(false);
@@ -505,10 +525,8 @@ function WalletPage() {
       } else {
         toast.error(res.message ?? "Could not request the withdrawal.");
       }
-    } catch (err: any) {
-      toast.error(
-        Array.isArray(err?.message) ? err.message.join(" • ") : err?.message ?? "Withdrawal failed.",
-      );
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Withdrawal failed."));
     } finally {
       setActionBusy(false);
     }

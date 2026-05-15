@@ -157,18 +157,13 @@ export const getMyAuctions = async (
 
 // ─── Buy Now ──────────────────────────────────────────────────────────────────
 
-/**
- * Instantly purchase an auction with Buy Now option.
- * Requires authentication (HTTP-Only cookie).
- */
-export const buyNow = async (
-  auctionId: string,
-): Promise<ApiResponse<AuctionDto>> => {
-  const response = await apiClient.post<ApiResponse<AuctionDto>>(
-    `/auctions/${auctionId}/buy-now`,
-  );
-  return response.data;
-};
+// `buyNow` has moved to `ordersApi.createFromBuyNow`. The old auction-side
+// endpoint was retired in favour of a settlement-layer flow that:
+//   • returns a typed PENDING_PAYMENT Order (not the mutated auction),
+//   • snapshots commission / payout amounts,
+//   • lets the buyer pick wallet vs. Stripe in the very next call to
+//     `ordersApi.pay(orderId, { paymentMethod, shippingAddress })`.
+// See `lib/api/orders.ts` for the full surface.
 
 // ─── Won Auctions ─────────────────────────────────────────────────────────────
 

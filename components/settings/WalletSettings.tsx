@@ -22,6 +22,17 @@ import {
 } from "@/lib/api/wallet";
 import { cn } from "@/lib/utils";
 
+/** Flatten any axios/network/string-form error into a plain message for toasts. */
+function errorMessage(err: unknown, fallback: string): string {
+  if (typeof err === "string") return err;
+  if (err && typeof err === "object") {
+    const e = err as { message?: unknown };
+    if (Array.isArray(e.message)) return e.message.filter(Boolean).join(" • ");
+    if (typeof e.message === "string" && e.message) return e.message;
+  }
+  return fallback;
+}
+
 // ─── IBAN helpers ────────────────────────────────────────────────────────────
 
 const COUNTRIES = [
@@ -105,8 +116,8 @@ export default function WalletSettings() {
         setAccount(null);
         setEditing(true);
       }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Could not load bank settings.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Could not load bank settings."));
     } finally {
       setLoading(false);
     }
@@ -140,9 +151,8 @@ export default function WalletSettings() {
       } else {
         toast.error(res.message ?? "Save failed.");
       }
-    } catch (err: any) {
-      const msg = Array.isArray(err?.message) ? err.message.join(" • ") : err?.message;
-      toast.error(msg ?? "Save failed.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Save failed."));
     } finally {
       setBusy(null);
     }
@@ -161,8 +171,8 @@ export default function WalletSettings() {
       setBic("");
       setAccountHolder("");
       toast.success("Bank account removed.");
-    } catch (err: any) {
-      toast.error(err?.message ?? "Delete failed.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Delete failed."));
     } finally {
       setBusy(null);
     }
@@ -177,8 +187,8 @@ export default function WalletSettings() {
       } else {
         toast.error(res.message ?? "Could not start verification.");
       }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Verification flow unavailable.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Verification flow unavailable."));
     } finally {
       setBusy(null);
     }
@@ -193,8 +203,8 @@ export default function WalletSettings() {
       } else {
         toast.error(res.message ?? "Dashboard not available yet.");
       }
-    } catch (err: any) {
-      toast.error(err?.message ?? "Dashboard unavailable.");
+    } catch (err: unknown) {
+      toast.error(errorMessage(err, "Dashboard unavailable."));
     } finally {
       setBusy(null);
     }

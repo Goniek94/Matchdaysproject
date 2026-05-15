@@ -86,8 +86,8 @@ export default function AIReportsView({
         <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
           When you publish a listing through the AI Smart flow, the full
           authenticity report — score, defects, positive findings, market
-          price — gets saved here. Manually-filled listings don't generate a
-          report.
+          price — gets saved here. Manually-filled listings don&apos;t generate
+          a report.
         </p>
       </div>
     );
@@ -149,7 +149,7 @@ export default function AIReportsView({
         <p className="text-[11px] text-blue-900 leading-relaxed">
           Click any row to view the full AI analysis — the same report you saw
           when listing the item. Reports are snapshots from the moment of
-          publishing and won't re-scan.
+          publishing and won&apos;t re-scan.
         </p>
       </div>
 

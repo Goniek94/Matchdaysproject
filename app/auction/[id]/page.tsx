@@ -61,6 +61,8 @@ interface AuctionDisplay {
   shippingCost: number;
   shippingTime: string;
   shippingFrom: string;
+  /** Seller user id — used to detect "I'm viewing my own listing". */
+  sellerId: string;
   seller: {
     name: string;
     avatar?: string;
@@ -133,6 +135,7 @@ const mapDtoToDisplay = (d: AuctionDetailDto): AuctionDisplay => ({
   shippingCost: Number(d.shippingCost || 0),
   shippingTime: d.shippingTime || "3-5 business days",
   shippingFrom: d.shippingFrom || "N/A",
+  sellerId: d.sellerId ?? d.seller?.id ?? "",
   seller: d.seller
     ? {
         name: d.seller.username || "Unknown",
@@ -834,6 +837,9 @@ export default function AuctionDetailPage() {
                     image={auction.images?.[0] || ""}
                     endTime={auction.endTime}
                     seller={auction.seller}
+                    isOwnListing={
+                      !!user && auction.sellerId === (user as any).id
+                    }
                     shippingFromCountry={auction.shippingFrom}
                     itemCategory={auction.itemType}
                   />
@@ -1003,6 +1009,9 @@ export default function AuctionDetailPage() {
                   image={auction.images?.[0] || ""}
                   endTime={auction.endTime}
                   seller={auction.seller}
+                  isOwnListing={
+                    !!user && auction.sellerId === (user as any).id
+                  }
                   shippingFromCountry={auction.shippingFrom}
                   itemCategory={auction.itemType}
                 />

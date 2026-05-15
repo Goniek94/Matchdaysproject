@@ -34,7 +34,7 @@ export function DashboardScoring() {
             Every authenticity report from the AI Smart listing flow lives
             here. Click a row to see the green flags, red flags, defects and
             price estimate AI produced at the moment of listing. Reports are
-            snapshots — they don't re-scan.
+            snapshots — they don&apos;t re-scan.
           </p>
         </div>
       </div>

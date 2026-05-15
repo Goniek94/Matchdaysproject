@@ -83,3 +83,21 @@ export * as myListingsApi from "./my-listings";
 
 export * as aiApi from "./ai";
 export type { AIAnalysisResult, PhotoDto, AnalyzeListingDto } from "./ai";
+
+// ─── Orders Service ──────────────────────────────────────────────────────────
+
+export * as ordersApi from "./orders";
+export type {
+  OrderDto,
+  OrderListItem,
+  OrderStatus,
+  PaymentMethod,
+  PayResult,
+  PayWalletResult,
+  PayStripeResult,
+  PayOrderPayload,
+  ShipOrderPayload,
+  DisputeOrderPayload,
+  CancelOrderPayload,
+  RefundOrderPayload,
+} from "./orders";

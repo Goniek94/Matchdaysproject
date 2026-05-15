@@ -1,5 +1,6 @@
 export { default as ProfileSettings } from "./ProfileSettings";
 export { default as AccountSettings } from "./AccountSettings";
+export { default as AddressSettings } from "./AddressSettings";
 export { default as WalletSettings } from "./WalletSettings";
 export { default as NotificationSettings } from "./NotificationSettings";
 export { default as SecuritySettings } from "./SecuritySettings";

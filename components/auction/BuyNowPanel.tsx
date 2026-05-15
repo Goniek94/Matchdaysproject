@@ -6,7 +6,8 @@ import { useCart } from "@/lib/CartContext";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
 import { useAuth } from "@/lib/context/AuthContext";
 import LoginModal from "@/components/auth/LoginModal";
-import { ShoppingCart, Heart, Plus, Truck } from "lucide-react";
+import Link from "next/link";
+import { ShoppingCart, Heart, Plus, Truck, BadgeCheck } from "lucide-react";
 import { useShippingEstimate } from "@/lib/hooks/useShippingEstimate";
 import { formatShippingRange } from "@/lib/api/shipping";
 
@@ -26,6 +27,13 @@ interface BuyNowPanelProps {
   shippingFromCountry?: string | null;
   /** Item taxonomy category — affects weight assumption. */
   itemCategory?: string | null;
+  /**
+   * True when the logged-in user is the seller of this listing. Swaps the
+   * Buy / Add-to-Cart CTAs for an owner-facing panel (edit / manage),
+   * since the backend rejects self-purchase with a 403 and there's no UX
+   * reason to let the seller click into that dead-end flow.
+   */
+  isOwnListing?: boolean;
 }
 
 export default function BuyNowPanel({
@@ -39,6 +47,7 @@ export default function BuyNowPanel({
   onAddToWatchlist,
   shippingFromCountry,
   itemCategory,
+  isOwnListing = false,
 }: BuyNowPanelProps) {
   const router = useRouter();
   const { addToCart, items } = useCart();
@@ -165,63 +174,91 @@ export default function BuyNowPanel({
 
       {/* Action Buttons */}
       <div className="space-y-3">
-        {/* Buy Now Button */}
-        <button
-          onClick={handleBuyNow}
-          className="w-full py-4 bg-white text-black font-medium text-sm uppercase tracking-widest rounded-[2px] hover:bg-gray-200 hover:translate-y-[-2px] hover:shadow-lg active:translate-y-0 transition-all flex items-center justify-center gap-2"
-        >
-          <ShoppingCart size={18} />
-          Buy Now
-        </button>
-
-        {/* Add to Cart Button */}
-        <button
-          onClick={handleAddToCart}
-          disabled={isInCart}
-          className={`w-full py-4 border font-medium text-sm uppercase tracking-widest rounded-[2px] transition-all flex items-center justify-center gap-2 ${
-            isInCart || justAdded
-              ? "bg-white/20 border-white text-white cursor-not-allowed"
-              : "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white"
-          }`}
-        >
-          {isInCart ? (
-            <>
+        {isOwnListing ? (
+          // ─── Owner view ──────────────────────────────────────────────
+          // Seller is viewing their own listing — the backend would 403
+          // any self-purchase attempt, so we don't even render the
+          // buying CTAs. Replace with a manage-listing entry point.
+          <>
+            <div className="flex items-start gap-3 p-4 rounded-[2px] bg-white/5 border border-white/10">
+              <BadgeCheck
+                size={18}
+                className="text-emerald-300 mt-0.5 shrink-0"
+              />
+              <div className="text-sm">
+                <p className="font-semibold text-white">This is your listing</p>
+                <p className="text-white/60 text-xs mt-1">
+                  You can&apos;t buy your own item. Manage it from your
+                  dashboard instead.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/my-listings"
+              className="w-full py-4 bg-white text-black font-medium text-sm uppercase tracking-widest rounded-[2px] hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+            >
+              Manage listing
+            </Link>
+          </>
+        ) : (
+          // ─── Buyer view ──────────────────────────────────────────────
+          <>
+            <button
+              onClick={handleBuyNow}
+              className="w-full py-4 bg-white text-black font-medium text-sm uppercase tracking-widest rounded-[2px] hover:bg-gray-200 hover:translate-y-[-2px] hover:shadow-lg active:translate-y-0 transition-all flex items-center justify-center gap-2"
+            >
               <ShoppingCart size={18} />
-              In Cart
-            </>
-          ) : justAdded ? (
-            <>
-              <ShoppingCart size={18} />
-              Added!
-            </>
-          ) : (
-            <>
-              <Plus size={18} />
-              Add to Cart
-            </>
-          )}
-        </button>
+              Buy Now
+            </button>
 
-        {/* Add to Watchlist Button */}
-        <button
-          onClick={handleToggleWatchlist}
-          className={`w-full py-4 border font-medium text-sm uppercase tracking-widest rounded-[2px] transition-all flex items-center justify-center gap-2 ${
-            inWatchlist
-              ? "bg-white/20 border-white text-white"
-              : "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white"
-          }`}
-        >
-          <Heart
-            size={18}
-            fill={inWatchlist ? "currentColor" : "none"}
-            className={inWatchlist ? "text-red-400" : ""}
-          />
-          {watchlistFeedback
-            ? watchlistFeedback
-            : inWatchlist
-              ? "In Watchlist"
-              : "Add to Watchlist"}
-        </button>
+            <button
+              onClick={handleAddToCart}
+              disabled={isInCart}
+              className={`w-full py-4 border font-medium text-sm uppercase tracking-widest rounded-[2px] transition-all flex items-center justify-center gap-2 ${
+                isInCart || justAdded
+                  ? "bg-white/20 border-white text-white cursor-not-allowed"
+                  : "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white"
+              }`}
+            >
+              {isInCart ? (
+                <>
+                  <ShoppingCart size={18} />
+                  In Cart
+                </>
+              ) : justAdded ? (
+                <>
+                  <ShoppingCart size={18} />
+                  Added!
+                </>
+              ) : (
+                <>
+                  <Plus size={18} />
+                  Add to Cart
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={handleToggleWatchlist}
+              className={`w-full py-4 border font-medium text-sm uppercase tracking-widest rounded-[2px] transition-all flex items-center justify-center gap-2 ${
+                inWatchlist
+                  ? "bg-white/20 border-white text-white"
+                  : "bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white"
+              }`}
+            >
+              <Heart
+                size={18}
+                fill={inWatchlist ? "currentColor" : "none"}
+                className={inWatchlist ? "text-red-400" : ""}
+              />
+              {watchlistFeedback
+                ? watchlistFeedback
+                : inWatchlist
+                  ? "In Watchlist"
+                  : "Add to Watchlist"}
+            </button>
+          </>
+        )}
       </div>
 
       {/* Additional Info */}
