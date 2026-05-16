@@ -827,6 +827,9 @@ export default function AuctionDetailPage() {
                     isEnded={auctionEnded}
                     shippingFromCountry={auction.shippingFrom}
                     itemCategory={auction.itemType}
+                    isOwnListing={
+                      !!user && auction.sellerId === (user as any).id
+                    }
                   />
                 ) : (
                   <BuyNowPanel
@@ -999,6 +1002,9 @@ export default function AuctionDetailPage() {
                   onPlaceBid={handlePlaceBid}
                   disabled={bidding || auctionEnded}
                   isEnded={auctionEnded}
+                  isOwnListing={
+                    !!user && auction.sellerId === (user as any).id
+                  }
                 />
               ) : (
                 <BuyNowPanel

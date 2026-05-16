@@ -68,15 +68,32 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // Hydrate from localStorage on the very first render — eliminates the
-  // "flash of logged-out navbar" between mount and the /auth/me API response.
-  const cached = readCachedAuth();
-  const [user, setUser] = useState<UserData | null>(cached.user);
-  const [isAuthenticated, setIsAuthenticated] = useState(cached.isAuthenticated);
-  // isLoading reflects "we still need to confirm with the backend".
-  // If we have no cached session, there's nothing to confirm.
-  const [isLoading, setIsLoading] = useState(cached.isAuthenticated);
+  // Hydration-safe initialisation. We CANNOT call `readCachedAuth()` inline
+  // as the initial state because it reads localStorage on the client but not
+  // on the server — that would make the first client render diverge from the
+  // SSR output (logged-in dropdown vs logged-out buttons in the Navbar) and
+  // trigger a React hydration error.
+  //
+  // Pattern: start as guest on both server and client first render, then
+  // upgrade to the cached state in a useEffect (post-mount). Trade-off is a
+  // ~1-frame flash of the logged-out navbar — acceptable, far less bad than
+  // the hydration mismatch wiping out the entire root and re-rendering.
+  const [user, setUser] = useState<UserData | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Read the localStorage cache after mount — same effect as before, just
+  // moved out of the render path so SSR/CSR start identically.
+  useEffect(() => {
+    const cached = readCachedAuth();
+    if (cached.isAuthenticated && cached.user) {
+      setUser(cached.user);
+      setIsAuthenticated(true);
+    } else {
+      setIsLoading(false);
+    }
+  }, []);
 
   // ── Cleanup helper ──────────────────────────────────────────────────────────
   const handleLogoutCleanup = useCallback(() => {

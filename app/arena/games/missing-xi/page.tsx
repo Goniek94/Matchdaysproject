@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   Lightbulb,
   RotateCcw,
   Star,
+  Flag,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -18,18 +19,51 @@ import {
   calculateMissingXIScore,
   type MissingXIMatch,
 } from "@/lib/gamesData";
+import {
+  STATIC_DICTIONARY,
+  buildDictionary,
+  suggestPlayers,
+  type DictionaryItem,
+} from "@/lib/missingXiDictionary";
+import { getFootballerDirectory } from "@/lib/api/footballers";
+
+/** Single label/value row used inside the live score panel. */
+function Row({
+  label,
+  value,
+  muted = false,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex justify-between items-center">
+      <span className={muted ? "text-white/30" : "text-white/50"}>{label}</span>
+      <span className={muted ? "text-white/30 font-bold" : "text-white font-black"}>
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export default function MissingXIGame() {
   const [matchData, setMatchData] = useState<MissingXIMatch | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
+  const [gaveUp, setGaveUp] = useState(false);
   const [currentGuess, setCurrentGuess] = useState("");
   const [guessedPlayers, setGuessedPlayers] = useState<number[]>([]);
   const [wrongGuesses, setWrongGuesses] = useState<string[]>([]);
   const [hintsLeft, setHintsLeft] = useState(0);
   const [revealedHints, setRevealedHints] = useState<number[]>([]);
   const [score, setScore] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [dictionary, setDictionary] = useState<readonly DictionaryItem[]>(
+    STATIC_DICTIONARY,
+  );
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   // Load daily match on component mount
   useEffect(() => {
@@ -37,6 +71,23 @@ export default function MissingXIGame() {
     setMatchData(dailyMatch);
     setTimeLeft(dailyMatch.timeLimit);
     setHintsLeft(dailyMatch.hints);
+  }, []);
+
+  // Fetch real footballer directory once. Failure is fine — STATIC_DICTIONARY
+  // stays in place so autocomplete still works offline / under rate limits.
+  useEffect(() => {
+    let cancelled = false;
+    getFootballerDirectory()
+      .then((list) => {
+        if (cancelled || list.length === 0) return;
+        setDictionary(buildDictionary(list));
+      })
+      .catch(() => {
+        // Silent — fallback dictionary remains in use.
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Timer countdown
@@ -71,26 +122,86 @@ export default function MissingXIGame() {
     }
   }, [guessedPlayers, matchData, timeLeft, wrongGuesses, hintsLeft]);
 
-  const handleGuess = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentGuess.trim() || gameEnded || !matchData) return;
+  // Names the user has already correctly guessed — excluded from suggestions
+  // so the dropdown doesn't show a player they've already nailed.
+  const guessedNamesUpper = useMemo(() => {
+    if (!matchData) return new Set<string>();
+    const set = new Set<string>();
+    for (const p of matchData.positions) {
+      if (guessedPlayers.includes(p.id)) set.add(p.name.toUpperCase());
+    }
+    return set;
+  }, [matchData, guessedPlayers]);
 
-    const normalizedGuess = currentGuess.trim().toUpperCase();
-    const foundPlayer = matchData.positions.find(
-      (p) =>
-        p.name.toUpperCase() === normalizedGuess &&
-        !guessedPlayers.includes(p.id),
-    );
+  // Live autocomplete suggestions — prefix-match against the real player
+  // directory (PL + La Liga + Serie A + Bundesliga + Ligue 1 + UCL top
+  // scorers). Display includes first name + club so "Cristiano RONALDO
+  // (Al-Nassr)" disambiguates from "RONALDO" (legacy R9).
+  const suggestions = useMemo(() => {
+    if (!gameStarted || gameEnded) return [];
+    return suggestPlayers(dictionary, currentGuess, guessedNamesUpper, 6);
+  }, [dictionary, currentGuess, guessedNamesUpper, gameStarted, gameEnded]);
+
+  // Submit either a typed guess OR a clicked suggestion (passed-in `picked`).
+  //
+  // Input is normalised aggressively so "Cristiano Ronaldo", "C. Ronaldo",
+  // "ronaldo" and "RONALDO" all hit the same player. We strip dots/diacritics,
+  // uppercase, and ALSO check the last whitespace-separated token as a
+  // fallback — covers "Thierry Henry" → "HENRY" without needing the
+  // dictionary lookup to know first names.
+  const submitGuess = (picked?: string) => {
+    if (!matchData || gameEnded) return;
+    const raw = picked ?? currentGuess;
+    if (!raw.trim()) return;
+
+    const normalized = raw
+      .trim()
+      .replace(/\./g, " ")
+      .replace(/\s+/g, " ")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "") // strip diacritics
+      .toUpperCase();
+    const lastToken = normalized.split(" ").filter(Boolean).pop() ?? normalized;
+
+    const foundPlayer = matchData.positions.find((p) => {
+      if (guessedPlayers.includes(p.id)) return false;
+      const surnameU = p.name.toUpperCase();
+      return surnameU === normalized || surnameU === lastToken;
+    });
+
+    const normalizedGuess = lastToken; // used for wrong-guess display below
 
     if (foundPlayer) {
       setGuessedPlayers([...guessedPlayers, foundPlayer.id]);
-      setCurrentGuess("");
-    } else {
-      if (!wrongGuesses.includes(normalizedGuess)) {
-        setWrongGuesses([...wrongGuesses, normalizedGuess]);
-      }
-      setCurrentGuess("");
+    } else if (!wrongGuesses.includes(normalizedGuess)) {
+      setWrongGuesses([...wrongGuesses, normalizedGuess]);
     }
+    setCurrentGuess("");
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
+
+  const handleGuess = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitGuess();
+  };
+
+  // End the game early — partial score awarded based on what's been guessed
+  // so far. Same scoring formula as natural completion / timeout: accuracy +
+  // time bonus, minus hint penalty, no completion bonus.
+  const handleGiveUp = () => {
+    if (!matchData || gameEnded) return;
+    setGaveUp(true);
+    setGameEnded(true);
+    const partial = calculateMissingXIScore(
+      timeLeft,
+      matchData.timeLimit,
+      guessedPlayers.length,
+      matchData.positions.length,
+      wrongGuesses.length,
+      matchData.hints - hintsLeft,
+    );
+    setScore(partial);
   };
 
   const useHint = () => {
@@ -113,12 +224,14 @@ export default function MissingXIGame() {
     setTimeLeft(matchData.timeLimit);
     setGameStarted(false);
     setGameEnded(false);
+    setGaveUp(false);
     setCurrentGuess("");
     setGuessedPlayers([]);
     setWrongGuesses([]);
     setHintsLeft(matchData.hints);
     setRevealedHints([]);
     setScore(0);
+    setShowSuggestions(false);
   };
 
   const formatTime = (seconds: number) => {
@@ -176,10 +289,10 @@ export default function MissingXIGame() {
         <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-red-900/20 rounded-full blur-[150px]"></div>
       </div>
 
-      <div className="relative z-10 pt-24 pb-20 px-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="relative z-10 pt-20 pb-10 px-6">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-4">
             <Link
               href="/arena"
               className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
@@ -223,56 +336,130 @@ export default function MissingXIGame() {
             </div>
           </div>
 
-          {/* Match Info */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <h1 className="text-5xl font-black uppercase italic">
+          {/* Match Info — compact one-line layout to leave room for the pitch */}
+          <div className="text-center mb-4">
+            <div className="flex items-center justify-center gap-3 mb-2 flex-wrap">
+              <h1 className="text-2xl md:text-3xl font-black uppercase italic">
                 {matchData.title}
               </h1>
               <span
-                className={`px-3 py-1 rounded-lg text-xs font-bold uppercase border ${getDifficultyColor(matchData.difficulty)}`}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase border ${getDifficultyColor(matchData.difficulty)}`}
               >
-                <Star size={12} className="inline mr-1" />
+                <Star size={10} className="inline mr-1" />
                 {matchData.difficulty}
               </span>
             </div>
-            <div className="flex items-center justify-center gap-6 text-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-800 rounded-lg"></div>
-                <span className="font-bold">{matchData.homeTeam}</span>
-              </div>
-              <div className="text-3xl font-black text-gray-500">
+            <div className="flex items-center justify-center gap-3 text-sm md:text-base">
+              <span className="font-bold">{matchData.homeTeam}</span>
+              <span className="text-xl font-black text-gray-400">
                 {matchData.score}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-bold">{matchData.awayTeam}</span>
-                <div className="w-12 h-12 bg-gray-800 rounded-lg"></div>
-              </div>
+              </span>
+              <span className="font-bold">{matchData.awayTeam}</span>
             </div>
-            <p className="text-gray-400 mt-2">
+            <p className="text-gray-500 text-xs mt-1">
               {matchData.match} • {matchData.date}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Football Pitch */}
-            <div className="lg:col-span-2">
-              <div className="relative aspect-[2/3] bg-gradient-to-b from-green-600 to-green-700 rounded-3xl overflow-hidden border-4 border-white/10 shadow-2xl">
+          <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)_320px] gap-6">
+            {/* Score panel — left of pitch. Live preview of points so the
+                user sees what each correct/wrong guess does to their total. */}
+            <div className="order-2 lg:order-1 space-y-3">
+              <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl border border-white/10 p-5">
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">
+                  Live Score
+                </div>
+                <div className="text-4xl font-black text-yellow-400 leading-none">
+                  {(() => {
+                    if (!matchData) return 0;
+                    return calculateMissingXIScore(
+                      timeLeft,
+                      matchData.timeLimit,
+                      guessedPlayers.length,
+                      matchData.positions.length,
+                      wrongGuesses.length,
+                      matchData.hints - hintsLeft,
+                    );
+                  })()}
+                </div>
+                <div className="text-[10px] text-white/40 mt-1 uppercase font-bold">
+                  points
+                </div>
+
+                <div className="h-px bg-white/10 my-4" />
+
+                <div className="space-y-2 text-xs">
+                  <Row
+                    label="Players"
+                    value={`${guessedPlayers.length}/${matchData.positions.length}`}
+                  />
+                  <Row
+                    label="Time bonus"
+                    value={`+${Math.floor((timeLeft / matchData.timeLimit) * 500)}`}
+                  />
+                  <Row
+                    label="Accuracy"
+                    value={`+${
+                      guessedPlayers.length + wrongGuesses.length === 0
+                        ? 0
+                        : Math.floor(
+                            (guessedPlayers.length /
+                              (guessedPlayers.length + wrongGuesses.length)) *
+                              1000,
+                          )
+                    }`}
+                  />
+                  <Row
+                    label="Completion"
+                    value={
+                      guessedPlayers.length === matchData.positions.length
+                        ? "+500"
+                        : "+0"
+                    }
+                    muted={guessedPlayers.length !== matchData.positions.length}
+                  />
+                  <Row
+                    label="Hint penalty"
+                    value={`-${(matchData.hints - hintsLeft) * 50}`}
+                    muted={hintsLeft === matchData.hints}
+                  />
+                  <Row
+                    label="Wrong"
+                    value={`${wrongGuesses.length}`}
+                    muted={wrongGuesses.length === 0}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-gray-900/30 rounded-2xl border border-white/5 p-4 text-[11px] text-white/40 leading-relaxed">
+                <p className="font-bold text-white/60 mb-1">How scoring works</p>
+                <p>
+                  Time bonus (up to 500) + accuracy bonus (up to 1000, based
+                  on correct/total ratio) + completion bonus (+500 if you
+                  find all 11) − 50 per hint used.
+                </p>
+              </div>
+            </div>
+
+            {/* Football Pitch — single XI, aspect-ratio shaped to fit viewport */}
+            <div className="order-1 lg:order-2 flex justify-center">
+              <div className="relative w-full max-w-[460px] aspect-[3/4] bg-gradient-to-b from-green-600 to-green-700 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl">
                 {/* Pitch Lines */}
                 <div className="absolute inset-0">
                   {/* Center Circle */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/30 rounded-full"></div>
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 bg-white/30 rounded-full"></div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 border-2 border-white/30 rounded-full"></div>
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-white/30 rounded-full"></div>
 
                   {/* Halfway Line */}
                   <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/30"></div>
 
                   {/* Penalty Areas */}
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-24 border-2 border-t-white/30 border-x-white/30 border-b-0"></div>
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-24 border-2 border-b-white/30 border-x-white/30 border-t-0"></div>
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-2/3 h-14 border-2 border-t-white/30 border-x-white/30 border-b-0"></div>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-14 border-2 border-b-white/30 border-x-white/30 border-t-0"></div>
 
                   {/* Goal Areas */}
-                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-12 border-2 border-t-white/30 border-x-white/30 border-b-0"></div>
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/3 h-7 border-2 border-t-white/30 border-x-white/30 border-b-0"></div>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-7 border-2 border-b-white/30 border-x-white/30 border-t-0"></div>
                 </div>
 
                 {/* Grass Pattern */}
@@ -309,12 +496,12 @@ export default function MissingXIGame() {
                       <div className="relative">
                         {/* Jersey */}
                         <div
-                          className={`w-16 h-16 rounded-lg flex items-center justify-center text-white font-black text-xl transition-all ${
+                          className={`w-9 h-9 md:w-10 md:h-10 rounded-md flex items-center justify-center text-white font-black text-sm transition-all ${
                             isGuessed
-                              ? "bg-gradient-to-br from-red-600 to-red-800 scale-110 shadow-lg shadow-red-500/50"
+                              ? "bg-gradient-to-br from-red-600 to-red-800 scale-110 shadow-md shadow-red-500/40"
                               : isHinted
                                 ? "bg-gradient-to-br from-yellow-600 to-yellow-800 animate-pulse"
-                                : "bg-gradient-to-br from-gray-700 to-gray-900"
+                                : "bg-gradient-to-br from-gray-800 to-gray-900"
                           }`}
                         >
                           {player.number}
@@ -322,14 +509,14 @@ export default function MissingXIGame() {
 
                         {/* Name Tag */}
                         <div
-                          className={`absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-md text-xs font-bold ${
+                          className={`absolute -bottom-5 left-1/2 -translate-x-1/2 whitespace-nowrap px-1.5 py-0.5 rounded text-[9px] font-bold ${
                             isGuessed
                               ? "bg-green-500 text-white"
                               : isHinted
                                 ? "bg-yellow-500 text-black"
                                 : gameEnded
                                   ? "bg-red-500 text-white"
-                                  : "bg-black/80 text-gray-400"
+                                  : "bg-black/70 text-gray-300"
                           }`}
                         >
                           {getPlayerDisplay(player)}
@@ -340,9 +527,9 @@ export default function MissingXIGame() {
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center"
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center"
                           >
-                            <CheckCircle2 size={16} />
+                            <CheckCircle2 size={10} />
                           </motion.div>
                         )}
                       </div>
@@ -367,7 +554,7 @@ export default function MissingXIGame() {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
+            <div className="order-3 space-y-6">
               {/* Input Form */}
               {!gameEnded && (
                 <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl border border-white/10 p-6">
@@ -375,21 +562,72 @@ export default function MissingXIGame() {
                     Guess Player
                   </h3>
                   <form onSubmit={handleGuess} className="space-y-4">
-                    <input
-                      type="text"
-                      value={currentGuess}
-                      onChange={(e) => setCurrentGuess(e.target.value)}
-                      placeholder="Enter player name..."
-                      className="w-full px-4 py-3 bg-black/50 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
-                      disabled={!gameStarted || gameEnded}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!gameStarted || gameEnded}
-                      className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-xl font-bold uppercase transition-colors"
-                    >
-                      Submit Guess
-                    </button>
+                    {/* Input + autocomplete dropdown */}
+                    <div className="relative">
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={currentGuess}
+                        onChange={(e) => {
+                          setCurrentGuess(e.target.value);
+                          setShowSuggestions(true);
+                        }}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => {
+                          // Delay so a click on a suggestion lands BEFORE the
+                          // dropdown unmounts. 150ms is the usual sweet spot.
+                          setTimeout(() => setShowSuggestions(false), 150);
+                        }}
+                        placeholder="Enter player name..."
+                        autoComplete="off"
+                        className="w-full px-4 py-3 bg-black/50 border border-white/20 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                        disabled={!gameStarted || gameEnded}
+                      />
+
+                      {showSuggestions &&
+                        gameStarted &&
+                        suggestions.length > 0 && (
+                          <div className="absolute z-10 left-0 right-0 mt-1 bg-[#0a0a0a] border border-white/15 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+                            {suggestions.map((item) => (
+                              <button
+                                type="button"
+                                key={item.display}
+                                // onMouseDown fires BEFORE input's onBlur — keeps
+                                // the click from being eaten by the blur handler.
+                                // We submit `surname` (the canonical match key)
+                                // even though we DISPLAY the full "First LAST (Club)".
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  submitGuess(item.surname);
+                                }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors border-b border-white/5 last:border-b-0"
+                              >
+                                {item.display}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                      <button
+                        type="submit"
+                        disabled={!gameStarted || gameEnded}
+                        className="py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-xl font-bold uppercase transition-colors"
+                      >
+                        Submit Guess
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleGiveUp}
+                        disabled={!gameStarted || gameEnded}
+                        className="px-4 py-3 bg-white/5 hover:bg-red-500/20 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed rounded-xl font-bold uppercase transition-colors text-white/70 text-xs flex items-center gap-2"
+                        title="End the round now and take partial score"
+                      >
+                        <Flag size={14} />
+                        Give Up
+                      </button>
+                    </div>
                   </form>
 
                   {!gameStarted && (
@@ -399,6 +637,13 @@ export default function MissingXIGame() {
                     >
                       Start Game
                     </button>
+                  )}
+
+                  {gameStarted && (
+                    <p className="mt-3 text-[11px] text-white/40 leading-snug">
+                      Points are awarded for each correct guess — you don&apos;t
+                      have to find all 11. Wrong guesses hurt accuracy bonus.
+                    </p>
                   )}
                 </div>
               )}
@@ -456,7 +701,9 @@ export default function MissingXIGame() {
                     <h3 className="text-2xl font-black uppercase mb-4 text-center">
                       {guessedPlayers.length === matchData.positions.length
                         ? "🎉 Complete!"
-                        : "⏰ Time's Up!"}
+                        : gaveUp
+                          ? "🏳️ You gave up"
+                          : "⏰ Time's Up!"}
                     </h3>
                     <div className="text-center mb-6">
                       <div className="text-5xl font-black text-yellow-400 mb-2">

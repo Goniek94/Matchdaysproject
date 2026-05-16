@@ -209,6 +209,17 @@ const TX_META: Record<
     icon: <Banknote size={14} className="text-gray-500" />,
     sign: "+",
   },
+  // Bid escrow — funds reserved on a live bid, refunded on outbid.
+  bid_hold: {
+    label: "Bid reserved",
+    icon: <ArrowUpFromLine size={14} className="text-amber-500" />,
+    sign: "−",
+  },
+  bid_release: {
+    label: "Bid refunded",
+    icon: <ArrowDownToLine size={14} className="text-emerald-600" />,
+    sign: "+",
+  },
 };
 
 const STATUS_META: Record<

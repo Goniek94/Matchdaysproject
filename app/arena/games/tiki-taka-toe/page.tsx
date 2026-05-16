@@ -1,13 +1,14 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, Fragment } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Search, X, Trophy, Share2,
   Lightbulb, Check, RefreshCw, Users, Calendar,
 } from "lucide-react";
 import Link from "next/link";
+import { getTodaysTikiTaka, type TikiTakaPuzzle } from "@/lib/api/tikiTaka";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,91 +16,21 @@ type Phase = "select" | "playing" | "won" | "lost";
 type FilledCell = { player: string };
 type GridCell = FilledCell | null;
 
-// ─── Club config ──────────────────────────────────────────────────────────────
-
-const COL_CLUBS = [
-  {
-    id: "man_utd",
-    name: "Manchester Utd",
-    short: "MAN UTD",
-    logo: "https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg",
-    ring: "ring-red-500/60",
-    bg: "bg-red-950/60",
-  },
-  {
-    id: "real_madrid",
-    name: "Real Madrid",
-    short: "REAL MADRID",
-    logo: "https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg",
-    ring: "ring-gray-300/60",
-    bg: "bg-gray-800/60",
-  },
-  {
-    id: "chelsea",
-    name: "Chelsea",
-    short: "CHELSEA",
-    logo: "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg",
-    ring: "ring-blue-500/60",
-    bg: "bg-blue-950/60",
-  },
-];
-
-const ROW_CLUBS = [
-  {
-    id: "liverpool",
-    name: "Liverpool",
-    short: "LIVERPOOL",
-    logo: "https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg",
-    ring: "ring-red-400/60",
-    bg: "bg-red-950/60",
-  },
-  {
-    id: "arsenal",
-    name: "Arsenal",
-    short: "ARSENAL",
-    logo: "https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg",
-    ring: "ring-rose-500/60",
-    bg: "bg-rose-950/60",
-  },
-  {
-    id: "barcelona",
-    name: "Barcelona",
-    short: "BARCELONA",
-    logo: "https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg",
-    ring: "ring-indigo-500/60",
-    bg: "bg-indigo-950/60",
-  },
-];
-
-// ─── Puzzle data ──────────────────────────────────────────────────────────────
-// Key: "rowIndex-colIndex"  → list of valid player names (lowercase)
-
-const ANSWERS: Record<string, string[]> = {
-  "0-0": ["michael owen", "paul ince"],                           // Liverpool × Man Utd
-  "0-1": ["michael owen", "xabi alonso", "steve mcmanaman"],      // Liverpool × Real Madrid
-  "0-2": ["fernando torres", "nicolas anelka", "glen johnson"],   // Liverpool × Chelsea
-  "1-0": [                                                         // Arsenal × Man Utd
-    "robin van persie", "mikael silvestre",
-    "alexis sanchez", "henrikh mkhitaryan", "danny welbeck",
-  ],
-  "1-1": ["nicolas anelka", "jose antonio reyes", "mesut ozil"],  // Arsenal × Real Madrid
-  "1-2": ["ashley cole", "cesc fabregas", "william gallas", "nicolas anelka"], // Arsenal × Chelsea
-  "2-0": ["gerard pique", "mark hughes", "laurent blanc"],        // Barcelona × Man Utd
-  "2-1": ["luis figo", "ronaldo", "michael laudrup", "bernd schuster"], // Barcelona × Real Madrid
-  "2-2": ["cesc fabregas", "pedro"],                              // Barcelona × Chelsea
+// Maps ringColor token from the API ("red", "blue", …) → Tailwind classes
+// for the header card border + soft background. Falls back to neutral.
+const RING_THEME: Record<string, { ring: string; bg: string }> = {
+  red:    { ring: "ring-red-500/60",    bg: "bg-red-950/60" },
+  blue:   { ring: "ring-blue-500/60",   bg: "bg-blue-950/60" },
+  indigo: { ring: "ring-indigo-500/60", bg: "bg-indigo-950/60" },
+  rose:   { ring: "ring-rose-500/60",   bg: "bg-rose-950/60" },
+  gray:   { ring: "ring-gray-300/60",   bg: "bg-gray-800/60" },
+  amber:  { ring: "ring-amber-500/60",  bg: "bg-amber-950/60" },
+  green:  { ring: "ring-emerald-500/60", bg: "bg-emerald-950/60" },
+  purple: { ring: "ring-purple-500/60", bg: "bg-purple-950/60" },
+  cyan:   { ring: "ring-cyan-500/60",   bg: "bg-cyan-950/60" },
 };
-
-const HINTS: Record<string, string> = {
-  "0-0": "Only one modern player scored for both clubs in the PL era",
-  "0-1": "A Merseyside hero who later won La Liga in the Spanish capital",
-  "0-2": "A record fee took this striker from Anfield to Stamford Bridge",
-  "1-0": "Wore the Gunners shirt, then the Red Devils shirt — or vice versa",
-  "1-1": "The German playmaker left Bernabéu for the Emirates in 2013",
-  "1-2": "A left-back's controversial move across London",
-  "2-0": "Came through Old Trafford's academy before starring at Camp Nou",
-  "2-1": "Made the most controversial transfer in El Clásico history",
-  "2-2": "This Spanish winger moved from Catalonia to west London",
-};
+const NEUTRAL_THEME = { ring: "ring-white/20", bg: "bg-white/5" };
+const themeOf = (color: string) => RING_THEME[color] ?? NEUTRAL_THEME;
 
 // ─── Player list for autocomplete ────────────────────────────────────────────
 
@@ -145,16 +76,26 @@ function getFilledCount(grid: GridCell[][]) {
 
 // ─── Club Logo ────────────────────────────────────────────────────────────────
 
-function ClubLogo({ src, alt, size = 40 }: { src: string; alt: string; size?: number }) {
+function ClubLogo({
+  src,
+  alt,
+  size = 40,
+}: {
+  src: string | null;
+  alt: string;
+  size?: number;
+}) {
   const [err, setErr] = useState(false);
-  return err ? (
+  const fallback = (
     <div
       className="rounded-full bg-white/10 flex items-center justify-center font-black text-white text-xs"
       style={{ width: size, height: size }}
     >
       {alt.slice(0, 3)}
     </div>
-  ) : (
+  );
+  if (!src || err) return fallback;
+  return (
     <img
       src={src}
       alt={alt}
@@ -184,13 +125,52 @@ export default function TikiTakaToe() {
   const [shownHint, setShownHint] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Daily puzzle from the backend — different every UTC day, real crests.
+  const [puzzle, setPuzzle] = useState<TikiTakaPuzzle | null>(null);
+  const [puzzleError, setPuzzleError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTodaysTikiTaka()
+      .then((p) => {
+        if (!cancelled) setPuzzle(p);
+      })
+      .catch((err) => {
+        if (!cancelled)
+          setPuzzleError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Failed to load today's puzzle. Try again in a moment.",
+          );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filledCount = getFilledCount(grid);
+
+  // Autocomplete pool: every correct answer from this puzzle's cells +
+  // the static decoy list. Union ensures the right answer is always
+  // suggestable, while decoys keep the dropdown from giving the game away.
+  const autocompletePool = useMemo(() => {
+    const set = new Set<string>(ALL_PLAYERS.map((p) => p));
+    if (puzzle) {
+      for (const arr of Object.values(puzzle.answers)) {
+        for (const name of arr) {
+          // Title-case each token so the display matches the static decoys.
+          set.add(name.replace(/\b\w/g, (c) => c.toUpperCase()));
+        }
+      }
+    }
+    return Array.from(set);
+  }, [puzzle]);
 
   const suggestions = useMemo(() => {
     if (!search.trim() || search.length < 2) return [];
     const q = normalize(search);
-    return ALL_PLAYERS.filter((p) => normalize(p).includes(q)).slice(0, 7);
-  }, [search]);
+    return autocompletePool.filter((p) => normalize(p).includes(q)).slice(0, 7);
+  }, [search, autocompletePool]);
 
   // Focus input when modal opens
   useEffect(() => {
@@ -208,10 +188,10 @@ export default function TikiTakaToe() {
   };
 
   const handleGuess = (playerName: string) => {
-    if (!activeCell) return;
+    if (!activeCell || !puzzle) return;
     const [row, col] = activeCell;
     const key = `${row}-${col}`;
-    const valid = ANSWERS[key] ?? [];
+    const valid = puzzle.answers[key] ?? [];
     const correct = valid.some((v) => normalize(v) === normalize(playerName));
 
     if (correct) {
@@ -236,10 +216,10 @@ export default function TikiTakaToe() {
   };
 
   const handleHint = () => {
-    if (!activeCell) return;
+    if (!activeCell || !puzzle) return;
     const key = `${activeCell[0]}-${activeCell[1]}`;
     setUsedHints((prev) => new Set([...prev, key]));
-    setShownHint(HINTS[key] ?? null);
+    setShownHint(puzzle.hints[key] ?? null);
   };
 
   const resetGame = () => {
@@ -453,7 +433,40 @@ export default function TikiTakaToe() {
     );
   }
 
-  // ── PLAYING ────────────────────────────────────────────────────────────────
+  // ── PLAYING (puzzle loading / error guards first) ─────────────────────────
+  if (puzzleError) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center px-6">
+        <div className="max-w-md text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center">
+            <X size={28} className="text-red-400" />
+          </div>
+          <p className="text-sm text-gray-400 mb-4">{puzzleError}</p>
+          <button
+            onClick={() => location.reload()}
+            className="px-5 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-bold transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+  if (!puzzle) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-14 w-14 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-sm text-gray-400">Loading today&apos;s puzzle…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // From here `puzzle` is non-null — destructure for readability.
+  const cols = puzzle.cols;
+  const rows = puzzle.rows;
+
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <div className="fixed inset-0 pointer-events-none">
@@ -500,34 +513,45 @@ export default function TikiTakaToe() {
               </div>
 
               {/* Column headers */}
-              {COL_CLUBS.map((club) => (
-                <div
-                  key={club.id}
-                  className={`flex flex-col items-center justify-center p-2 rounded-xl ${club.bg} border ${club.ring}`}
-                >
-                  <ClubLogo src={club.logo} alt={club.short} size={36} />
-                  <span className="text-[9px] font-black uppercase tracking-wider text-gray-300 mt-1.5 text-center leading-tight">
-                    {club.short}
-                  </span>
-                </div>
-              ))}
-
-              {/* Rows */}
-              {ROW_CLUBS.map((rowClub, r) => (
-                <>
-                  {/* Row header */}
+              {cols.map((club) => {
+                const t = themeOf(club.ringColor);
+                return (
                   <div
-                    key={`row-${rowClub.id}`}
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl ${rowClub.bg} border ${rowClub.ring}`}
+                    key={club.id}
+                    className={`flex flex-col items-center justify-center p-2 rounded-xl ${t.bg} border ${t.ring}`}
                   >
-                    <ClubLogo src={rowClub.logo} alt={rowClub.short} size={36} />
+                    <ClubLogo src={club.crest} alt={club.short} size={36} />
                     <span className="text-[9px] font-black uppercase tracking-wider text-gray-300 mt-1.5 text-center leading-tight">
-                      {rowClub.short}
+                      {club.short}
                     </span>
                   </div>
+                );
+              })}
+
+              {/* Rows */}
+              {rows.map((rowClub, r) => (
+                <Fragment key={`row-${rowClub.id}`}>
+                  {/* Row header */}
+                  {(() => {
+                    const t = themeOf(rowClub.ringColor);
+                    return (
+                      <div
+                        className={`flex flex-col items-center justify-center p-2 rounded-xl ${t.bg} border ${t.ring}`}
+                      >
+                        <ClubLogo
+                          src={rowClub.crest}
+                          alt={rowClub.short}
+                          size={36}
+                        />
+                        <span className="text-[9px] font-black uppercase tracking-wider text-gray-300 mt-1.5 text-center leading-tight">
+                          {rowClub.short}
+                        </span>
+                      </div>
+                    );
+                  })()}
 
                   {/* Game cells */}
-                  {COL_CLUBS.map((_colClub, c) => {
+                  {cols.map((_colClub, c) => {
                     const key = `${r}-${c}`;
                     const cell = grid[r][c];
                     const isActive = activeCell?.[0] === r && activeCell?.[1] === c;
@@ -563,7 +587,7 @@ export default function TikiTakaToe() {
                       </motion.button>
                     );
                   })}
-                </>
+                </Fragment>
               ))}
             </div>
           </div>
@@ -620,19 +644,19 @@ export default function TikiTakaToe() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <ClubLogo
-                        src={ROW_CLUBS[activeCell[0]].logo}
-                        alt={ROW_CLUBS[activeCell[0]].short}
+                        src={rows[activeCell[0]].crest}
+                        alt={rows[activeCell[0]].short}
                         size={28}
                       />
                       <span className="text-gray-400 text-sm font-bold">×</span>
                       <ClubLogo
-                        src={COL_CLUBS[activeCell[1]].logo}
-                        alt={COL_CLUBS[activeCell[1]].short}
+                        src={cols[activeCell[1]].crest}
+                        alt={cols[activeCell[1]].short}
                         size={28}
                       />
                       <div className="ml-2">
                         <p className="text-xs font-bold text-white leading-tight">
-                          {ROW_CLUBS[activeCell[0]].name} × {COL_CLUBS[activeCell[1]].name}
+                          {rows[activeCell[0]].name} × {cols[activeCell[1]].name}
                         </p>
                         <p className="text-[10px] text-gray-500">Name a player who played for both</p>
                       </div>

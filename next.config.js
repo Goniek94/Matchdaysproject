@@ -25,13 +25,23 @@ const supabaseOrigin = (() => {
  *
  * Next.js App Router injects inline <script> tags, so 'unsafe-inline' is
  * required in script-src until nonce/hash support lands in your config.
- * Everything else is locked down.
+ * `unsafe-eval` is required ONLY by webpack HMR in development; in
+ * production we drop it (Next's production bundle does not use eval()).
+ *
+ * The split matters for security: `unsafe-eval` lets a successful
+ * `unsafe-inline` injection convert text into executable code via
+ * Function()/eval(). Removing it raises the attacker's bar.
  */
+const isProduction = process.env.NODE_ENV === "production";
+const scriptSrc = [
+  "'self'",
+  "'unsafe-inline'",
+  ...(isProduction ? [] : ["'unsafe-eval'"]), // dev-only for HMR
+].join(" ");
+
 const csp = [
   "default-src 'self'",
-  // Next.js needs unsafe-inline + unsafe-eval for HMR in dev; prod still
-  // needs unsafe-inline for the framework's inline bootstrap scripts.
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  `script-src ${scriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
   // Allow connections to the backend API, WebSocket upgrades, and Supabase.
   [

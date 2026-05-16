@@ -26,6 +26,9 @@ import type { ApiResponse } from "./config";
 
 export const ORDER_STATUSES = [
   "PENDING_PAYMENT",
+  // Item already paid via bid-hold capture. Buyer still has to confirm
+  // shipping address + pay shipping handling fee — see confirmShipping().
+  "AWAITING_SHIPPING",
   "PAID",
   "SHIPPED",
   "DELIVERED",
@@ -73,7 +76,12 @@ export interface OrderDto {
 
   // Money (Decimal strings)
   itemPrice: string;
+  /** Total shipping charged to the buyer (already includes handling fee). */
   shippingCost: string;
+  /** What the seller receives for postage (their declared cost). */
+  sellerShippingPayout: string;
+  /** Platform handling fee — disclosed to buyer as a separate line. */
+  shippingHandlingFee: string;
   platformFee: string;
   totalPaid: string;
   sellerPayout: string;
@@ -204,6 +212,81 @@ export async function pay(
   return res.data;
 }
 
+/**
+ * Confirm shipping address + pay shipping handling fee on an
+ * AWAITING_SHIPPING order. The item was already paid via the bid escrow
+ * when the auction closed; this finishes the transaction and moves the
+ * order to PAID. Backend recomputes the shipping cost from the auction's
+ * declared shipping value — we never trust the client for pricing.
+ */
+export async function confirmShipping(
+  orderId: string,
+  shippingAddress: Record<string, unknown>,
+): Promise<ApiResponse<{ order: OrderDto }>> {
+  const res = await apiClient.post<ApiResponse<{ order: OrderDto }>>(
+    `/orders/${orderId}/confirm-shipping`,
+    { shippingAddress },
+  );
+  return res.data;
+}
+
+/**
+ * Reason codes the buyer can pick when cancelling a won auction. UI keeps
+ * these stable so we can attach a "ban warning" badge to the unjustified
+ * ones AT THE PICKER, before the user submits. Backend has the same set
+ * (kept in OrdersService.UNJUSTIFIED_CANCEL_CODES).
+ *
+ * `justified` reasons skip the bid ban (real product / counterparty
+ * problems). `unjustified` reasons cost the user a 7-day bid ban — the UI
+ * MUST show this in the picker, and confirm via a second click.
+ */
+export const CANCEL_REASON_CODES = [
+  // Justified — no penalty
+  { code: "delivery_impossible", label: "Can't deliver to my country / address", justified: true },
+  { code: "seller_problem", label: "Seller seems unresponsive / suspicious", justified: true },
+  { code: "wrong_item", label: "Item is not as described in the listing", justified: true },
+  // Unjustified — incurs a 7-day bid ban
+  { code: "changed_mind", label: "Changed my mind", justified: false },
+  { code: "cant_afford", label: "Can't afford it right now", justified: false },
+  { code: "no_longer_interested", label: "No longer interested", justified: false },
+  { code: "other", label: "Other reason (not listed)", justified: false },
+] as const;
+
+export type CancelReasonCode = (typeof CANCEL_REASON_CODES)[number]["code"];
+
+/**
+ * Buyer cancels a won auction (PENDING_PAYMENT or AWAITING_SHIPPING).
+ * Unjustified reason codes (changed_mind, cant_afford, etc.) trigger a
+ * 7-day bid ban — surface that warning to the user before they confirm.
+ */
+export async function cancelAsBuyer(
+  orderId: string,
+  payload: { reasonCode: CancelReasonCode; reasonText?: string },
+): Promise<ApiResponse<OrderDto>> {
+  const res = await apiClient.post<ApiResponse<OrderDto>>(
+    `/orders/${orderId}/cancel-as-buyer`,
+    payload,
+  );
+  return res.data;
+}
+
+/**
+ * Seller cancels a sold order (any status up to and including PAID, NOT
+ * after SHIPPED). Refunds the buyer in full — item price always, and
+ * shipping fee too if it was already paid. No bid ban (sellers aren't
+ * bidders) but the cancel is recorded for reputation tracking.
+ */
+export async function cancelAsSeller(
+  orderId: string,
+  payload: { reasonCode: string; reasonText?: string },
+): Promise<ApiResponse<OrderDto>> {
+  const res = await apiClient.post<ApiResponse<OrderDto>>(
+    `/orders/${orderId}/cancel-as-seller`,
+    payload,
+  );
+  return res.data;
+}
+
 export async function markShipped(
   orderId: string,
   payload: ShipOrderPayload,
@@ -270,6 +353,7 @@ export async function refundOrder(
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   PENDING_PAYMENT: "Awaiting payment",
+  AWAITING_SHIPPING: "Item paid — confirm shipping",
   PAID: "Paid — preparing to ship",
   SHIPPED: "Shipped",
   DELIVERED: "Delivered",

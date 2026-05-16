@@ -19,7 +19,11 @@ export type WalletTransactionType =
   | "auction_debit"
   | "refund"
   | "fee"
-  | "adjustment";
+  | "adjustment"
+  // Bid-escrow lifecycle — money "reserved" when placing a bid, "released"
+  // when outbid / auction ends without win.
+  | "bid_hold"
+  | "bid_release";
 export type WalletTransactionStatus =
   | "pending"
   | "completed"
@@ -30,8 +34,15 @@ export type BankAccountStatus = "PENDING" | "VERIFIED" | "FAILED";
 
 export interface WalletSummary {
   id: string;
-  /** Decimal as string from backend, e.g. "120.50" */
+  /**
+   * Spendable balance — Decimal as string. Already net of pending
+   * withdrawals AND active bid holds (both are reserved up-front).
+   */
   balance: string;
+  /** Sum of all active bid holds. Surface as "locked in bids". */
+  heldInBids: string;
+  /** Convenience: balance + heldInBids (total wallet value). */
+  totalValue: string;
   currency: string;
   status: WalletStatus;
   pendingWithdrawals: string;

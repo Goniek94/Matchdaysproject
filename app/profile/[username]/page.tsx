@@ -12,6 +12,10 @@ import {
   type PublicReview,
 } from "@/lib/api/users";
 import {
+  getPublicAchievements,
+  type PublicAchievement,
+} from "@/lib/api/loyalty";
+import {
   Star, Gavel, Package, ChevronRight,
   ThumbsUp, ThumbsDown, Minus, ShoppingBag, Clock,
   MessageSquare, LayoutGrid, AlertTriangle, Ban,
@@ -47,6 +51,33 @@ function TrustBar({ pos, reviews }: { pos: number; reviews: number }) {
       </div>
       <p className="text-[11px] text-gray-400">Based on {reviews} {reviews === 1 ? "review" : "reviews"}</p>
     </div>
+  );
+}
+
+// ─── Subscription tier badge ─────────────────────────────────────────────────
+//
+// Visible on public profile when the user has any paid tier. Hidden for
+// `free` to keep the badge real estate uncluttered (it's the default).
+
+const TIER_BADGE: Record<
+  string,
+  { label: string; bg: string; color: string; icon: string }
+> = {
+  premium:     { label: "PREMIUM",     bg: "#EEF2FF", color: "#4F46E5", icon: "✦" },
+  premium_pro: { label: "PREMIUM PRO", bg: "#F5F3FF", color: "#7C3AED", icon: "✦" },
+  elite:       { label: "ELITE",       bg: "#FEF3C7", color: "#B45309", icon: "👑" },
+};
+
+function SubscriptionTierBadge({ tier }: { tier: string }) {
+  const meta = TIER_BADGE[tier];
+  if (!meta) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
+      style={{ backgroundColor: meta.bg, color: meta.color }}
+    >
+      {meta.icon} {meta.label}
+    </span>
   );
 }
 
@@ -202,11 +233,24 @@ export default function PublicProfilePage() {
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState<Tab>("reviews");
   const [sentimentFilter, setSentimentFilter] = useState<"all"|"positive"|"neutral"|"negative">("all");
+  // Loyalty achievements — fetched separately because the public-profile
+  // endpoint doesn't bundle them (different ownership, kept decoupled).
+  const [achievements, setAchievements] = useState<PublicAchievement[]>([]);
 
   useEffect(() => {
     if (!username) return;
     getPublicUserProfile(username)
-      .then(res => { if (res.success && res.data) setProfile(res.data); else setNotFound(true); })
+      .then((res) => {
+        if (res.success && res.data) {
+          setProfile(res.data);
+          // Fan out the achievements call once we have the user id.
+          getPublicAchievements(res.data.id)
+            .then(setAchievements)
+            .catch(() => setAchievements([]));
+        } else {
+          setNotFound(true);
+        }
+      })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
   }, [username]);
@@ -276,10 +320,16 @@ export default function PublicProfilePage() {
 
                 {profile.name && <p className="text-sm text-gray-400 mb-2">{profile.name}</p>}
 
-                <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full mb-3"
-                  style={{ backgroundColor: rank.bg, color: rank.color }}>
-                  {rank.icon} {rank.label}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full"
+                    style={{ backgroundColor: rank.bg, color: rank.color }}>
+                    {rank.icon} {rank.label}
+                  </span>
+                  {/* Subscription tier badge — silent on Free (no clutter for the default state). */}
+                  {profile.subscriptionTier && profile.subscriptionTier !== "free" && (
+                    <SubscriptionTierBadge tier={profile.subscriptionTier} />
+                  )}
+                </div>
 
                 <div className="flex items-center gap-1.5">
                   <Stars rating={rating} size={14}/>
@@ -320,6 +370,43 @@ export default function PublicProfilePage() {
               {/* Trust bar */}
               <TrustBar pos={pos} reviews={profile.reviews}/>
             </div>
+
+            {/* Achievements — social proof. Only renders when there's at
+                least one unlocked badge, to avoid an empty card on
+                brand-new accounts. */}
+            {achievements.length > 0 && (
+              <div className="bg-white rounded-3xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-wider">
+                    Achievements
+                  </h3>
+                  <span className="text-xs text-gray-400">
+                    {achievements.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {achievements.slice(0, 9).map((a) => (
+                    <div
+                      key={a.code}
+                      title={`${a.title} — ${a.description}`}
+                      className="aspect-square flex flex-col items-center justify-center gap-0.5 p-2 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200/60 rounded-2xl"
+                    >
+                      <span className="text-xl leading-none">
+                        {a.icon ?? "🏅"}
+                      </span>
+                      <span className="text-[9px] font-bold text-amber-900 leading-tight text-center line-clamp-2">
+                        {a.title}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {achievements.length > 9 && (
+                  <p className="text-[10px] text-gray-400 mt-2 text-center">
+                    +{achievements.length - 9} more
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Moderation alerts */}
             {((profile.warningCount ?? 0) > 0 || (profile.banCount ?? 0) > 0) && (

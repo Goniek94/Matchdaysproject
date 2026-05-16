@@ -3,10 +3,29 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useWatchlist } from "@/lib/context/WatchlistContext";
-import { Heart, LogIn, AlertCircle, Crown, Truck } from "lucide-react";
+import {
+  Heart,
+  LogIn,
+  AlertCircle,
+  Crown,
+  Truck,
+  BadgeCheck,
+  Wallet as WalletIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useShippingEstimate } from "@/lib/hooks/useShippingEstimate";
 import { formatShippingRange } from "@/lib/api/shipping";
+import {
+  getWallet,
+  formatMoney,
+  type WalletSummary,
+} from "@/lib/api/wallet";
+import {
+  getShippingEstimate,
+  getAuctionStatus,
+  type ShippingEstimate,
+  type AuctionStatusDto,
+} from "@/lib/api/auctions.api";
 
 interface BidPanelProps {
   auctionId?: string;
@@ -24,6 +43,13 @@ interface BidPanelProps {
   shippingFromCountry?: string | null;
   /** Item taxonomy category — affects weight assumption in shipping estimate. */
   itemCategory?: string | null;
+  /**
+   * True when the logged-in user is the seller of this listing. Swaps the
+   * bid form for an owner-facing notice — backend rejects self-bids
+   * (anti-shill-bidding policy) with a 403, but the UI should never let
+   * the seller try in the first place. Mirrors BuyNowPanel.isOwnListing.
+   */
+  isOwnListing?: boolean;
 }
 
 /**
@@ -46,6 +72,7 @@ export default function BidPanel({
   isEnded = false,
   shippingFromCountry,
   itemCategory,
+  isOwnListing = false,
 }: BidPanelProps) {
   const { isAuthenticated, user } = useAuth();
   const { isInWatchlist, toggleWatchlist } = useWatchlist();
@@ -66,9 +93,79 @@ export default function BidPanel({
   const [watchlistFeedback, setWatchlistFeedback] = useState<string | null>(
     null,
   );
+  // Wallet escrow — buyer can only bid up to their spendable wallet balance.
+  // Fetched once on mount and refreshed after each successful bid (the
+  // parent re-fetches the auction; we re-fetch our own slice here).
+  const [wallet, setWallet] = useState<WalletSummary | null>(null);
+  // Authoritative shipping fee — what the buyer will pay AFTER winning
+  // (item is paid via the bid escrow, shipping is collected separately).
+  const [shipFee, setShipFee] = useState<ShippingEstimate | null>(null);
+  // Caller's current hold on THIS auction (from the auction-status
+  // endpoint). When a user re-raises their own top bid, the existing
+  // hold is released atomically before the new one is created — so the
+  // money in that hold is effectively available for the new bid. UI
+  // ceiling becomes `wallet.balance + myHold.amount`.
+  const [auctionStatus, setAuctionStatus] = useState<AuctionStatusDto | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setWallet(null);
+      return;
+    }
+    let cancelled = false;
+    getWallet()
+      .then((r) => {
+        if (!cancelled) setWallet(r.data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setWallet(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, currentBid]); // re-fetch after a successful bid
+
+  useEffect(() => {
+    if (!auctionId) return;
+    let cancelled = false;
+    getShippingEstimate(auctionId)
+      .then((r) => {
+        if (!cancelled) setShipFee(r.data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setShipFee(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [auctionId]);
+
+  useEffect(() => {
+    if (!auctionId) return;
+    let cancelled = false;
+    getAuctionStatus(auctionId)
+      .then((r) => {
+        if (!cancelled) setAuctionStatus(r.data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setAuctionStatus(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [auctionId, currentBid, isAuthenticated]); // re-fetch after re-bid
 
   const minimumBid = currentBid + 5;
   const quickBids = [minimumBid, currentBid + 10, currentBid + 25];
+  const walletBalance = wallet ? parseFloat(wallet.balance) : null;
+  const myHoldOnThisAuction = auctionStatus?.myActiveHold?.amount ?? 0;
+  // Effective ceiling for this auction = spendable wallet + my locked hold
+  // on this listing (which is released when I re-bid higher on the same
+  // auction). Anonymous users get null → button disabled w/ login prompt.
+  const availableBalance =
+    walletBalance !== null ? walletBalance + myHoldOnThisAuction : null;
 
   const inWatchlist = auctionId ? isInWatchlist(auctionId) : false;
 
@@ -128,6 +225,16 @@ export default function BidPanel({
       return;
     }
 
+    // Wallet check — fail fast on the client so the user gets a friendly
+    // "top up to bid" CTA instead of a 400 from the backend. The server
+    // still validates; this is purely UX.
+    if (availableBalance !== null && amount > availableBalance) {
+      setBidError(
+        `Not enough in your wallet. Available: ${formatMoney(wallet?.balance ?? "0")}. Top up to bid higher.`,
+      );
+      return;
+    }
+
     onPlaceBid?.(amount);
     setBidAmount("");
   };
@@ -153,6 +260,61 @@ export default function BidPanel({
   // Use explicit isEnded prop from parent (authoritative), fall back to local timer only
   // when we have confirmed timer data (initialSeconds > 0)
   const auctionEnded = isEnded || (initialSeconds > 0 && timeLeft <= 0);
+
+  // ─── Owner view ────────────────────────────────────────────────────────
+  // Seller is looking at their own listing. The backend rejects self-bids
+  // with a 403 (anti-shill-bidding from the security audit). Show a clean
+  // notice instead of the bid form so they never even try.
+  if (isOwnListing) {
+    return (
+      <div className="bg-black text-white p-6 rounded-3xl">
+        {initialSeconds > 0 && (
+          <div className="mb-5">
+            <div className="text-[10px] font-bold uppercase tracking-widest mb-2 text-gray-400">
+              {auctionEnded ? "Auction ended" : "Ends in"}
+            </div>
+            <div className="text-2xl font-bold tracking-tight text-white">
+              {formatTime()}
+            </div>
+          </div>
+        )}
+
+        <div className="mb-5">
+          <div className="text-[10px] font-bold uppercase tracking-widest mb-2 text-gray-400">
+            Current bid
+          </div>
+          <div className="text-4xl font-bold tracking-tight">
+            €{currentBid.toLocaleString("en-GB")}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            {bidCount} {bidCount === 1 ? "bid" : "bids"}
+            {highestBidder && ` · leading: ${highestBidder}`}
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 mb-4">
+          <BadgeCheck
+            size={18}
+            className="text-emerald-300 mt-0.5 shrink-0"
+          />
+          <div className="text-sm">
+            <p className="font-semibold text-white">This is your listing</p>
+            <p className="text-white/60 text-xs mt-1">
+              You can&apos;t bid on your own auction. Manage it from your
+              dashboard.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/my-listings"
+          className="w-full py-4 bg-white text-black font-medium text-sm uppercase tracking-widest rounded-2xl hover:bg-gray-200 transition-all flex items-center justify-center gap-2"
+        >
+          Manage listing
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-black text-white p-6 rounded-3xl">
@@ -284,7 +446,71 @@ export default function BidPanel({
             </div>
           ) : (
             <>
-              <div className="mt-5 mb-3">
+              {/* Wallet escrow disclosure — what the user can effectively bid
+                  on THIS auction. "Available to bid" includes their own hold
+                  on this listing (it rolls into the new bid when they
+                  re-raise, so the money isn't really blocked from them). */}
+              <div className="mt-5 mb-3 bg-white/5 border border-white/10 rounded-xl p-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5 text-white/60 font-bold uppercase tracking-wider">
+                    <WalletIcon size={12} />
+                    Available to bid
+                  </span>
+                  <span className="font-black text-white">
+                    {availableBalance !== null
+                      ? formatMoney(availableBalance.toFixed(2))
+                      : "…"}
+                  </span>
+                </div>
+                {myHoldOnThisAuction > 0 && (
+                  <div className="flex items-center justify-between text-[10px] mt-1.5 text-emerald-300/80">
+                    <span>↻ Your current bid here (rolls into new)</span>
+                    <span>{formatMoney(myHoldOnThisAuction.toFixed(2))}</span>
+                  </div>
+                )}
+                {wallet &&
+                  parseFloat(wallet.heldInBids) - myHoldOnThisAuction > 0 && (
+                    <div className="flex items-center justify-between text-[10px] mt-1.5 text-white/40">
+                      <span>Locked in other auctions</span>
+                      <span>
+                        {formatMoney(
+                          (
+                            parseFloat(wallet.heldInBids) - myHoldOnThisAuction
+                          ).toFixed(2),
+                        )}
+                      </span>
+                    </div>
+                  )}
+                {/* Inline top-up CTA when balance is too low to make min bid */}
+                {availableBalance !== null && availableBalance < minimumBid && (
+                  <Link
+                    href="/wallet?topup=1"
+                    className="block mt-2.5 w-full py-2 text-center bg-amber-500 hover:bg-amber-400 text-black font-black text-[11px] uppercase tracking-wider rounded-lg transition-colors"
+                  >
+                    Top up wallet to bid
+                  </Link>
+                )}
+                {/* Shipping disclosure — paid separately AFTER winning, never bundled into the bid */}
+                {shipFee && (
+                  <div className="mt-2.5 pt-2.5 border-t border-white/10">
+                    <div className="flex items-center justify-between text-[10px] text-white/60">
+                      <span className="flex items-center gap-1.5">
+                        <Truck size={11} />
+                        Shipping (paid separately)
+                      </span>
+                      <span className="font-bold text-white/80">
+                        ~{formatMoney(shipFee.total)}
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-white/40 mt-1 leading-snug">
+                      Your bid only locks the item price. Shipping is paid
+                      after you win, on the order page.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-3">
                 <input
                   type="number"
                   value={bidAmount}
@@ -320,13 +546,20 @@ export default function BidPanel({
                 ))}
               </div>
 
-              {/* Place Bid Button */}
+              {/* Place Bid Button — disabled when wallet can't cover the min bid. */}
               <button
                 onClick={handlePlaceBid}
-                disabled={disabled}
+                disabled={
+                  disabled ||
+                  (availableBalance !== null && availableBalance < minimumBid)
+                }
                 className="w-full py-3.5 bg-white text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-gray-100 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {disabled ? "Placing bid..." : "Place Bid"}
+                {disabled
+                  ? "Placing bid..."
+                  : availableBalance !== null && availableBalance < minimumBid
+                    ? "Top up wallet to bid"
+                    : "Place Bid"}
               </button>
             </>
           )}

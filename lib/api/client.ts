@@ -47,6 +47,29 @@ const processQueue = (error: unknown = null) => {
 
 // ─── Request Interceptor ───────────────────────────────────────────────────────
 
+/**
+ * Reads a cookie value by name. The CSRF cookie is intentionally NOT
+ * HttpOnly so we can read it here and echo it back in a header — that
+ * is the entire point of the double-submit pattern. Returns null if the
+ * cookie isn't set (server will mint one on the next safe request).
+ */
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null; // SSR
+  const prefix = name + "=";
+  const parts = document.cookie.split(";");
+  for (const raw of parts) {
+    const c = raw.trim();
+    if (c.startsWith(prefix)) {
+      return decodeURIComponent(c.substring(prefix.length));
+    }
+  }
+  return null;
+}
+
+// HTTP methods that mutate state on the backend. Must match the
+// UNSAFE_METHODS set in `src/common/csrf/csrf.middleware.ts`.
+const UNSAFE_METHODS = new Set(["post", "put", "patch", "delete"]);
+
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const userData = getUserData();
@@ -54,6 +77,22 @@ apiClient.interceptors.request.use(
     // Add user ID to headers if available (optional, for backend logging)
     if (userData?.id) {
       config.headers["X-User-ID"] = userData.id;
+    }
+
+    // CSRF double-submit: echo the `csrf` cookie back as a header on any
+    // state-changing request. The backend rejects unsafe methods that
+    // don't carry this. Safe methods (GET/HEAD/OPTIONS) skip the check
+    // to avoid an extra round-trip on initial page loads before the
+    // cookie has been minted.
+    const method = (config.method ?? "get").toLowerCase();
+    if (UNSAFE_METHODS.has(method)) {
+      const csrf = readCookie("csrf");
+      if (csrf) {
+        config.headers["X-CSRF-Token"] = csrf;
+      }
+      // If no cookie yet (first POST after a hard refresh on a fresh
+      // session), the call will 403. The response interceptor catches
+      // that case and retries once after a GET that primes the cookie.
     }
 
     return config;
@@ -70,7 +109,40 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
+      _csrfRetry?: boolean;
     };
+
+    // ── Handle 403 from missing/stale CSRF token ──
+    // Happens on the very first state-changing call of a session: the
+    // server only mints the `csrf` cookie when it sees the first request,
+    // so the request interceptor for THIS call had no cookie to echo.
+    // Prime the cookie with a safe GET, then retry once. After this
+    // single retry the cookie is in place for the rest of the session.
+    //
+    // We only retry on the specific CSRF error shape so a real
+    // authorisation 403 still surfaces to the caller.
+    const csrfFailed =
+      error.response?.status === 403 &&
+      typeof (error.response?.data as { message?: string } | undefined)
+        ?.message === "string" &&
+      /csrf/i.test(
+        (error.response?.data as { message?: string }).message ?? "",
+      );
+    if (csrfFailed && !originalRequest._csrfRetry) {
+      originalRequest._csrfRetry = true;
+      try {
+        // Any safe endpoint will do — the middleware mints the cookie
+        // on every request that lacks one. `/auth/csrf-prime` would be
+        // an explicit choice; using `/auth/check-auth` reuses an
+        // endpoint that already exists.
+        await apiClient.get("/auth/check-auth").catch(() => {
+          /* even a 401 here is fine — the cookie still gets set */
+        });
+        return apiClient(originalRequest);
+      } catch (retryErr) {
+        return Promise.reject(buildError(retryErr as AxiosError));
+      }
+    }
 
     // ── Handle 401 Unauthorized ──
     if (error.response?.status === 401 && !originalRequest._retry) {

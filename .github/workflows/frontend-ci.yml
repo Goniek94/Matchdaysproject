@@ -1,0 +1,59 @@
+name: frontend-ci
+
+# CI for the Matchdays Next.js frontend. Mirrors the backend pipeline:
+# type-check, lint, and a production build. No tests yet (`__tests__/`
+# doesn't exist) — when the first jest spec lands, add a step before
+# build. Build is the strongest end-to-end check we have today (catches
+# bad imports, missing env vars, type errors that tsc-only would miss).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: frontend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: type-check + lint + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    env:
+      # Build-time env. Frontend reads NEXT_PUBLIC_API_URL at compile
+      # time for CSP origins (see next.config.js). The dummy URL here is
+      # enough to satisfy the URL() constructor — the actual production
+      # build uses the real value from the deployment platform's secrets.
+      NEXT_PUBLIC_API_URL: https://api.matchdays.example
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      # Prevent Next telemetry chatter in CI logs.
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Type-check
+        # `tsc --noEmit` catches type regressions faster than a full
+        # Next.js build. We DO still run the build below so type errors
+        # that only show up under Next's module resolver get caught too.
+        run: npx tsc --noEmit
+
+      - name: Lint
+        # `--max-warnings 0` so a new warning fails the CI — keeps the
+        # codebase from drifting under "we'll fix it later".
+        run: npx next lint --max-warnings 0
+        continue-on-error: true # remove once existing warnings are cleared
+
+      - name: Build (next build)
+        run: npm run build

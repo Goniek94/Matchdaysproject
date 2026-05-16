@@ -169,8 +169,13 @@ export default function HomePage() {
     <div className="bg-white">
       <Hero />
 
-      <section className="py-12 md:py-16 px-4 bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
-        <div className="w-full max-w-7xl mx-auto space-y-12">
+      <section className="py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100">
+        {/* Container szerszy niż domyślne max-w-7xl (1280px). Na monitorach
+            ≥1600px (laptopy 16", external 24"+) Tailwind's `7xl` zostawia
+            ~320px pustego pola po obu stronach — wygląda za małe. 1600px
+            wypełnia ~83% szerokości 1920px monitora, co daje "premium
+            magazine"-feel bez ucieczki do edge-to-edge. */}
+        <div className="w-full max-w-[1600px] mx-auto space-y-12">
 
           {/* ── 1. LIVE NOW ─────────────────────────────────────────────────── */}
           {/* The marketplace pulse — bidding action + instant-buy stock in

@@ -1,24 +1,33 @@
 "use client";
 
-import { Check, Zap, Star, ShieldCheck, Crown } from "lucide-react";
+import { Check, Zap, Star, ShieldCheck, Crown, Building2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 
+/**
+ * Homepage pricing teaser. Mirrors the dedicated /pricing page —
+ * if you change a price or feature here, also update:
+ *   • app/pricing/page.tsx (full page with UpgradeModal)
+ *   • backend tier-config.ts (source of truth for the DB seed)
+ *
+ * All CTAs route to /pricing where the auth-gated upgrade modal lives,
+ * so we don't reimplement the checkout flow on the homepage.
+ */
 export default function PricingSection() {
   const [isAnnual, setIsAnnual] = useState(false);
 
   const plans = [
     {
+      id: "free" as const,
       name: "FREE",
       icon: <Zap size={22} />,
       price: 0,
       description: "For occasional users",
       features: [
-        { text: "Buying and selling on the platform", included: true },
-        { text: "Access to auctions (verified)", included: true },
-        { text: "Unlimited listing duration", included: true },
-        { text: "Option to purchase AI Credits", included: true },
-        { text: "15% Sales Commission", included: true, highlight: true },
+        { text: "Buy & sell on the platform", included: true },
+        { text: "Daily Quiz + Weekly Predictor", included: true },
+        { text: "3 AI credits per month", included: true },
+        { text: "12% Sales Commission", included: true, highlight: true },
       ],
       cta: "Start for Free",
       ctaHref: "/register",
@@ -33,19 +42,20 @@ export default function PricingSection() {
       glow: "",
     },
     {
+      id: "premium" as const,
       name: "PREMIUM",
       icon: <Star size={22} />,
       price: 13.99,
       description: "For active sellers and collectors",
       features: [
-        { text: "7% Sales Commission", included: true, highlight: true },
-        { text: "Access to MatchDays Arena", included: true },
-        { text: "AI Credits package included", included: true },
-        { text: "Create listings with AI", included: true },
-        { text: "Subscriber-only offers", included: true },
+        { text: "8% Sales Commission", included: true, highlight: true },
+        { text: "All games unlocked (Spin, Tiki-Taka, Bingo…)", included: true },
+        { text: "25 AI credits per month", included: true },
+        { text: "1 featured-listing slot per month", included: true },
+        { text: "Ad-free experience", included: true },
       ],
       cta: "Choose Premium",
-      ctaHref: "/checkout?plan=premium",
+      ctaHref: "/pricing",
       popular: true,
       card: "bg-gradient-to-b from-indigo-900 to-indigo-950 border-indigo-500/40",
       iconBg: "bg-indigo-500/20 text-indigo-300",
@@ -57,19 +67,20 @@ export default function PricingSection() {
       glow: "shadow-[0_0_60px_rgba(99,102,241,0.25)]",
     },
     {
+      id: "premium_pro" as const,
       name: "PREMIUM PRO",
       icon: <ShieldCheck size={22} />,
-      price: 17.99,
+      price: 21.99,
       description: "For regular sellers",
       features: [
-        { text: "All PREMIUM features", included: true },
-        { text: "7% Sales Commission", included: true, highlight: true },
-        { text: "Larger AI Credits package", included: true },
-        { text: "Better listing positioning", included: true },
-        { text: "No Buyer Protection Fee", included: true },
+        { text: "6% Sales Commission", included: true, highlight: true },
+        { text: "100 AI credits per month", included: true },
+        { text: "3 featured-listing slots per month", included: true },
+        { text: "Priority listing placement", included: true },
+        { text: "Ad-free experience", included: true },
       ],
       cta: "Choose PRO",
-      ctaHref: "/checkout?plan=pro",
+      ctaHref: "/pricing",
       popular: false,
       card: "bg-gradient-to-b from-violet-900 to-purple-950 border-purple-500/40",
       iconBg: "bg-purple-500/20 text-purple-300",
@@ -81,19 +92,20 @@ export default function PricingSection() {
       glow: "shadow-[0_0_60px_rgba(168,85,247,0.20)]",
     },
     {
+      id: "elite" as const,
       name: "ELITE",
       icon: <Crown size={22} />,
-      price: 39.99,
+      price: 49.99,
       description: "For power users & pros",
       features: [
         { text: "5% Sales Commission", included: true, highlight: true },
-        { text: "Largest AI Credits package", included: true },
-        { text: "Best listing positioning", included: true },
-        { text: "Priority support", included: true },
-        { text: "Invitations to events", included: true },
+        { text: "300 AI credits per month", included: true },
+        { text: "10 featured-listing slots per month", included: true },
+        { text: "Top-of-feed placement", included: true },
+        { text: "Priority support + event invitations", included: true },
       ],
       cta: "Join the Elite",
-      ctaHref: "/checkout?plan=elite",
+      ctaHref: "/pricing",
       popular: false,
       card: "bg-gradient-to-b from-amber-900/80 to-yellow-950 border-amber-400/40",
       iconBg: "bg-amber-400/20 text-amber-300",
@@ -105,6 +117,9 @@ export default function PricingSection() {
       glow: "shadow-[0_0_60px_rgba(245,158,11,0.20)]",
     },
   ];
+
+  /** Annual price = ~10 months of monthly (≈17% off). Mirrors /pricing. */
+  const annualPrice = (monthly: number) => (monthly * 10).toFixed(2);
 
   return (
     <section
@@ -140,7 +155,7 @@ export default function PricingSection() {
             >
               Yearly
               <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-black">
-                -20%
+                -17%
               </span>
             </div>
           </div>
@@ -150,7 +165,7 @@ export default function PricingSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
           {plans.map((plan) => (
             <div
-              key={plan.name}
+              key={plan.id}
               className={`group relative flex flex-col p-7 rounded-3xl border-2 transition-all duration-500 hover:-translate-y-3 ${plan.card} ${plan.glow}`}
             >
               {plan.popular && (
@@ -182,14 +197,15 @@ export default function PricingSection() {
                   <span
                     className={`text-5xl font-black tracking-tighter ${plan.price_color}`}
                   >
-                    €
-                    {isAnnual && plan.price > 0
-                      ? (plan.price * 10).toFixed(2)
-                      : plan.price}
+                    {plan.price === 0
+                      ? "Free"
+                      : `€${isAnnual ? annualPrice(plan.price) : plan.price.toFixed(2)}`}
                   </span>
-                  <span className="text-white/30 font-bold text-lg">
-                    /{isAnnual ? "yr" : "mo"}
-                  </span>
+                  {plan.price > 0 && (
+                    <span className="text-white/30 font-bold text-lg">
+                      /{isAnnual ? "yr" : "mo"}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -225,7 +241,35 @@ export default function PricingSection() {
           ))}
         </div>
 
-        <p className="text-center mt-14 text-white/20 text-sm max-w-2xl mx-auto">
+        {/* B2B teaser row — leads to the full /pricing page where the modal lives */}
+        <div className="mt-10">
+          <Link
+            href="/pricing"
+            className="group relative block p-6 md:p-8 rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] overflow-hidden hover:border-white/20 transition-colors"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.03),transparent_50%)] pointer-events-none" />
+            <div className="relative grid md:grid-cols-[auto_1fr_auto] gap-5 items-center">
+              <div className="p-3.5 rounded-2xl bg-white/5 text-white/70">
+                <Building2 size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg md:text-xl font-black text-white uppercase tracking-tight mb-1">
+                  Are you a shop?
+                </h3>
+                <p className="text-sm text-white/50 leading-relaxed max-w-2xl">
+                  Selling 100+ items per month? Custom commission rates,
+                  volume API access, and a dedicated account manager —
+                  starting at €299/mo.
+                </p>
+              </div>
+              <span className="px-6 py-3 font-black text-sm rounded-2xl bg-white/10 text-white group-hover:bg-white group-hover:text-black transition-colors uppercase tracking-wider whitespace-nowrap">
+                Contact sales
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        <p className="text-center mt-10 text-white/20 text-sm max-w-2xl mx-auto">
           MatchDays operates on a freemium model. Subscriptions never block
           selling — they affect commissions, visibility, and access to
           professional AI tools.

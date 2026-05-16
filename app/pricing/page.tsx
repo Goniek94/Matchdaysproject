@@ -1,15 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Zap, Star, ShieldCheck, Crown, ArrowLeft } from "lucide-react";
+import {
+  Check,
+  Zap,
+  Star,
+  ShieldCheck,
+  Crown,
+  ArrowLeft,
+  Building2,
+} from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
 import { UpgradeModal, type PlanDef } from "@/components/pricing/UpgradeModal";
+import { BusinessInquiryModal } from "@/components/pricing/BusinessInquiryModal";
 
-// ─── Plans (mirrors PricingSection on homepage) ───────────────────────────────
+// ─── Plans ────────────────────────────────────────────────────────────────────
+// `id` MUST match the backend tier code in
+// matchdaysbackend/src/modules/subscriptions/tier-config.ts.
+// Renaming a tier silently de-grades historical orders (Order.feeTier is a
+// snapshot of this string).
 
 interface Plan {
-  id: string;           // matches backend tier
+  id: "free" | "premium" | "premium_pro" | "elite";
   name: string;
   icon: React.ReactNode;
   monthlyPrice: number;
@@ -25,7 +38,6 @@ interface Plan {
   checkActive: string;
   btn: string;
   glow: string;
-  // for UpgradeModal
   color: string;
   border: string;
   bg: string;
@@ -42,11 +54,11 @@ const PLANS: Plan[] = [
     annualPrice: 0,
     description: "For occasional users",
     features: [
-      { text: "Buy & sell on the platform",         included: true },
-      { text: "Access to verified auctions",         included: true },
-      { text: "Unlimited listing duration",          included: true },
-      { text: "Purchase AI Credits",                 included: true },
-      { text: "15% Sales Commission",                included: true, highlight: true },
+      { text: "Buy & sell on the platform", included: true },
+      { text: "Access to verified auctions", included: true },
+      { text: "Daily Quiz + Weekly Predictor (free games)", included: true },
+      { text: "3 AI credits per month", included: true },
+      { text: "12% Sales Commission", included: true, highlight: true },
     ],
     cta: "Start for Free",
     popular: false,
@@ -64,18 +76,18 @@ const PLANS: Plan[] = [
     badgeText: "#9CA3AF",
   },
   {
-    id: "basic",
+    id: "premium",
     name: "PREMIUM",
     icon: <Star size={22} />,
     monthlyPrice: 13.99,
-    annualPrice: 13.99 * 10,
+    annualPrice: 134.3, // ~17% off (10mo priced)
     description: "For active sellers and collectors",
     features: [
-      { text: "7% Sales Commission",               included: true, highlight: true },
-      { text: "Access to MatchDays Arena",          included: true },
-      { text: "AI Credits package included",        included: true },
-      { text: "Create listings with AI",            included: true },
-      { text: "Subscriber-only offers",             included: true },
+      { text: "8% Sales Commission", included: true, highlight: true },
+      { text: "All games unlocked (Spin, Tiki-Taka, Missing XI, Bingo)", included: true },
+      { text: "25 AI credits per month", included: true },
+      { text: "1 featured-listing slot per month", included: true },
+      { text: "Ad-free experience", included: true },
     ],
     cta: "Choose Premium",
     popular: true,
@@ -93,18 +105,18 @@ const PLANS: Plan[] = [
     badgeText: "#818CF8",
   },
   {
-    id: "premium",
+    id: "premium_pro",
     name: "PREMIUM PRO",
     icon: <ShieldCheck size={22} />,
-    monthlyPrice: 17.99,
-    annualPrice: 17.99 * 10,
+    monthlyPrice: 21.99,
+    annualPrice: 211.1, // ~17% off
     description: "For regular sellers",
     features: [
-      { text: "All PREMIUM features",              included: true },
-      { text: "7% Sales Commission",               included: true, highlight: true },
-      { text: "Larger AI Credits package",         included: true },
-      { text: "Better listing positioning",        included: true },
-      { text: "No Buyer Protection Fee",           included: true },
+      { text: "6% Sales Commission", included: true, highlight: true },
+      { text: "100 AI credits per month", included: true },
+      { text: "3 featured-listing slots per month", included: true },
+      { text: "Priority listing placement", included: true },
+      { text: "Ad-free experience", included: true },
     ],
     cta: "Choose PRO",
     popular: false,
@@ -122,18 +134,18 @@ const PLANS: Plan[] = [
     badgeText: "#C084FC",
   },
   {
-    id: "vip",
+    id: "elite",
     name: "ELITE",
     icon: <Crown size={22} />,
-    monthlyPrice: 39.99,
-    annualPrice: 39.99 * 10,
+    monthlyPrice: 49.99,
+    annualPrice: 479.9, // ~17% off
     description: "For power users & pros",
     features: [
-      { text: "5% Sales Commission",               included: true, highlight: true },
-      { text: "Largest AI Credits package",        included: true },
-      { text: "Best listing positioning",          included: true },
-      { text: "Priority support",                  included: true },
-      { text: "Invitations to events",             included: true },
+      { text: "5% Sales Commission", included: true, highlight: true },
+      { text: "300 AI credits per month", included: true },
+      { text: "10 featured-listing slots per month", included: true },
+      { text: "Top-of-feed placement", included: true },
+      { text: "Priority support + event invitations", included: true },
     ],
     cta: "Join the Elite",
     popular: false,
@@ -158,10 +170,11 @@ export default function PricingPage() {
   const { user, isAuthenticated } = useAuth();
   const [isAnnual, setIsAnnual] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [showB2B, setShowB2B] = useState(false);
   const currentTier = (user?.subscriptionTier ?? "free").toLowerCase();
 
   const handleCta = (plan: Plan) => {
-    if (!isAuthenticated) return; // will be handled by link to /register
+    if (!isAuthenticated) return;
     if (plan.id === "free" || plan.id === currentTier) return;
     setSelectedPlan(plan);
   };
@@ -205,7 +218,7 @@ export default function PricingPage() {
             </div>
             <div className={`px-8 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${isAnnual ? "bg-white text-black shadow-lg" : "text-white/40"}`}>
               Yearly
-              <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-black">-20%</span>
+              <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-black">-17%</span>
             </div>
           </div>
         </div>
@@ -305,6 +318,34 @@ export default function PricingPage() {
           })}
         </div>
 
+        {/* B2B "Are you a shop?" CTA — distinct row underneath the four tiers */}
+        <div className="mt-14">
+          <div className="relative p-8 md:p-10 rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.03),transparent_50%)] pointer-events-none" />
+            <div className="relative grid md:grid-cols-[auto_1fr_auto] gap-6 items-center">
+              <div className="p-4 rounded-2xl bg-white/5 text-white/70 self-start md:self-center">
+                <Building2 size={28} />
+              </div>
+              <div>
+                <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight mb-1.5">
+                  Are you a shop?
+                </h3>
+                <p className="text-sm md:text-base text-white/50 leading-relaxed max-w-2xl">
+                  Selling 100+ items per month? We offer custom commission
+                  rates, volume API access, and a dedicated account manager
+                  starting at €299/mo. Tell us about your operation.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowB2B(true)}
+                className="px-8 py-3.5 font-black text-sm rounded-2xl bg-white text-black hover:bg-white/90 active:scale-95 transition-all uppercase tracking-wider whitespace-nowrap"
+              >
+                Contact sales
+              </button>
+            </div>
+          </div>
+        </div>
+
         <p className="text-center mt-14 text-white/20 text-sm max-w-2xl mx-auto">
           MatchDays operates on a freemium model. Subscriptions never block
           selling — they affect commissions, visibility, and access to
@@ -319,6 +360,11 @@ export default function PricingPage() {
           onClose={() => setSelectedPlan(null)}
           onSuccess={handleSuccess}
         />
+      )}
+
+      {/* B2B inquiry modal */}
+      {showB2B && (
+        <BusinessInquiryModal onClose={() => setShowB2B(false)} />
       )}
     </section>
   );

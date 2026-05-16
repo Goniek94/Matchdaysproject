@@ -51,6 +51,58 @@ export const getAuctionById = async (
   return response.data;
 };
 
+/**
+ * Public shipping estimate for a listing — what the buyer pays IF they win.
+ * Mirrors `ShippingPricer.price` on the backend (seller payout + 20% handling
+ * markup, clamped €0.50..€5). Used by BidPanel to disclose shipping at bid
+ * time even though shipping is paid separately after winning.
+ */
+export interface ShippingEstimate {
+  from: string;
+  estimatedDays: string;
+  sellerShippingPayout: string;
+  handlingFee: string;
+  total: string;
+  currency: string;
+}
+
+export const getShippingEstimate = async (
+  auctionId: string,
+): Promise<ApiResponse<ShippingEstimate>> => {
+  const response = await apiClient.get<ApiResponse<ShippingEstimate>>(
+    `/auctions/${auctionId}/shipping-estimate`,
+  );
+  return response.data;
+};
+
+/**
+ * Combined "what can I do on this auction?" snapshot. Used by BidPanel
+ * to discover the caller's current bid escrow on the listing — needed
+ * so the effective bidding ceiling can include funds the caller has
+ * already locked here (re-raising your own top bid releases the prior
+ * hold atomically, so the money is effectively available).
+ */
+export interface AuctionStatusDto {
+  status: string;
+  canBid: boolean;
+  canBuyNow: boolean;
+  minBid: number;
+  currentBid: number;
+  bidCount: number;
+  endTime: string;
+  isFavorited: boolean;
+  myActiveHold: { amount: number } | null;
+}
+
+export const getAuctionStatus = async (
+  auctionId: string,
+): Promise<ApiResponse<AuctionStatusDto>> => {
+  const response = await apiClient.get<ApiResponse<AuctionStatusDto>>(
+    `/auctions/${auctionId}/status`,
+  );
+  return response.data;
+};
+
 // ─── Create Auction ───────────────────────────────────────────────────────────
 
 /**

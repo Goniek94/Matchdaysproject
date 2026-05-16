@@ -16,6 +16,28 @@ import {
   Crown,
 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getOverallRanking, type OverallRankingRow } from "@/lib/api/rankings";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const TIER_LABEL: Record<string, string> = {
+  free: "FREE",
+  premium: "PREMIUM",
+  premium_pro: "PREMIUM PRO",
+  elite: "ELITE",
+};
+
+const TIER_BADGE_COLOR: Record<string, string> = {
+  free: "text-gray-500",
+  premium: "text-indigo-400",
+  premium_pro: "text-purple-400",
+  elite: "text-amber-400",
+};
+
+function initial(name: string): string {
+  return name ? name.charAt(0).toUpperCase() : "?";
+}
 
 export default function ArenaPage() {
   // --- GŁÓWNY FEATURE: MUNDIAL / BIG TOURNAMENT ---
@@ -114,14 +136,44 @@ export default function ArenaPage() {
     },
   ];
 
-  // --- RANKING ---
-  const leaderboard = [
-    { rank: 1, user: "Alex_PL", points: 12450, avatar: "A", trend: "up" },
-    { rank: 2, user: "JerseyKing", points: 11200, avatar: "J", trend: "same" },
-    { rank: 3, user: "RetroFan99", points: 10850, avatar: "R", trend: "down" },
-    { rank: 4, user: "GoalMachine", points: 9500, avatar: "G", trend: "up" },
-    { rank: 5, user: "Tifoso_IT", points: 9200, avatar: "T", trend: "up" },
-  ];
+  // --- RANKING (live, single overall board across all games) ---
+  // `User.totalPoints` is the SUM of every point ever credited — quiz,
+  // predictor, spin, tiki-taka, missing-xi, bingo, and non-game loyalty
+  // triggers. One board IS the cross-game ranking.
+  const [leaderboard, setLeaderboard] = useState<OverallRankingRow[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      getOverallRanking(5)
+        .then((rows) => {
+          if (cancelled) return;
+          setLeaderboard(rows);
+          setLeaderboardError(null);
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setLeaderboardError(
+            err?.response?.data?.message ??
+              err?.message ??
+              "Couldn't load rankings.",
+          );
+        })
+        .finally(() => {
+          if (!cancelled) setLeaderboardLoading(false);
+        });
+    };
+    load();
+    // Re-fetch every 60s so the board stays current while the page is open.
+    // The backend caches for 60s anyway so this is effectively free.
+    const interval = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="bg-[#050505] text-white font-sans selection:bg-red-500 selection:text-white">
@@ -289,48 +341,98 @@ export default function ArenaPage() {
                   <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                     <Trophy size={16} className="text-yellow-500" /> Top Players
                   </h3>
-                  <button className="text-xs font-bold text-gray-500 hover:text-white">
+                  <Link
+                    href="/arena/rankings"
+                    className="text-xs font-bold text-gray-500 hover:text-white"
+                  >
                     View All
-                  </button>
+                  </Link>
                 </div>
 
-                <div className="divide-y divide-white/5">
-                  {leaderboard.map((player, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-4 p-5 hover:bg-white/5 transition-colors group cursor-pointer"
-                    >
-                      <div
-                        className={`w-6 text-center font-black text-lg ${
-                          idx === 0 ? "text-yellow-400" : "text-gray-600"
-                        }`}
-                      >
-                        {player.rank}
-                      </div>
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center font-bold text-sm border border-white/10 relative">
-                        {player.avatar}
-                        {idx === 0 && (
-                          <Crown
-                            size={12}
-                            className="absolute -top-1 -right-1 text-yellow-400 fill-yellow-400"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-sm font-bold text-gray-200 group-hover:text-white">
-                          {player.user}
+                <div className="divide-y divide-white/5 min-h-[200px]">
+                  {leaderboardLoading && leaderboard.length === 0 && (
+                    // Skeleton rows so the panel doesn't jump in height.
+                    [0, 1, 2, 3, 4].map((i) => (
+                      <div key={i} className="flex items-center gap-4 p-5">
+                        <div className="w-6 h-4 bg-white/5 rounded animate-pulse" />
+                        <div className="h-10 w-10 rounded-full bg-white/5 animate-pulse" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+                          <div className="h-2 w-12 bg-white/5 rounded animate-pulse" />
                         </div>
-                        <div className="text-[10px] text-gray-500 uppercase font-bold">
-                          Tier 1 Elite
-                        </div>
+                        <div className="h-3 w-12 bg-white/5 rounded animate-pulse" />
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-black text-white">
-                          {player.points.toLocaleString()}
-                        </div>
-                      </div>
+                    ))
+                  )}
+
+                  {!leaderboardLoading && leaderboardError && (
+                    <div className="p-6 text-center text-xs text-gray-500">
+                      {leaderboardError}
                     </div>
-                  ))}
+                  )}
+
+                  {!leaderboardLoading &&
+                    !leaderboardError &&
+                    leaderboard.length === 0 && (
+                      <div className="p-6 text-center text-xs text-gray-500">
+                        No rankings yet — be the first to earn points.
+                      </div>
+                    )}
+
+                  {leaderboard.map((player, idx) => {
+                    const tierLabel =
+                      TIER_LABEL[player.subscriptionTier] ?? "FREE";
+                    const tierColor =
+                      TIER_BADGE_COLOR[player.subscriptionTier] ??
+                      "text-gray-500";
+                    return (
+                      <Link
+                        href={`/profile/${player.username}`}
+                        key={player.id}
+                        className="flex items-center gap-4 p-5 hover:bg-white/5 transition-colors group"
+                      >
+                        <div
+                          className={`w-6 text-center font-black text-lg ${
+                            idx === 0 ? "text-yellow-400" : "text-gray-600"
+                          }`}
+                        >
+                          {player.rank}
+                        </div>
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center font-bold text-sm border border-white/10 relative overflow-hidden">
+                          {player.avatar ? (
+                            <img
+                              src={player.avatar}
+                              alt={player.username}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            initial(player.username)
+                          )}
+                          {idx === 0 && (
+                            <Crown
+                              size={12}
+                              className="absolute -top-1 -right-1 text-yellow-400 fill-yellow-400"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-bold text-gray-200 group-hover:text-white truncate">
+                            {player.username}
+                          </div>
+                          <div
+                            className={`text-[10px] uppercase font-bold tracking-wider ${tierColor}`}
+                          >
+                            {tierLabel}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-black text-white">
+                            {player.totalPoints.toLocaleString()}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
 

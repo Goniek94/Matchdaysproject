@@ -27,11 +27,53 @@ import {
   Wallet,
 } from "lucide-react";
 import { useNotifications } from "@/lib/context/NotificationContext";
+import { getWallet, type WalletSummary } from "@/lib/api/wallet";
 
 export default function Navbar() {
   const router = useRouter();
   const { itemCount } = useCart();
   const { user, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+
+  // Wallet balance shown next to the cart icon. Refetched periodically so
+  // a bid hold / refund updates the chip without a full page reload. We
+  // intentionally trust the backend's `balance` here — already net of
+  // pending withdrawals + active bid holds.
+  const [walletSummary, setWalletSummary] = useState<WalletSummary | null>(
+    null,
+  );
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setWalletSummary(null);
+      return;
+    }
+    let cancelled = false;
+    const load = () => {
+      getWallet()
+        .then((r) => {
+          if (!cancelled) setWalletSummary(r.data ?? null);
+        })
+        .catch(() => {
+          // Silent — keep last known value, or null on first failure.
+        });
+    };
+    load();
+    // 30s poll is cheap (backend cache is short anyway). Keeps the chip
+    // current after a bid without needing a websocket on this surface.
+    const tick = window.setInterval(load, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(tick);
+    };
+  }, [isAuthenticated]);
+
+  const formattedBalance = walletSummary
+    ? Number(walletSummary.balance).toLocaleString("en-IE", {
+        style: "currency",
+        currency: walletSummary.currency || "EUR",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })
+    : null;
 
   // While the auth state is still being confirmed, never flash the
   // logged-out CTA over a session that's actually valid. We render the
@@ -95,7 +137,11 @@ export default function Navbar() {
           scrolled ? "py-4 bg-white shadow-sm" : "py-6 bg-white"
         }`}
       >
-        <div className="w-full px-8 md:px-16 flex items-center justify-between relative">
+        {/* Asymmetric padding — keep the logo away from the left edge (64px)
+            but pull the right-side action cluster (SELL ITEM / Profile /
+            Wallet / Cart) close to the right edge so it doesn't float in
+            the middle of empty space on wide monitors. */}
+        <div className="w-full pl-8 md:pl-16 pr-4 md:pr-6 flex items-center justify-between relative">
           <div className="flex-shrink-0 z-50">
             <Link
               href="/"
@@ -216,18 +262,34 @@ export default function Navbar() {
                   )}
                   </div>{/* end dropdownRef */}
 
-                {/* Cart */}
-                <Link
-                  href="/cart"
-                  className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <ShoppingCart size={22} className="text-gray-700" />
-                  {itemCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-black text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {itemCount}
-                    </span>
+                {/* Action cluster — wallet + cart sit together as a single
+                    visual unit (matched height, matched corners) so they
+                    don't fight the Profile + SELL ITEM blocks for attention. */}
+                <div className="flex items-center gap-1.5">
+                  {formattedBalance !== null && (
+                    <Link
+                      href="/wallet"
+                      title="Wallet — top up or withdraw"
+                      className="hidden sm:inline-flex items-center gap-2 h-11 px-4 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-gray-900 font-bold text-sm whitespace-nowrap"
+                    >
+                      <Wallet size={16} className="text-gray-500" />
+                      {formattedBalance}
+                    </Link>
                   )}
-                </Link>
+
+                  <Link
+                    href="/cart"
+                    title="Cart"
+                    className="relative inline-flex items-center justify-center w-11 h-11 hover:bg-gray-100 rounded-xl transition-colors"
+                  >
+                    <ShoppingCart size={20} className="text-gray-700" />
+                    {itemCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center leading-none">
+                        {itemCount}
+                      </span>
+                    )}
+                  </Link>
+                </div>
 
               </div>
               ) : null}

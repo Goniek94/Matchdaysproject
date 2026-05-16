@@ -53,6 +53,11 @@ const STATUS_META: Record<
     tone: "bg-amber-50 text-amber-700 border-amber-200",
     icon: <Clock size={14} />,
   },
+  AWAITING_SHIPPING: {
+    label: "Item paid — confirm shipping",
+    tone: "bg-amber-50 text-amber-700 border-amber-200",
+    icon: <Truck size={14} />,
+  },
   PAID: {
     label: "Paid — preparing to ship",
     tone: "bg-blue-50 text-blue-700 border-blue-200",
@@ -349,33 +354,56 @@ export default function OrderDetailPage() {
             </div>
           </div>
 
-          {/* Money breakdown */}
+          {/* Money breakdown — different shape for buyer vs seller.
+              Buyer sees: item + seller's shipping + handling fee → total.
+              Seller sees: item − platform fee + their shipping payout → their net. */}
           <div className="space-y-2 my-5">
             <Row label="Item" value={formatMoney(order.itemPrice, order.currency)} />
-            <Row
-              label="Shipping"
-              value={formatMoney(order.shippingCost, order.currency)}
-            />
-            {role === "seller" && (
+
+            {role === "seller" ? (
+              // Seller view — what they actually take home.
               <>
                 <Row
                   label={`Platform fee (${(order.feeRate * 100).toFixed(0)}% · ${order.feeTier})`}
                   value={`−${formatMoney(order.platformFee, order.currency)}`}
                   muted
                 />
+                {parseFloat(order.sellerShippingPayout) > 0 && (
+                  <Row
+                    label="Shipping payout"
+                    value={`+${formatMoney(order.sellerShippingPayout, order.currency)}`}
+                    muted
+                  />
+                )}
                 <Row
                   label="Your payout"
                   value={formatMoney(order.sellerPayout, order.currency)}
                   strong
                 />
               </>
-            )}
-            {role !== "seller" && (
-              <Row
-                label="Total"
-                value={formatMoney(order.totalPaid, order.currency)}
-                strong
-              />
+            ) : (
+              // Buyer view — what they actually pay. Handling fee
+              // disclosed as a separate line for transparency (we
+              // promised this in the pricing page).
+              <>
+                {parseFloat(order.sellerShippingPayout) > 0 && (
+                  <Row
+                    label="Shipping"
+                    value={formatMoney(order.sellerShippingPayout, order.currency)}
+                  />
+                )}
+                {parseFloat(order.shippingHandlingFee) > 0 && (
+                  <Row
+                    label="Handling fee"
+                    value={formatMoney(order.shippingHandlingFee, order.currency)}
+                  />
+                )}
+                <Row
+                  label="Total"
+                  value={formatMoney(order.totalPaid, order.currency)}
+                  strong
+                />
+              </>
             )}
           </div>
 
@@ -485,72 +513,92 @@ function OrderActions({
         </div>
       )}
 
-      {/* PENDING_PAYMENT — buyer can retry pay or cancel */}
-      {role === "buyer" && order.status === "PENDING_PAYMENT" && (
-        <>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              runAction("Retry payment", async () => {
-                const res = await ordersApi.pay(order.id, {
-                  paymentMethod: "STRIPE_CARD",
-                });
-                if (res.success && res.data && !res.data.paid) {
-                  window.location.assign(res.data.checkoutUrl);
-                }
-                return res;
-              })
-            }
-            className="w-full py-3 text-sm font-bold bg-black text-white rounded-xl disabled:opacity-50"
-          >
-            Pay with card
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() =>
-              runAction("Cancel order", () =>
-                ordersApi.cancelOrder(order.id),
-              ).then(() => router.push("/history"))
-            }
-            className="w-full py-3 text-sm font-bold bg-white border border-gray-200 text-gray-700 rounded-xl disabled:opacity-50"
-          >
-            Cancel order
-          </button>
-        </>
-      )}
-
-      {/* PAID — seller ships */}
-      {role === "seller" && order.status === "PAID" && (
-        <div className="space-y-2">
-          <input
-            value={carrier}
-            onChange={(e) => setCarrier(e.target.value)}
-            placeholder="Carrier (DPD, InPost…)"
-            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
-          />
-          <input
-            value={tracking}
-            onChange={(e) => setTracking(e.target.value)}
-            placeholder="Tracking number"
-            className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
-          />
-          <button
-            type="button"
-            disabled={busy || !carrier.trim() || !tracking.trim()}
-            onClick={() =>
-              runAction("Mark shipped", () =>
-                ordersApi.markShipped(order.id, {
-                  carrier: carrier.trim(),
-                  trackingNumber: tracking.trim(),
-                }),
+      {/* Won-auction states (PENDING_PAYMENT + AWAITING_SHIPPING) share one
+          unified "🎉 You won! Confirm" experience. The Confirm CTA branches
+          on the status under the hood:
+            • PENDING_PAYMENT (legacy auction win, no hold) → payFromWallet
+            • AWAITING_SHIPPING (item paid via bid escrow) → confirmShipping
+          Cancel is the same code path either way — reason-coded, with a
+          7-day bid ban for unjustified codes (changed mind, can't afford). */}
+      {role === "buyer" &&
+        (order.status === "PENDING_PAYMENT" ||
+          order.status === "AWAITING_SHIPPING") && (
+          <WonOrderActions
+            order={order}
+            busy={busy}
+            onConfirm={(addr) =>
+              runAction(
+                order.status === "AWAITING_SHIPPING"
+                  ? "Confirm shipping"
+                  : "Pay & confirm",
+                async () => {
+                  // ConfirmedAddress is a plain JSON object — the API
+                  // signatures want `Record<string, unknown>`, so we
+                  // serialise through one (no transformation, just typing).
+                  const addrJson = addr as unknown as Record<string, unknown>;
+                  if (order.status === "AWAITING_SHIPPING") {
+                    return ordersApi.confirmShipping(order.id, addrJson);
+                  }
+                  // PENDING_PAYMENT path — try wallet first, fall back to
+                  // Stripe if the buyer doesn't have enough (Stripe still
+                  // surfaces as a separate redirect, not auto).
+                  return ordersApi.pay(order.id, {
+                    paymentMethod: "WALLET",
+                    shippingAddress: addrJson,
+                  });
+                },
               )
             }
-            className="w-full py-3 text-sm font-bold bg-black text-white rounded-xl disabled:opacity-50"
-          >
-            Mark as shipped
-          </button>
+            onCancel={(payload) =>
+              runAction("Cancel order", () =>
+                ordersApi.cancelAsBuyer(order.id, payload),
+              ).then(() => router.push("/history"))
+            }
+          />
+        )}
+
+      {/* PAID — seller view: ship address card + 48h SLA + ship form + cancel-with-refund */}
+      {role === "seller" && order.status === "PAID" && (
+        <SellerShipBlock
+          order={order}
+          carrier={carrier}
+          tracking={tracking}
+          setCarrier={setCarrier}
+          setTracking={setTracking}
+          busy={busy}
+          onShip={() =>
+            runAction("Mark shipped", () =>
+              ordersApi.markShipped(order.id, {
+                carrier: carrier.trim(),
+                trackingNumber: tracking.trim(),
+              }),
+            )
+          }
+          onCancel={(payload) =>
+            runAction("Cancel sale", () =>
+              ordersApi.cancelAsSeller(order.id, payload),
+            )
+          }
+        />
+      )}
+
+      {/* AWAITING_SHIPPING — seller view: same as PAID but item-only paid yet */}
+      {role === "seller" && order.status === "AWAITING_SHIPPING" && (
+        <div className="space-y-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+          <p className="text-xs text-amber-900 leading-relaxed">
+            <strong>Item paid €{parseFloat(order.itemPrice).toFixed(2)}</strong>{" "}
+            into escrow at auction close. Buyer is still confirming their
+            shipping address — you'll get a notification + email the moment
+            they do, then you'll have 48h to ship.
+          </p>
+          <SellerCancelButton
+            busy={busy}
+            onCancel={(payload) =>
+              runAction("Cancel sale", () =>
+                ordersApi.cancelAsSeller(order.id, payload),
+              )
+            }
+          />
         </div>
       )}
 
@@ -568,20 +616,17 @@ function OrderActions({
         </button>
       )}
 
-      {/* DELIVERED — buyer releases escrow early */}
+      {/* DELIVERED — buyer has 48h to confirm or dispute, otherwise auto-release */}
       {role === "buyer" && order.status === "DELIVERED" && (
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() =>
+        <DeliveredCountdown
+          deliveredAt={order.deliveredAt}
+          busy={busy}
+          onConfirm={() =>
             runAction("Release funds", () =>
               ordersApi.confirmReceipt(order.id),
             )
           }
-          className="w-full py-3 text-sm font-bold bg-black text-white rounded-xl disabled:opacity-50"
-        >
-          Release funds to seller
-        </button>
+        />
       )}
 
       {/* PAID / SHIPPED / DELIVERED — either party can dispute */}
@@ -606,6 +651,696 @@ function OrderActions({
             Open a dispute
           </button>
         )}
+    </div>
+  );
+}
+
+// ─── Won-order experience ────────────────────────────────────────────────────
+//
+// Unified "🎉 You won! Confirm your transaction" surface shown to a buyer
+// whose order is in PENDING_PAYMENT or AWAITING_SHIPPING. Replaces the
+// older "Pay with card / Cancel" pair with a celebratory card that:
+//
+//   1. Names the item + sale price up front (no hunting for it)
+//   2. Lets the buyer pick a shipping METHOD (Paczkomat, courier, pickup)
+//   3. Collects the address (or the paczkomat code for locker delivery)
+//   4. Shows the post-confirm contract: "Seller ships → you have 48h
+//      after delivery to confirm or report a problem → otherwise funds
+//      auto-release to seller."
+//   5. Offers Cancel-with-reason; unjustified reasons cost a 7-day bid ban.
+
+type ShippingMethod = "courier" | "paczkomat" | "pickup";
+
+interface ConfirmedAddress {
+  method: ShippingMethod;
+  fullName?: string;
+  line1?: string;
+  line2?: string | null;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  paczkomatCode?: string;
+  phone?: string;
+  notes?: string | null;
+}
+
+function WonOrderActions(props: {
+  order: OrderDto;
+  busy: boolean;
+  onConfirm: (addr: ConfirmedAddress) => unknown;
+  onCancel: (payload: {
+    reasonCode: ordersApi.CancelReasonCode;
+    reasonText?: string;
+  }) => unknown;
+}) {
+  const { order } = props;
+  const [method, setMethod] = useState<ShippingMethod>("courier");
+  const [fullName, setFullName] = useState("");
+  const [line1, setLine1] = useState("");
+  const [line2, setLine2] = useState("");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [country, setCountry] = useState("");
+  const [paczkomatCode, setPaczkomatCode] = useState("");
+  const [phone, setPhone] = useState("");
+  const [showCancel, setShowCancel] = useState(false);
+
+  const itemPrice = parseFloat(order.itemPrice);
+  const alreadyPaid = order.status === "AWAITING_SHIPPING";
+
+  const ready =
+    fullName.trim() &&
+    phone.trim() &&
+    (method === "paczkomat"
+      ? paczkomatCode.trim().length >= 4
+      : line1.trim() && city.trim() && postalCode.trim() && country.trim());
+
+  const submit = () => {
+    if (!ready) return;
+    const addr: ConfirmedAddress = {
+      method,
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      ...(method === "paczkomat"
+        ? { paczkomatCode: paczkomatCode.trim().toUpperCase() }
+        : {
+            line1: line1.trim(),
+            line2: line2.trim() || null,
+            city: city.trim(),
+            postalCode: postalCode.trim(),
+            country: country.trim(),
+          }),
+    };
+    void props.onConfirm(addr);
+  };
+
+  return (
+    <>
+      <div className="space-y-4">
+        {/* Celebration header */}
+        <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-2xl text-center">
+          <div className="text-2xl mb-1">🎉</div>
+          <div className="text-base font-black text-emerald-900">
+            You won!
+          </div>
+          <p className="text-xs text-emerald-800 mt-1">
+            {alreadyPaid
+              ? `Item paid €${itemPrice.toFixed(2)} from your wallet at auction close. Confirm shipping to finish.`
+              : `Confirm your transaction below to complete the purchase (€${itemPrice.toFixed(2)} will be debited from your wallet).`}
+          </p>
+        </div>
+
+        {/* Shipping method picker — three radio cards */}
+        <div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">
+            Delivery method
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <MethodCard
+              active={method === "courier"}
+              onClick={() => setMethod("courier")}
+              label="Courier"
+              hint="DPD / DHL"
+            />
+            <MethodCard
+              active={method === "paczkomat"}
+              onClick={() => setMethod("paczkomat")}
+              label="Paczkomat"
+              hint="InPost locker"
+            />
+            <MethodCard
+              active={method === "pickup"}
+              onClick={() => setMethod("pickup")}
+              label="Pickup"
+              hint="From seller"
+            />
+          </div>
+        </div>
+
+        {/* Address — fields swap based on method */}
+        <div className="grid grid-cols-1 gap-2">
+          <Field
+            label="Full name"
+            value={fullName}
+            onChange={setFullName}
+            placeholder="Jan Kowalski"
+          />
+          <Field
+            label="Phone"
+            value={phone}
+            onChange={setPhone}
+            placeholder="+48 600 000 000"
+          />
+          {method === "paczkomat" ? (
+            <Field
+              label="Paczkomat code"
+              value={paczkomatCode}
+              onChange={setPaczkomatCode}
+              placeholder="KRA01M"
+            />
+          ) : method === "courier" ? (
+            <>
+              <Field
+                label="Address line"
+                value={line1}
+                onChange={setLine1}
+                placeholder="ul. Marszałkowska 1"
+              />
+              <Field
+                label="Apt / suite (optional)"
+                value={line2}
+                onChange={setLine2}
+                placeholder=""
+              />
+              <div className="grid grid-cols-[1fr_120px] gap-2">
+                <Field
+                  label="City"
+                  value={city}
+                  onChange={setCity}
+                  placeholder="Kraków"
+                />
+                <Field
+                  label="Postal code"
+                  value={postalCode}
+                  onChange={setPostalCode}
+                  placeholder="30-001"
+                />
+              </div>
+              <Field
+                label="Country"
+                value={country}
+                onChange={setCountry}
+                placeholder="Poland"
+              />
+            </>
+          ) : (
+            <Field
+              label="Pickup city (seller will coordinate)"
+              value={city}
+              onChange={(v) => {
+                setCity(v);
+                setLine1(v);
+                setPostalCode("PICKUP");
+                setCountry("PL");
+              }}
+              placeholder="Kraków"
+            />
+          )}
+        </div>
+
+        {/* The contract — what happens after Confirm */}
+        <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl">
+          <p className="text-xs text-blue-900 leading-relaxed">
+            <strong>What happens next:</strong> The seller is notified to ship
+            within 48h. You'll get an email + in-app alert when the parcel is
+            on the way, with the tracking number. Once delivered, you have
+            <strong> 48h to confirm everything's OK or open a dispute</strong>
+            {" "}— after that, the funds release to the seller automatically.
+          </p>
+        </div>
+
+        {/* Confirm + Cancel */}
+        <button
+          type="button"
+          disabled={!ready || props.busy}
+          onClick={submit}
+          className="w-full py-3 text-sm font-bold bg-black text-white rounded-xl disabled:opacity-50"
+        >
+          {props.busy
+            ? "Confirming…"
+            : alreadyPaid
+              ? "Confirm address & pay shipping"
+              : "Confirm transaction & pay"}
+        </button>
+        <button
+          type="button"
+          disabled={props.busy}
+          onClick={() => setShowCancel(true)}
+          className="w-full py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl disabled:opacity-50"
+        >
+          Cancel order
+        </button>
+      </div>
+
+      {showCancel && (
+        <CancelReasonModal
+          busy={props.busy}
+          onClose={() => setShowCancel(false)}
+          onConfirm={(payload) => {
+            setShowCancel(false);
+            props.onCancel(payload);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+function MethodCard(props: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  hint: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      className={`p-3 text-left rounded-xl border-2 transition-all ${
+        props.active
+          ? "border-black bg-black/5"
+          : "border-gray-200 bg-white hover:border-gray-300"
+      }`}
+    >
+      <div className="text-xs font-black">{props.label}</div>
+      <div className="text-[10px] text-gray-500 mt-0.5">{props.hint}</div>
+    </button>
+  );
+}
+
+/**
+ * Cancel modal — coded reasons make the bid-ban consequence visible BEFORE
+ * the user submits. Unjustified reasons (changed_mind / cant_afford / etc.)
+ * show a red warning banner above the confirm button. The frontend doesn't
+ * compute the ban — backend does — we just mirror the policy as text.
+ */
+function CancelReasonModal(props: {
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (payload: {
+    reasonCode: ordersApi.CancelReasonCode;
+    reasonText?: string;
+  }) => void;
+}) {
+  const [reasonCode, setReasonCode] = useState<
+    ordersApi.CancelReasonCode | null
+  >(null);
+  const [reasonText, setReasonText] = useState("");
+
+  const selected = ordersApi.CANCEL_REASON_CODES.find(
+    (r) => r.code === reasonCode,
+  );
+  const isUnjustified = selected ? !selected.justified : false;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div>
+          <h3 className="text-base font-black">Why are you cancelling?</h3>
+          <p className="text-xs text-gray-500 mt-1">
+            Some reasons cost a 7-day bid ban — we'll flag them clearly so
+            you know before confirming.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          {ordersApi.CANCEL_REASON_CODES.map((r) => (
+            <label
+              key={r.code}
+              className={`flex items-start gap-2.5 p-2.5 rounded-xl cursor-pointer transition-colors ${
+                reasonCode === r.code
+                  ? "bg-black/5 ring-1 ring-black"
+                  : "hover:bg-gray-50"
+              }`}
+            >
+              <input
+                type="radio"
+                name="cancel-reason"
+                checked={reasonCode === r.code}
+                onChange={() => setReasonCode(r.code)}
+                className="mt-1"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-bold">{r.label}</div>
+                {!r.justified && (
+                  <div className="text-[10px] font-bold text-red-600 mt-0.5">
+                    Costs a 7-day bid ban
+                  </div>
+                )}
+              </div>
+            </label>
+          ))}
+        </div>
+
+        <div>
+          <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+            Tell us more (optional)
+          </span>
+          <textarea
+            value={reasonText}
+            onChange={(e) => setReasonText(e.target.value)}
+            placeholder="A bit of context helps us improve."
+            rows={3}
+            maxLength={500}
+            className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 resize-none"
+          />
+        </div>
+
+        {isUnjustified && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-xs text-red-700 leading-relaxed">
+              <strong>Heads up:</strong> Cancelling for this reason triggers a
+              <strong> 7-day bid ban</strong> on your account. You'll still
+              be able to browse + buy-now, but not place new bids.
+            </p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={props.onClose}
+            disabled={props.busy}
+            className="py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl disabled:opacity-50"
+          >
+            Keep order
+          </button>
+          <button
+            type="button"
+            disabled={!reasonCode || props.busy}
+            onClick={() =>
+              reasonCode &&
+              props.onConfirm({
+                reasonCode,
+                reasonText: reasonText.trim() || undefined,
+              })
+            }
+            className={`py-2.5 text-sm font-bold rounded-xl disabled:opacity-50 text-white ${
+              isUnjustified
+                ? "bg-red-600 hover:bg-red-700"
+                : "bg-black hover:bg-gray-800"
+            }`}
+          >
+            {props.busy
+              ? "Cancelling…"
+              : isUnjustified
+                ? "Cancel + accept ban"
+                : "Cancel order"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field(props: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+        {props.label}
+      </span>
+      <input
+        type="text"
+        value={props.value}
+        onChange={(e) => props.onChange(e.target.value)}
+        placeholder={props.placeholder}
+        className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+      />
+    </label>
+  );
+}
+
+// ─── Seller-side shipping block ─────────────────────────────────────────────
+//
+// Shown when role=seller AND status=PAID. Composes:
+//   • Buyer's confirmed address (card) — pulled from order.shippingAddress
+//   • 48h ship deadline countdown (paidAt + 48h)
+//   • Carrier + tracking inputs + "Mark shipped" CTA (existing)
+//   • Cancel-with-refund secondary CTA
+
+function SellerShipBlock(props: {
+  order: OrderDto;
+  carrier: string;
+  tracking: string;
+  setCarrier: (v: string) => void;
+  setTracking: (v: string) => void;
+  busy: boolean;
+  onShip: () => unknown;
+  onCancel: (payload: { reasonCode: string; reasonText?: string }) => unknown;
+}) {
+  const { order } = props;
+  const addr = (order.shippingAddress ?? {}) as Record<string, unknown>;
+  const shipDeadline = order.paidAt
+    ? new Date(new Date(order.paidAt).getTime() + 48 * 60 * 60_000)
+    : null;
+  const remaining = shipDeadline ? shipDeadline.getTime() - Date.now() : null;
+  const lateForShipping = remaining !== null && remaining <= 0;
+  const hours =
+    remaining !== null ? Math.max(0, Math.floor(remaining / 3_600_000)) : 0;
+  const mins =
+    remaining !== null
+      ? Math.max(0, Math.floor((remaining % 3_600_000) / 60_000))
+      : 0;
+
+  return (
+    <div className="space-y-3">
+      {/* Ship deadline countdown */}
+      {shipDeadline && (
+        <div
+          className={`p-3 rounded-xl text-xs leading-relaxed ${
+            lateForShipping
+              ? "bg-red-50 border border-red-200 text-red-800"
+              : "bg-amber-50 border border-amber-200 text-amber-900"
+          }`}
+        >
+          {lateForShipping ? (
+            <>
+              <strong>You're past the 48h ship window.</strong> Shipping ASAP
+              keeps your reputation intact — repeated late shipments lead to
+              listing penalties.
+            </>
+          ) : (
+            <>
+              <strong>Ship within {hours}h {mins}m</strong> to keep your
+              seller rating. Order was paid {order.paidAt
+                ? new Date(order.paidAt).toLocaleString()
+                : "recently"}.
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Buyer address card */}
+      <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">
+          Ship to
+        </div>
+        {Object.keys(addr).length === 0 ? (
+          <p className="text-xs text-gray-500 italic">
+            Address not provided yet.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm font-bold text-gray-900">
+              {String(addr.fullName ?? "—")}
+            </p>
+            {addr.phone && (
+              <p className="text-xs text-gray-600 mt-0.5">
+                📞 {String(addr.phone)}
+              </p>
+            )}
+            <div className="text-xs text-gray-700 mt-2 leading-relaxed">
+              {addr.paczkomatCode ? (
+                <p>
+                  <strong>Paczkomat:</strong> {String(addr.paczkomatCode)}
+                </p>
+              ) : (
+                <>
+                  <p>{String(addr.line1 ?? "")}</p>
+                  {addr.line2 && <p>{String(addr.line2)}</p>}
+                  <p>
+                    {String(addr.postalCode ?? "")} {String(addr.city ?? "")}
+                  </p>
+                  <p>{String(addr.country ?? "")}</p>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Carrier + tracking */}
+      <input
+        value={props.carrier}
+        onChange={(e) => props.setCarrier(e.target.value)}
+        placeholder="Carrier (DPD, InPost…)"
+        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
+      />
+      <input
+        value={props.tracking}
+        onChange={(e) => props.setTracking(e.target.value)}
+        placeholder="Tracking number"
+        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/10"
+      />
+      <button
+        type="button"
+        disabled={props.busy || !props.carrier.trim() || !props.tracking.trim()}
+        onClick={props.onShip}
+        className="w-full py-3 text-sm font-bold bg-black text-white rounded-xl disabled:opacity-50"
+      >
+        Mark as shipped
+      </button>
+
+      <SellerCancelButton busy={props.busy} onCancel={props.onCancel} />
+    </div>
+  );
+}
+
+/** Secondary CTA — opens a small inline reason picker for seller cancel. */
+function SellerCancelButton(props: {
+  busy: boolean;
+  onCancel: (payload: { reasonCode: string; reasonText?: string }) => unknown;
+}) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState<string>("item_damaged");
+  const [text, setText] = useState("");
+
+  const reasons = [
+    { code: "item_damaged", label: "Item damaged during packing" },
+    { code: "lost_in_storage", label: "Can't locate the item in my storage" },
+    { code: "out_of_stock", label: "Item is no longer available" },
+    { code: "other", label: "Other reason" },
+  ];
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        disabled={props.busy}
+        onClick={() => setOpen(true)}
+        className="w-full py-2.5 text-xs font-bold text-red-700 bg-white border border-red-200 hover:bg-red-50 rounded-xl disabled:opacity-50"
+      >
+        Cancel sale & refund buyer
+      </button>
+    );
+  }
+
+  return (
+    <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-2">
+      <div className="text-xs font-bold text-red-900">Why are you cancelling?</div>
+      <div className="space-y-1">
+        {reasons.map((r) => (
+          <label
+            key={r.code}
+            className="flex items-center gap-2 text-xs text-red-900"
+          >
+            <input
+              type="radio"
+              checked={reason === r.code}
+              onChange={() => setReason(r.code)}
+            />
+            {r.label}
+          </label>
+        ))}
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="Tell the buyer what happened (optional, max 500 chars)."
+        rows={2}
+        maxLength={500}
+        className="w-full px-2.5 py-2 text-xs bg-white border border-red-200 rounded-lg resize-none"
+      />
+      <p className="text-[10px] text-red-700 leading-snug">
+        The buyer will be refunded in full + notified. Repeated cancels affect
+        your seller rating.
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          disabled={props.busy}
+          className="py-2 text-xs font-bold text-gray-700 bg-white border border-gray-200 rounded-lg disabled:opacity-50"
+        >
+          Keep order
+        </button>
+        <button
+          type="button"
+          disabled={props.busy}
+          onClick={() =>
+            props.onCancel({
+              reasonCode: reason,
+              reasonText: text.trim() || undefined,
+            })
+          }
+          className="py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-50"
+        >
+          {props.busy ? "Cancelling…" : "Confirm cancel"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Buyer-side delivery countdown ───────────────────────────────────────────
+//
+// Shown when role=buyer AND status=DELIVERED. The buyer has 48h after
+// `deliveredAt` to confirm receipt or open a dispute — after that the
+// escrow auto-releases to the seller. UI surfaces the countdown so the
+// buyer can't claim they didn't know.
+
+function DeliveredCountdown(props: {
+  deliveredAt: string | null;
+  busy: boolean;
+  onConfirm: () => unknown;
+}) {
+  const deadline = props.deliveredAt
+    ? new Date(props.deliveredAt).getTime() + 48 * 60 * 60_000
+    : null;
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const remaining = deadline ? deadline - now : null;
+  const hours =
+    remaining !== null ? Math.max(0, Math.floor(remaining / 3_600_000)) : 0;
+  const mins =
+    remaining !== null
+      ? Math.max(0, Math.floor((remaining % 3_600_000) / 60_000))
+      : 0;
+  const overdue = remaining !== null && remaining <= 0;
+
+  return (
+    <div className="space-y-3">
+      <div
+        className={`p-3 rounded-xl text-xs leading-relaxed ${
+          overdue
+            ? "bg-gray-100 border border-gray-200 text-gray-600"
+            : "bg-emerald-50 border border-emerald-100 text-emerald-900"
+        }`}
+      >
+        {overdue ? (
+          <>
+            <strong>48h window passed</strong> — funds will auto-release to
+            the seller shortly. You can still open a dispute if something's
+            wrong, but it'll go through manual review.
+          </>
+        ) : (
+          <>
+            <strong>
+              {hours}h {mins}m left
+            </strong>{" "}
+            to confirm the item is OK or open a dispute. After that, the
+            funds auto-release to the seller.
+          </>
+        )}
+      </div>
+      <button
+        type="button"
+        disabled={props.busy}
+        onClick={props.onConfirm}
+        className="w-full py-3 text-sm font-bold bg-black text-white rounded-xl disabled:opacity-50"
+      >
+        ✓ Everything's OK — release funds to seller
+      </button>
     </div>
   );
 }
