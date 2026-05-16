@@ -104,7 +104,7 @@ export default function SuccessView({
 
         {!isLive && (
           <Link
-            href="/dashboards"
+            href="/dashboard"
             className="flex items-center justify-center gap-2 py-4 bg-black text-white font-bold rounded-xl hover:bg-gray-800 transition-all w-full"
           >
             Go to My Dashboard <ArrowRight size={18} />

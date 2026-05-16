@@ -301,8 +301,8 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
         <div className="max-w-6xl mx-auto px-6 pb-3">
           <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900">
             <span>
-              <strong>Wczytano niedokończony szkic.</strong> Zdjęcia trzeba
-              dodać ponownie — reszta jest zachowana.
+              <strong>Unfinished draft restored.</strong> You'll need to add the
+              photos again — everything else is preserved.
             </span>
             <button
               type="button"
