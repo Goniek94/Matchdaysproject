@@ -4,9 +4,33 @@
  * Based on Marketplace frontend pattern, adapted for Matchdays
  */
 
-// API Base URL from environment variables
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
+// API Base URL.
+//
+// In the browser at runtime we ALWAYS hit `/api/v1` on the same origin —
+// Vercel `rewrites()` (see next.config.js) proxies that to Railway
+// server-side. Same-origin requests carry first-party cookies, which fixes
+// the cross-site cookie blocking that broke CSRF + auth in production
+// when `vercel.app` (frontend) and `railway.app` (backend) were on
+// different registrable domains.
+//
+// On the server (Node, SSR) the rewrite isn't available, so we still need
+// the absolute backend URL. `NEXT_PUBLIC_BACKEND_URL` is preferred;
+// `NEXT_PUBLIC_API_URL` is kept as a legacy fallback so existing Vercel
+// env vars don't break the build.
+const resolveApiUrl = (): string => {
+  if (typeof window !== "undefined") {
+    // Browser — go through the proxy.
+    return "/api/v1";
+  }
+  // Server-side rendering / build — talk to backend directly.
+  return (
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://localhost:5000/api/v1"
+  );
+};
+
+export const API_URL = resolveApiUrl();
 
 // Request timeout in milliseconds
 export const REQUEST_TIMEOUT = 30000;

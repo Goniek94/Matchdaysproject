@@ -72,6 +72,17 @@ const UNSAFE_METHODS = new Set(["post", "put", "patch", "delete"]);
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Force same-origin proxy path in the browser regardless of what
+    // module-load resolved `API_URL` to. This is belt-and-braces against
+    // any case where the axios instance was created during SSR (where
+    // `typeof window === "undefined"`) and ended up with the absolute
+    // Railway URL baked in. With the Vercel rewrite in next.config.js,
+    // `/api/v1/*` is proxied server-side to Railway, so cookies stay
+    // first-party (fixes the cross-site CSRF block).
+    if (typeof window !== "undefined") {
+      config.baseURL = "/api/v1";
+    }
+
     const userData = getUserData();
 
     // Add user ID to headers if available (optional, for backend logging)

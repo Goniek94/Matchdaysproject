@@ -1,13 +1,26 @@
 /** @type {import('next').NextConfig} */
 
-// Build-time API URL (used in CSP connect-src).
-// Matches what the browser will call at runtime.
-const apiOrigin = (() => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || "";
+// Build-time API URL.
+//
+// In production we want the BROWSER to hit `/api/v1/*` on the SAME ORIGIN
+// (this Vercel domain), and Vercel's `rewrites()` proxies the request
+// server-side to Railway. That makes our auth + CSRF cookies first-party,
+// which is non-negotiable while we don't own a custom domain for the
+// backend yet (third-party cookies are blocked by default in Chrome 2024+
+// and Safari ITP, breaking the double-submit CSRF flow).
+//
+// `NEXT_PUBLIC_BACKEND_URL` is the REAL Railway origin used only by the
+// rewrite below (server-side fetch) and by CSP connect-src (so the runtime
+// CSP still allows the backend in case some flow bypasses the proxy).
+const backendOrigin = (() => {
+  const raw =
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "";
   try {
-    return new URL(raw).origin; // e.g. "https://api.matchdays.com"
+    return new URL(raw).origin; // e.g. "https://matchdaysbackend-production.up.railway.app"
   } catch {
-    return ""; // missing at build time — fine for local dev
+    return "";
   }
 })();
 
@@ -44,10 +57,14 @@ const csp = [
   `script-src ${scriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
   // Allow connections to the backend API, WebSocket upgrades, and Supabase.
+  // `backendOrigin` is the real Railway URL — usually unreached from the
+  // browser (rewrites proxy `/api/v1/*` through this Vercel function),
+  // but Socket.io still connects directly to the backend for WebSockets
+  // because Vercel rewrites don't proxy `wss://`.
   [
     "connect-src",
     "'self'",
-    apiOrigin,
+    backendOrigin,
     supabaseOrigin,
     "wss:",   // WebSocket upgrades (Socket.io)
     "ws:",    // ws:// for local dev
@@ -83,6 +100,25 @@ const nextConfig = {
       { protocol: "https", hostname: "i.pravatar.cc" },
       { protocol: "https", hostname: "kbrxpdibulijbljelvgp.supabase.co" },
     ],
+  },
+
+  // Vercel rewrites proxy /api/v1/* requests to Railway server-side, so
+  // the browser sees them as same-origin. This fixes cross-site cookie
+  // blocking that broke CSRF and (intermittently) auth in production.
+  //
+  // The rewrite is a no-op in local dev (backendOrigin empty → rewrite skipped).
+  // Vercel function timeout is 10s on Hobby plan, 60s default on Pro —
+  // the AI sync endpoint can spend 15-25s on Gemini + Google Search, so
+  // on Hobby use /ai/analyze-async (returns 202 in <1s, processor finishes
+  // the work in the background).
+  async rewrites() {
+    if (!backendOrigin) return [];
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: `${backendOrigin}/api/v1/:path*`,
+      },
+    ];
   },
 
   async headers() {
