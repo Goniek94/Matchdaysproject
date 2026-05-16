@@ -70,18 +70,16 @@ function SkeletonCard() {
 /**
  * Pads an array of items to `targetCount` by cycling through a fallback pool.
  * Used to keep card rows visually full even when a category (e.g. buy-now)
- * is undersupplied — better to show a repeated real listing than an empty
- * slot, until the marketplace has enough inventory.
+ * is undersupplied. We previously duplicated listings from the pool to
+ * fill empty slots ("better to show a repeated real listing than an empty
+ * slot"), but with sparse early-launch inventory that produced the same
+ * item visibly 3-4 times across sections — anti-trust signal. Now we
+ * just return what we have and let the section render at smaller size
+ * (or hide entirely if zero items). The CTA on each section's header
+ * already says "View all auctions" which handles the discovery gap.
  */
-function padFromPool<T>(items: T[], targetCount: number, pool: T[]): T[] {
-  if (items.length >= targetCount || pool.length === 0) return items;
-  const result = [...items];
-  let i = 0;
-  while (result.length < targetCount) {
-    result.push(pool[i % pool.length]);
-    i++;
-  }
-  return result;
+function padFromPool<T>(items: T[], _targetCount: number, _pool: T[]): T[] {
+  return items;
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────

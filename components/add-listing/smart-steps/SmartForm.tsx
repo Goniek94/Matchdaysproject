@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { ArrowRight, ArrowLeft } from "lucide-react";
 import { SmartFormData, INITIAL_STATE, Photo } from "./types";
 import SmartFormSteps from "./SmartFormSteps";
@@ -10,19 +11,127 @@ import { createAuctionFromForm } from "@/lib/api/auctions.api";
 import { uploadPhotos } from "@/lib/supabase";
 import { analyzeListingAsync } from "@/lib/api/ai";
 import { logger } from "@/lib/logger";
+import { useAuth } from "@/lib/context/AuthContext";
 
 // AI path: 5 steps (Category → Photos → Mode → AI Analysis → Pricing)
 // Manual path: 5 steps (Category → Photos → Mode → Details → Pricing)
 
+/**
+ * Draft persistence key. Stored in localStorage so a refresh / accidental
+ * tab-close / mid-flow login redirect doesn't lose 5 minutes of typing.
+ *
+ * We persist EVERYTHING EXCEPT `photos` — photo state holds File objects
+ * (or blob: URLs) which can't be re-hydrated from JSON, plus they're the
+ * biggest payload (base64 → MB of localStorage). When the user returns
+ * to a restored draft, they'll need to re-add photos; everything else
+ * (title, description, category, pricing, mode) is preserved.
+ */
+const DRAFT_STORAGE_KEY = "matchdays.add-listing.draft.v1";
+const DRAFT_AUTOSAVE_DEBOUNCE_MS = 500;
+
+function loadDraft(): Partial<SmartFormData> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<SmartFormData> & {
+      __savedAt?: number;
+    };
+    // Stale draft (>14 days) — auto-discard so users don't find a
+    // half-finished listing from a forgotten session.
+    if (
+      parsed.__savedAt &&
+      Date.now() - parsed.__savedAt > 14 * 24 * 60 * 60_000
+    ) {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveDraft(data: SmartFormData): void {
+  if (typeof window === "undefined") return;
+  try {
+    // Strip photos before persisting — see DRAFT_STORAGE_KEY docstring.
+    const { photos: _photos, ...rest } = data;
+    void _photos;
+    const payload = { ...rest, __savedAt: Date.now() };
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // Quota exceeded / private-browsing — ignore. Better to silently
+    // lose draft than to break the form.
+  }
+}
+
+function clearDraft(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch {
+    /* noop */
+  }
+}
+
 export default function SmartForm({ onBack }: { onBack?: () => void }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+  // Auth gate. Anonymous users get redirected to /login with the current
+  // path as `next` — after successful login they land back here and
+  // (because the draft is persisted) keep whatever they typed before.
+  // `authLoading` must be resolved first so we don't flash-redirect
+  // a still-validating session.
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      // No dedicated `/login` route in this frontend — auth lives in
+      // the navbar modal + a standalone `/register` page. We route to
+      // `/register` with a `next` param so the post-auth flow can hop
+      // the user back here. (Register page reads `next` and redirects
+      // on success — verify if changing.)
+      const next = encodeURIComponent(pathname ?? "/add-listing");
+      router.replace(`/register?next=${next}`);
+    }
+  }, [authLoading, isAuthenticated, pathname, router]);
+
   const [step, setStep] = useState(1);
   const [data, setData] = useState<SmartFormData>(INITIAL_STATE);
+  const [draftRestored, setDraftRestored] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedPhotos, setPublishedPhotos] = useState<Photo[]>([]);
   const [publishedListingId, setPublishedListingId] = useState<string | null>(
     null,
   );
+
+  // Load draft on mount — once per page load. Photos always start empty
+  // (see DRAFT_STORAGE_KEY rationale).
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft) {
+      setData((prev) => ({ ...prev, ...draft, photos: prev.photos }));
+      setDraftRestored(true);
+    }
+  }, []);
+
+  // Autosave — debounced so we don't write to localStorage on every
+  // keystroke. Skipped once we've published or are mid-publish so a
+  // stale "almost finished" draft can't shadow the success state.
+  const autosaveRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (isPublishing || isPublished) return;
+    if (autosaveRef.current) window.clearTimeout(autosaveRef.current);
+    autosaveRef.current = window.setTimeout(() => {
+      saveDraft(data);
+    }, DRAFT_AUTOSAVE_DEBOUNCE_MS);
+    return () => {
+      if (autosaveRef.current) window.clearTimeout(autosaveRef.current);
+    };
+  }, [data, isPublishing, isPublished]);
 
   const update = (
     field: keyof SmartFormData,
@@ -88,6 +197,10 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
         setPublishedPhotos(photosWithIds);
         setData(dataWithPhotos);
         setIsPublished(true);
+        // Successful publish — drop the autosaved draft so the next
+        // visit to /add-listing starts fresh instead of restoring a
+        // listing the user just shipped.
+        clearDraft();
 
         // Background AI verification
         const photoGroupKey = data.itemCategory || data.category || "shirts";
@@ -181,6 +294,27 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="min-h-screen pb-24 pt-20">
+      {/* Draft-restored banner. One-time, dismissable. Tells the user
+          their previous typing was preserved AND that photos were not
+          (because we can't serialize File objects). */}
+      {draftRestored && (
+        <div className="max-w-6xl mx-auto px-6 pb-3">
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900">
+            <span>
+              <strong>Wczytano niedokończony szkic.</strong> Zdjęcia trzeba
+              dodać ponownie — reszta jest zachowana.
+            </span>
+            <button
+              type="button"
+              onClick={() => setDraftRestored(false)}
+              className="text-blue-600 hover:text-blue-800 font-bold"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Progress Bar */}
       <div className="sticky top-20 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100 mb-4 py-3 px-6 transition-all">
         <div className="max-w-6xl mx-auto flex items-center gap-4">

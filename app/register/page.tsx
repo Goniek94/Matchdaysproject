@@ -2,9 +2,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
+
+/**
+ * Whitelist of paths we'll redirect to after register. NEVER trust a raw
+ * `?next=` URL — an attacker could craft `?next=https://evil.com` and turn
+ * our login into a redirect to phishing. Anything not starting with `/`
+ * (or pointing at an absolute URL) is rejected and we fall back to
+ * `/dashboard`. Same posture as OWASP "open redirect" guidance.
+ */
+function safeNextPath(raw: string | null): string {
+  if (!raw) return "/dashboard";
+  if (!raw.startsWith("/")) return "/dashboard";
+  if (raw.startsWith("//")) return "/dashboard"; // protocol-relative
+  return raw;
+}
 
 // Lista krajów
 const ALLOWED_COUNTRIES = [
@@ -43,6 +57,13 @@ const ALLOWED_COUNTRIES = [
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
+  // Honor `?next=/path` after successful register — sanitized to local
+  // paths only by safeNextPath() so we can't be turned into an open
+  // redirect. Used by the add-listing flow when an anonymous user hits
+  // the form: redirect → register → land back on /add-listing with the
+  // draft intact.
+  const searchParams = useSearchParams();
+  const nextPath = safeNextPath(searchParams?.get("next") ?? null);
 
   // Multi-step state
   const [currentStep, setCurrentStep] = useState(1);
@@ -176,7 +197,7 @@ export default function RegisterPage() {
       });
 
       // Registration successful - redirect to dashboard
-      router.push("/dashboard");
+      router.push(nextPath);
     } catch (err: any) {
       const message =
         err?.message ||
