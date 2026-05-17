@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/context/AuthContext";
 import { getWonAuctions, confirmPurchase } from "@/lib/api/auctions.api";
+import { ordersApi } from "@/lib/api";
 import type { AuctionDto } from "@/types/api/auction.types";
 import {
   Trophy,
@@ -85,6 +86,10 @@ export default function HistoryPage() {
   const router = useRouter();
 
   const [purchases, setPurchases] = useState<AuctionDto[]>([]);
+  // Maps auctionId → orderId once an order has been created for that win.
+  // Pre-confirmation auctions (status="sold") have no order yet; we only
+  // show the "View order" CTA when we actually have an order to link to.
+  const [orderByAuction, setOrderByAuction] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
@@ -105,12 +110,29 @@ export default function HistoryPage() {
   const fetchPurchases = async () => {
     try {
       setLoading(true);
-      const res = await getWonAuctions();
-      if (res.success && res.data) {
-        setPurchases(res.data);
+      // Pull won-auctions + my-orders in parallel. Won-auctions is the
+      // pre-confirmation source of truth (you might have won an auction
+      // but not clicked "Confirm Purchase" yet, so no Order exists). The
+      // orders list lets us deep-link to the post-confirmation summary
+      // page from the same row.
+      const [wonRes, orderRes] = await Promise.all([
+        getWonAuctions(),
+        ordersApi.listBuying().catch(() => ({ success: false, data: [] as never })),
+      ]);
+      if (wonRes.success && wonRes.data) {
+        setPurchases(wonRes.data);
+      }
+      if (orderRes.success && Array.isArray(orderRes.data)) {
+        const map = new Map<string, string>();
+        for (const o of orderRes.data) {
+          // If a buyer won the same auction twice (rare — relist case),
+          // we deliberately keep the most recent order id by overwriting.
+          map.set(o.auctionId, o.id);
+        }
+        setOrderByAuction(map);
       }
     } catch {
-      // silent
+      // silent — empty state below handles "no data" gracefully
     } finally {
       setLoading(false);
     }
@@ -205,6 +227,7 @@ export default function HistoryPage() {
               const needsConfirm = item.status === "sold";
               const thisFeedback =
                 feedback?.id === item.id ? feedback : null;
+              const orderId = orderByAuction.get(item.id);
 
               return (
                 <div
@@ -278,6 +301,23 @@ export default function HistoryPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* View order CTA — only when an Order row exists, which
+                      is the post-confirmation phase. The order page is
+                      where address, tracking, dispute and refund all live. */}
+                  {orderId && !needsConfirm && (
+                    <div className="border-t border-gray-100 px-5 py-3 flex items-center justify-between gap-3">
+                      <span className="text-xs text-gray-500">
+                        Order #{orderId.slice(0, 8).toUpperCase()}
+                      </span>
+                      <Link
+                        href={`/orders/${orderId}`}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-black hover:underline"
+                      >
+                        View order details <ArrowRight size={12} />
+                      </Link>
+                    </div>
+                  )}
 
                   {/* Confirm banner */}
                   {needsConfirm && (

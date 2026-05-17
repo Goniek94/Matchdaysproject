@@ -25,6 +25,7 @@ import {
   Bell,
   Mail,
   Wallet,
+  Tag,
 } from "lucide-react";
 import { useNotifications } from "@/lib/context/NotificationContext";
 import { getWallet, type WalletSummary } from "@/lib/api/wallet";
@@ -245,7 +246,8 @@ export default function Navbar() {
                         <DropdownItem href="/my-listings" icon={<List size={20} />} text="Your Listings" onClick={() => setIsProfileOpen(false)} />
                         <DropdownItem href="/notifications" icon={<Bell size={20} />} text="Notifications" badge={unreadCount > 0 ? unreadCount : undefined} onClick={() => setIsProfileOpen(false)} />
                         <DropdownItem href="/messages" icon={<MessageCircle size={20} />} text="Messages" onClick={() => setIsProfileOpen(false)} />
-                        <DropdownItem href="/history" icon={<History size={20} />} text="Transaction History" onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/history" icon={<History size={20} />} text="Purchase History" onClick={() => setIsProfileOpen(false)} />
+                        <DropdownItem href="/sales" icon={<Tag size={20} />} text="Sales" onClick={() => setIsProfileOpen(false)} />
                         <DropdownItem href="/disputes" icon={<AlertTriangle size={20} />} text="Disputes & Reports" onClick={() => setIsProfileOpen(false)} />
                         <DropdownItem href="/contact" icon={<Mail size={20} />} text="Contact" onClick={() => setIsProfileOpen(false)} />
                       </div>
