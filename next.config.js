@@ -132,9 +132,13 @@ const nextConfig = {
             value: csp,
           },
           {
-            // Belt-and-suspenders alongside CSP frame-ancestors
+            // Belt-and-suspenders alongside `frame-ancestors 'none'` in the
+            // CSP above. DENY matches the CSP's intent (zero embedding
+            // ever) — SAMEORIGIN would be semantically weaker than the
+            // CSP and contradict it for older clients that honour the
+            // header but not frame-ancestors.
             key: "X-Frame-Options",
-            value: "SAMEORIGIN",
+            value: "DENY",
           },
           {
             // Prevent MIME-type sniffing

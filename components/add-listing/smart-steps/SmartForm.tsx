@@ -107,6 +107,11 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
   const [publishedListingId, setPublishedListingId] = useState<string | null>(
     null,
   );
+  // Inline error banner for publish failures. Replaces blocking
+  // `alert()` calls — those broke the premium feel of the listing flow
+  // and gave no path to retry / save draft / contact support without
+  // dismissing the modal first.
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   // Load draft on mount — once per page load. Photos always start empty
   // (see DRAFT_STORAGE_KEY rationale).
@@ -225,7 +230,7 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
         const detail = Array.isArray(result.message)
           ? result.message.join("\n• ")
           : result.message;
-        alert(`Failed to create listing:\n\n• ${detail}`);
+        setPublishError(`Nie udało się utworzyć ogłoszenia:\n• ${detail}`);
       }
     } catch (error) {
       logger.error("[Publish] Exception", "SmartForm", error);
@@ -239,7 +244,9 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
       const detail = Array.isArray(err.message)
         ? err.message.join("\n• ")
         : err.message || err.error || "Unknown error";
-      alert(`Failed to publish (${err.status ?? "?"}):\n\n• ${detail}`);
+      setPublishError(
+        `Publikacja nie powiodła się (${err.status ?? "?"}):\n• ${detail}`,
+      );
     } finally {
       setIsPublishing(false);
     }
@@ -301,7 +308,7 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
         <div className="max-w-6xl mx-auto px-6 pb-3">
           <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900">
             <span>
-              <strong>Unfinished draft restored.</strong> You'll need to add the
+              <strong>Unfinished draft restored.</strong> You&apos;ll need to add the
               photos again — everything else is preserved.
             </span>
             <button
@@ -310,6 +317,46 @@ export default function SmartForm({ onBack }: { onBack?: () => void }) {
               className="text-blue-600 hover:text-blue-800 font-bold"
             >
               OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Publish error — inline banner instead of a browser alert(). Stays
+          visible until dismissed or until a new attempt clears it, so the
+          seller can read the actual validation message and fix the field
+          without losing the form. */}
+      {publishError && (
+        <div className="max-w-6xl mx-auto px-6 pb-3">
+          <div className="flex items-start justify-between gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-900">
+            <div className="flex-1">
+              <p className="font-bold mb-1">Publikacja nie powiodła się</p>
+              <p className="text-xs text-red-800 whitespace-pre-line leading-relaxed">
+                {publishError.replace(/^[^\n]+\n/, "")}
+              </p>
+              <div className="mt-3 flex gap-3 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setPublishError(null)}
+                  className="font-bold text-red-700 hover:text-red-900 underline underline-offset-2"
+                >
+                  Spróbuj ponownie
+                </button>
+                <a
+                  href="/contact"
+                  className="font-bold text-red-700 hover:text-red-900 underline underline-offset-2"
+                >
+                  Skontaktuj się z obsługą
+                </a>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPublishError(null)}
+              aria-label="Zamknij"
+              className="text-red-500 hover:text-red-700 font-bold text-lg leading-none"
+            >
+              ×
             </button>
           </div>
         </div>

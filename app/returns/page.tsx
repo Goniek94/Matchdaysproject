@@ -30,7 +30,7 @@ export default function ReturnsPage() {
       <h2 id="buyer-protection"><span className="num">01</span>Buyer Protection — w skrócie</h2>
       <p>Środki Kupującego są zatrzymywane przez Platformę w <strong>escrow</strong> aż do potwierdzenia odbioru. Sprzedający otrzymuje wypłatę dopiero po:</p>
       <ul>
-        <li>potwierdzeniu odbioru przez Kupującego (kliknięcie „Potwierdź odbiór"), lub</li>
+        <li>potwierdzeniu odbioru przez Kupującego (kliknięcie „Potwierdź odbiór&quot;), lub</li>
         <li>upływie 7 dni od oznaczenia przesyłki jako dostarczonej przez przewoźnika,</li>
       </ul>
       <p>w zależności od tego, co nastąpi wcześniej. W okresie escrow każdy spór wstrzymuje wypłatę do momentu jego rozstrzygnięcia.</p>
@@ -46,7 +46,7 @@ export default function ReturnsPage() {
       <h2 id="proces"><span className="num">03</span>Jak otworzyć spór</h2>
       <p>Krok po kroku:</p>
       <ul>
-        <li>Wejdź w <strong>Historia zakupów → szczegóły zamówienia</strong> i kliknij <em>„Otwórz spór"</em>.</li>
+        <li>Wejdź w <strong>Historia zakupów → szczegóły zamówienia</strong> i kliknij <em>„Otwórz spór&quot;</em>.</li>
         <li>Wybierz kategorię (zobacz <a href="#kategorie">sekcję 06</a>).</li>
         <li>Opisz problem w 2–4 zdaniach.</li>
         <li>Dołącz <strong>zdjęcia</strong> i (jeśli dotyczy) <strong>dokumenty wysyłki</strong>.</li>
@@ -89,8 +89,8 @@ export default function ReturnsPage() {
       <h2 id="wyjatki"><span className="num">07</span>Wyjątki i ograniczenia</h2>
       <p>Zwrot <strong>NIE przysługuje</strong>, jeżeli:</p>
       <ul>
-        <li>wada była wyraźnie opisana w ogłoszeniu lub widoczna na zdjęciach (np. „mały odprysk farby na rękawie"),</li>
-        <li>Kupujący zmienił zdanie — sam fakt „nie podoba mi się" nie jest podstawą zwrotu w aukcjach (B2C ma odrębne prawo odstąpienia — patrz sekcja 08),</li>
+        <li>wada była wyraźnie opisana w ogłoszeniu lub widoczna na zdjęciach (np. „mały odprysk farby na rękawie&quot;),</li>
+        <li>Kupujący zmienił zdanie — sam fakt „nie podoba mi się&quot; nie jest podstawą zwrotu w aukcjach (B2C ma odrębne prawo odstąpienia — patrz sekcja 08),</li>
         <li>Kupujący użył przedmiotu w sposób uniemożliwiający odsprzedaż (np. wypranie, dopasowanie),</li>
         <li>spór otwarto po upływie 14-dniowego terminu bez wykazania ukrytej wady.</li>
       </ul>

@@ -37,7 +37,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # Matches the backend's runtime (Node 22). Pinning both CIs to
+          # the same major prevents "works in CI, fails in prod" issues
+          # rooted in stdlib differences (fetch, async iterators, etc.).
+          node-version: "22"
           cache: "npm"
 
       - name: Install dependencies
@@ -51,9 +54,10 @@ jobs:
 
       - name: Lint
         # `--max-warnings 0` so a new warning fails the CI — keeps the
-        # codebase from drifting under "we'll fix it later".
+        # codebase from drifting under "we'll fix it later". Hard-fail
+        # now that the existing warnings have been cleared; any new
+        # warning is a real regression and should block the merge.
         run: npx next lint --max-warnings 0
-        continue-on-error: true # remove once existing warnings are cleared
 
       - name: Build (next build)
         run: npm run build

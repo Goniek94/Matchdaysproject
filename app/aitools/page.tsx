@@ -29,7 +29,7 @@ const ITEMS = [
     fakeRisk: "2%",
     value: "£380 – £460",
     color: "#00ff88",
-    desc: "Uploading front photo... AI cross-referencing stitching patterns against 2.1M Nike originals. Crest embroidery verified. Font match: 99.8%. Authentication: PASSED.",
+    desc: "Uploading front photo... AI cross-referencing stitching patterns against known Nike samples. Crest embroidery: consistent. Font match: 99.8%. AI confidence: 94%.",
   },
   {
     name: "Nike Mercurial 2004",
@@ -43,7 +43,7 @@ const ITEMS = [
     fakeRisk: "5%",
     value: "£220 – £290",
     color: "#00aaff",
-    desc: "Scanning sole markings and tongue label... Nike production code confirmed. Wear pattern consistent with professional match use. Production era: 2003–2005. Verified.",
+    desc: "Scanning sole markings and tongue label... Nike production code readable. Wear pattern consistent with professional match use. Production era: 2003–2005. AI confidence: 88%.",
   },
   {
     name: "Brazil Away 2002 WC",
@@ -727,9 +727,9 @@ const TOOLS = [
   {
     id: "verify",
     title: "Legit Check",
-    subtitle: "AI Authentication",
+    subtitle: "AI Photo Analysis",
     description:
-      "Upload photos of tags, stitching, and crests. Our AI compares against millions of authentic samples to detect fakes instantly.",
+      "Upload photos of tags, stitching, and crests. AI analyzes them against known authentic samples and returns a confidence score. A Matchdays moderator makes the final call.",
     icon: ScanLine,
     href: "/ai/verify",
     action: "Start Verification",

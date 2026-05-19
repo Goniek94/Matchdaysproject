@@ -90,25 +90,39 @@ export const adaptAuctionForDisplay = (
   category: auction.category || "other",
   itemType: auction.itemType || "shirt",
   league: auction.league ?? undefined,
-  seller: {
-    // Try username first, then name, then email prefix as last resort.
-    // seller relation may be missing if backend version doesn't include it yet.
-    name:
-      auction.seller?.username ||
-      (auction.seller as any)?.name ||
-      (auction.seller as any)?.firstName ||
-      (auction.seller as any)?.email?.split("@")[0] ||
-      // Last resort: shorten the sellerId UUID to a readable handle
-      (auction.sellerId ? `user_${auction.sellerId.slice(0, 6)}` : "Unknown"),
-    // Treat empty string as no avatar (avoids broken <Image> src)
-    avatar: auction.seller?.avatar || undefined,
-    rating: auction.seller?.rating ?? 0,
-    reviews: auction.seller?.reviews ?? 0,
-  },
+  seller: (() => {
+    // The backend Seller relation has expanded over time (username added later
+    // than name/firstName/email). Cast through a permissive shape so we can
+    // walk the optional fields without re-shaping the upstream DTO type.
+    const s = auction.seller as
+      | (typeof auction.seller & {
+          name?: string;
+          firstName?: string;
+          email?: string;
+          country?: string;
+        })
+      | undefined;
+    return {
+      name:
+        s?.username ||
+        s?.name ||
+        s?.firstName ||
+        s?.email?.split("@")[0] ||
+        // Last resort: shorten the sellerId UUID to a readable handle
+        (auction.sellerId ? `user_${auction.sellerId.slice(0, 6)}` : "Unknown"),
+      // Treat empty string as no avatar (avoids broken <Image> src)
+      avatar: s?.avatar || undefined,
+      rating: s?.rating ?? 0,
+      reviews: s?.reviews ?? 0,
+    };
+  })(),
   country: {
     name: auction.shippingFrom || "Poland",
     // Use seller's country if available, fallback to shippingFrom country code
-    code: (auction.seller as any)?.country?.toUpperCase().slice(0, 2) || "PL",
+    code:
+      (auction.seller as (typeof auction.seller & { country?: string }) | undefined)
+        ?.country?.toUpperCase()
+        .slice(0, 2) || "PL",
   },
 });
 

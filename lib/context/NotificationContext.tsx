@@ -124,16 +124,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    // Derive WebSocket base URL from the API URL env var (fail-fast if missing)
-    const rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!rawApiUrl) {
+    // Derive WebSocket base URL with the same env hierarchy as the
+    // REST client and useAuctionRealtime — BACKEND_URL is the new
+    // canonical name; API_URL is kept as legacy fallback so we don't
+    // silently break sockets when only one of the env vars is set.
+    const rawBackendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_URL;
+    if (!rawBackendUrl) {
       logger.error(
-        "NEXT_PUBLIC_API_URL is not set — notification socket will not connect.",
+        "Neither NEXT_PUBLIC_BACKEND_URL nor NEXT_PUBLIC_API_URL is set — notification socket will not connect.",
         "NotificationContext",
       );
       return;
     }
-    const apiUrl = rawApiUrl.replace("/api/v1", "");
+    const apiUrl = rawBackendUrl.replace(/\/api\/v1\/?$/, "");
 
     const socket = io(`${apiUrl}/notifications`, {
       withCredentials: true,         // sends HttpOnly cookie automatically

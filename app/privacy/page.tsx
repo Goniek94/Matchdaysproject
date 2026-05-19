@@ -101,7 +101,7 @@ export default function PrivacyPage() {
       <ul>
         <li><strong>Dostęp do danych</strong> (art. 15 RODO) — możesz zapytać jakie dane przetwarzamy.</li>
         <li><strong>Sprostowanie</strong> (art. 16) — poprawienie nieprawidłowych danych.</li>
-        <li><strong>Usunięcie</strong> („prawo do bycia zapomnianym", art. 17) — z zastrzeżeniem obowiązków prawnych nakładających przechowywanie.</li>
+        <li><strong>Usunięcie</strong> („prawo do bycia zapomnianym&quot;, art. 17) — z zastrzeżeniem obowiązków prawnych nakładających przechowywanie.</li>
         <li><strong>Ograniczenie przetwarzania</strong> (art. 18).</li>
         <li><strong>Przenoszenie danych</strong> (art. 20) — eksport Twoich danych w formacie maszynowym.</li>
         <li><strong>Sprzeciw</strong> (art. 21) — w szczególności wobec przetwarzania w celach marketingowych.</li>

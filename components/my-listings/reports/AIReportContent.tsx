@@ -37,10 +37,13 @@ function scoreTier(score: number) {
   return {
     isHigh,
     isMid,
+    // Wording matches the "scoring, not certification" framing used
+     // across the rest of the trust surfaces. AI is a recommendation
+     // signal; the actual authenticity call is made by a moderator.
     label: isHigh
-      ? "Looks authentic"
+      ? "High AI confidence"
       : isMid
-        ? "Needs review"
+        ? "Review recommended"
         : "Potential issues",
     bg: isHigh ? "bg-emerald-50" : isMid ? "bg-amber-50" : "bg-red-50",
     border: isHigh

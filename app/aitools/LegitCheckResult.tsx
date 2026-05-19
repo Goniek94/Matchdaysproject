@@ -52,7 +52,7 @@ export default function LegitCheckResult({
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1">
-              Authenticity Score
+              AI Confidence Score
             </p>
             <p className={`text-5xl font-black ${colors.text}`}>
               {result.authenticityScore}

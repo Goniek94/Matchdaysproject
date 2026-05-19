@@ -12,6 +12,7 @@ import ShippingEstimate from "@/components/auction/ShippingEstimate";
 import SellerInfo from "@/components/auction/SellerInfo";
 import BidHistory from "@/components/auction/BidHistory";
 import InfoCards from "@/components/auction/InfoCards";
+import { AIDisclosureNote } from "@/components/auction/AIDisclosureNote";
 
 import { getAuctionById } from "@/lib/api/auctions.api";
 import { placeBid } from "@/lib/api/bids.api";
@@ -755,7 +756,7 @@ export default function AuctionDetailPage() {
                 </span>
                 {auction.verified && (
                   <span className="inline-flex items-center gap-1 px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-[2px] bg-black text-white">
-                    ✓ Verified
+                    AI High Confidence
                   </span>
                 )}
                 {auction.rare && (
@@ -764,6 +765,11 @@ export default function AuctionDetailPage() {
                   </span>
                 )}
               </div>
+              {/* Always-on disclosure: what the AI score means and doesn't
+                  mean. Keeps the trust language consistent across all
+                  listings, including the ones with no verified=true badge
+                  where a buyer might wonder why the AI didn't certify it. */}
+              <AIDisclosureNote variant="expanded" className="mb-3" />
               <div className="flex items-start justify-between gap-4">
                 <h1 className="text-2xl font-light text-gray-900 leading-snug tracking-tight">
                   {auction.title}
@@ -828,7 +834,7 @@ export default function AuctionDetailPage() {
                     shippingFromCountry={auction.shippingFrom}
                     itemCategory={auction.itemType}
                     isOwnListing={
-                      !!user && auction.sellerId === (user as any).id
+                      !!user && auction.sellerId === user.id
                     }
                   />
                 ) : (
@@ -841,7 +847,7 @@ export default function AuctionDetailPage() {
                     endTime={auction.endTime}
                     seller={auction.seller}
                     isOwnListing={
-                      !!user && auction.sellerId === (user as any).id
+                      !!user && auction.sellerId === user.id
                     }
                     shippingFromCountry={auction.shippingFrom}
                     itemCategory={auction.itemType}
@@ -1003,7 +1009,7 @@ export default function AuctionDetailPage() {
                   disabled={bidding || auctionEnded}
                   isEnded={auctionEnded}
                   isOwnListing={
-                    !!user && auction.sellerId === (user as any).id
+                    !!user && auction.sellerId === user.id
                   }
                 />
               ) : (
@@ -1016,7 +1022,7 @@ export default function AuctionDetailPage() {
                   endTime={auction.endTime}
                   seller={auction.seller}
                   isOwnListing={
-                    !!user && auction.sellerId === (user as any).id
+                    !!user && auction.sellerId === user.id
                   }
                   shippingFromCountry={auction.shippingFrom}
                   itemCategory={auction.itemType}

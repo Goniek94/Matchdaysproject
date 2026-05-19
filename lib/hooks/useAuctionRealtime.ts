@@ -27,16 +27,23 @@ interface AuctionRealtimeState {
 }
 
 // Derived at module initialisation — fail-fast if the env var is absent.
-// The WebSocket server lives on the same host as the REST API.
-const _rawApiUrl = process.env.NEXT_PUBLIC_API_URL;
-if (!_rawApiUrl && typeof window !== "undefined") {
+// WebSocket can't be routed through Vercel's `/api/v1` rewrite (rewrites
+// don't proxy `wss://`), so we always connect direct to the backend
+// origin. Hierarchy mirrors `lib/api/config.ts`:
+//   1. NEXT_PUBLIC_BACKEND_URL — new canonical name, preferred.
+//   2. NEXT_PUBLIC_API_URL     — legacy, falls back to the same origin
+//                                so an env that wasn't renamed still works.
+const _rawBackendUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL;
+if (!_rawBackendUrl && typeof window !== "undefined") {
   logger.error(
-    "NEXT_PUBLIC_API_URL is not set — auction realtime will not connect.",
+    "Neither NEXT_PUBLIC_BACKEND_URL nor NEXT_PUBLIC_API_URL is set — auction realtime will not connect.",
     "useAuctionRealtime",
   );
 }
-const BACKEND_URL = _rawApiUrl
-  ? _rawApiUrl.replace("/api/v1", "")
+const BACKEND_URL = _rawBackendUrl
+  ? _rawBackendUrl.replace(/\/api\/v1\/?$/, "")
   : "";
 
 const formatTimeAgo = (dateString: string) => {

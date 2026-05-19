@@ -397,15 +397,53 @@ export function DashboardOverview({
   return (
     <div className="bg-white min-h-full">
       {/* ═══════════════════════════════════════════════════════════════════
-           HERO — monochrome, no gradient text, no glow
+           HERO — premium dark with gold accents and pitch background
+           Black gradient base + subtle football pitch lines SVG +
+           gold (#F5C842) for the brand accents. Same business data,
+           opposite visual weight to the rest of the (white) dashboard
+           so the user lands on something that feels Premium / FUT-style
+           rather than a CRM table.
         ═══════════════════════════════════════════════════════════════════ */}
-      <header className="border-b border-gray-200">
+      <header className="relative overflow-hidden bg-[#0a0a0a] text-white">
+        {/* Background — radial gold glow top-right + faint pitch lines */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse 800px 400px at top right, rgba(245,200,66,0.10) 0%, transparent 60%), radial-gradient(ellipse 600px 400px at bottom left, rgba(124,58,237,0.07) 0%, transparent 60%)",
+          }}
+        />
+        <svg
+          aria-hidden
+          className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.04]"
+          viewBox="0 0 1400 600"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          {/* Pitch frame */}
+          <rect x="40" y="40" width="1320" height="520" fill="none" stroke="white" strokeWidth="2" />
+          {/* Center line + circle */}
+          <line x1="700" y1="40" x2="700" y2="560" stroke="white" strokeWidth="1.5" />
+          <circle cx="700" cy="300" r="80" fill="none" stroke="white" strokeWidth="1.5" />
+          <circle cx="700" cy="300" r="3" fill="white" />
+          {/* Left penalty area */}
+          <rect x="40" y="180" width="160" height="240" fill="none" stroke="white" strokeWidth="1.5" />
+          <rect x="40" y="240" width="60" height="120" fill="none" stroke="white" strokeWidth="1.5" />
+          <path d="M200 220 A 80 80 0 0 1 200 380" fill="none" stroke="white" strokeWidth="1.5" />
+          {/* Right penalty area */}
+          <rect x="1200" y="180" width="160" height="240" fill="none" stroke="white" strokeWidth="1.5" />
+          <rect x="1300" y="240" width="60" height="120" fill="none" stroke="white" strokeWidth="1.5" />
+          <path d="M1200 220 A 80 80 0 0 0 1200 380" fill="none" stroke="white" strokeWidth="1.5" />
+        </svg>
+        {/* Top gold hairline */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#F5C842]/40 to-transparent" />
+
         <div className="relative flex flex-col lg:flex-row">
           {/* LEFT: identity */}
-          <div className="flex-1 px-6 lg:px-8 py-7 flex flex-col gap-5 min-w-0">
+          <div className="flex-1 px-6 lg:px-10 py-8 lg:py-10 flex flex-col gap-6 min-w-0">
             {/* Top row — date + actions */}
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400">
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/40">
                 {new Date().toLocaleDateString("en-GB", {
                   weekday: "long",
                   day: "numeric",
@@ -414,154 +452,275 @@ export function DashboardOverview({
               </p>
               <div className="flex items-center gap-2">
                 {isVerified ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gray-200 text-gray-700 text-[10px] font-semibold uppercase tracking-wider">
-                    <ShieldCheck size={10} />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#F5C842]/30 bg-[#F5C842]/5 text-[#F5C842] text-[10px] font-bold uppercase tracking-widest">
+                    <ShieldCheck size={11} />
                     Verified
                   </span>
                 ) : (
                   <Link
                     href="/settings"
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-gray-300 text-gray-900 text-[10px] font-semibold uppercase tracking-wider hover:bg-gray-50 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 text-white/80 text-[10px] font-bold uppercase tracking-widest hover:border-white/40 hover:text-white transition-colors"
                   >
-                    <AlertCircle size={10} />
+                    <AlertCircle size={11} />
                     Verify account
                   </Link>
                 )}
                 <Link
                   href="/add-listing"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-gray-900 text-white text-[11px] font-semibold hover:bg-black transition-colors"
+                  className="group inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-black text-[11px] font-bold uppercase tracking-wider hover:bg-[#F5C842] hover:text-black transition-all hover:scale-105 shadow-lg shadow-black/40"
                 >
-                  <PlusCircle size={12} /> New listing
+                  <PlusCircle size={13} /> New listing
                 </Link>
               </div>
             </div>
 
-            {/* Greeting — single flat color, no gradient */}
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-tight text-gray-900 leading-[1.05]">
-              {greeting},
-              <br />
-              <span className="text-gray-900">{displayName}</span>
-            </h1>
-
-            {/* Info strip: plan · loyalty · ai credits */}
-            <div className="flex items-center gap-5 flex-wrap text-sm">
-              {/* Plan */}
+            {/* Info strip: plan · loyalty · ai credits — premium tile row.
+                Promoted up here (right under the top action bar) because
+                "what tier am I on", "how many points to next rank" and
+                "do I have AI credits left" are the actionable status the
+                user reads first. Greeting comes after — context, not data. */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* PLAN — gradient gold for paid, gradient cool gray for free */}
               {isPaid ? (
-                <span className="inline-flex items-center gap-1.5 text-xs">
-                  <span className="font-semibold text-gray-900">
-                    {subTier.charAt(0).toUpperCase() + subTier.slice(1)}
-                  </span>
-                  {daysLeft !== null && (
-                    <span
-                      className={
-                        isExpiringSoon ? "text-amber-700" : "text-gray-500"
-                      }
-                    >
-                      · {daysLeft}d left{isExpiringSoon ? " — renew soon" : ""}
-                    </span>
-                  )}
-                </span>
+                <div className="relative overflow-hidden rounded-2xl border border-[#F5C842]/30 px-4 py-3.5 group">
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 opacity-100"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(245,200,66,0.18) 0%, rgba(245,200,66,0.04) 60%, transparent 100%)",
+                    }}
+                  />
+                  <div className="relative flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-[#F5C842]/20 border border-[#F5C842]/40 flex items-center justify-center flex-shrink-0">
+                        <Sparkles size={15} className="text-[#F5C842]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#F5C842]/80">
+                          Plan
+                        </p>
+                        <p className="text-sm font-black text-white truncate">
+                          {subTier === "premium_pro"
+                            ? "Premium Pro"
+                            : subTier.charAt(0).toUpperCase() + subTier.slice(1)}
+                        </p>
+                      </div>
+                    </div>
+                    {daysLeft !== null && (
+                      <div className="text-right">
+                        <p className="text-[9px] uppercase tracking-wider text-white/40 font-bold">
+                          {isExpiringSoon ? "Renew" : "Active"}
+                        </p>
+                        <p
+                          className={`text-xs font-black tabular-nums ${isExpiringSoon ? "text-amber-300" : "text-white"}`}
+                        >
+                          {daysLeft}d
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ) : (
-                <span className="inline-flex items-center gap-2 text-xs">
-                  <span className="text-gray-500">Free account</span>
-                  <Link
-                    href="/pricing"
-                    className="font-semibold text-gray-900 underline underline-offset-4 hover:text-black transition-colors"
-                  >
-                    Upgrade
-                  </Link>
-                </span>
+                <Link
+                  href="/pricing"
+                  className="relative overflow-hidden rounded-2xl border border-white/15 px-4 py-3.5 hover:border-[#F5C842]/50 transition-all group"
+                >
+                  <div
+                    aria-hidden
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(245,200,66,0.12) 0%, transparent 60%)",
+                    }}
+                  />
+                  <div className="relative flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center flex-shrink-0 group-hover:bg-[#F5C842]/20 group-hover:border-[#F5C842]/40 transition-colors">
+                        <Sparkles size={15} className="text-white/60 group-hover:text-[#F5C842] transition-colors" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/40">
+                          Plan
+                        </p>
+                        <p className="text-sm font-black text-white">Free</p>
+                      </div>
+                    </div>
+                    <p className="text-[11px] font-bold text-[#F5C842] group-hover:translate-x-0.5 transition-transform whitespace-nowrap">
+                      Upgrade →
+                    </p>
+                  </div>
+                </Link>
               )}
 
-              <span className="h-3 w-px bg-gray-200" />
-
-              {/* Loyalty */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-baseline gap-2 text-xs">
-                  <span className="text-base font-semibold tabular-nums text-gray-900">
-                    {pts.toLocaleString()}
-                  </span>
-                  <span className="text-gray-500">{tier.name}</span>
-                  {nextTier && (
-                    <span className="text-gray-400">
-                      · {ptsToNext.toLocaleString()} to {nextTier.name}
-                    </span>
-                  )}
-                </div>
-                <div className="w-32 h-1 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gray-900 rounded-full transition-all duration-500"
-                    style={{ width: `${progress}%` }}
-                  />
+              {/* LOYALTY — most informative tile: rank + points + progress */}
+              <div className="relative overflow-hidden rounded-2xl border border-white/15 px-4 py-3.5">
+                <div
+                  aria-hidden
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, rgba(245,200,66,0.10) 0%, rgba(124,58,237,0.06) 100%)",
+                  }}
+                />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#F5C842] to-amber-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#F5C842]/20">
+                        <Trophy size={15} className="text-black" strokeWidth={2.5} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/40">
+                          Loyalty · {tier.name}
+                        </p>
+                        <p className="text-sm font-black text-white tabular-nums">
+                          {pts.toLocaleString()} pts
+                        </p>
+                      </div>
+                    </div>
+                    {nextTier && (
+                      <div className="text-right">
+                        <p className="text-[9px] uppercase tracking-wider text-white/40 font-bold">
+                          Next
+                        </p>
+                        <p className="text-[10px] font-bold text-white/80 tabular-nums">
+                          +{ptsToNext.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700 shadow-[0_0_8px_rgba(245,200,66,0.5)]"
+                      style={{
+                        width: `${progress}%`,
+                        background:
+                          "linear-gradient(90deg, #F5C842 0%, #fbbf24 100%)",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <span className="h-3 w-px bg-gray-200" />
+              {/* AI CREDITS — clickable, leads to rewards */}
+              <Link
+                href="/rewards"
+                className="relative overflow-hidden rounded-2xl border border-white/15 px-4 py-3.5 hover:border-white/30 transition-all group"
+              >
+                <div
+                  aria-hidden
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, rgba(245,200,66,0.08) 0%, transparent 60%)",
+                  }}
+                />
+                <div className="relative flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500/30 to-purple-700/20 border border-purple-400/30 flex items-center justify-center flex-shrink-0">
+                      <Zap size={15} className="text-purple-300" strokeWidth={2.5} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-white/40">
+                        AI credits
+                      </p>
+                      <p className="text-sm font-black text-white tabular-nums">
+                        {aiCredits}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-[11px] font-bold text-[#F5C842] group-hover:translate-x-0.5 transition-transform whitespace-nowrap">
+                    Earn →
+                  </p>
+                </div>
+              </Link>
+            </div>
 
-              {/* AI credits */}
-              <span className="inline-flex items-center gap-1.5 text-xs">
-                <Zap size={11} className="text-gray-400" />
-                <span className="font-semibold tabular-nums text-gray-900">
-                  {aiCredits}
-                </span>
-                <span className="text-gray-500">credits</span>
-                <Link
-                  href="/rewards"
-                  className="text-gray-500 hover:text-gray-900 underline underline-offset-4 transition-colors"
+            {/* Greeting — large, gold-accented name */}
+            <div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tighter leading-[0.95]">
+                <span className="text-white/50 font-light">{greeting},</span>
+                <br />
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(135deg, #fff 0%, #F5C842 100%)",
+                  }}
                 >
-                  Rewards →
-                </Link>
-              </span>
+                  {displayName}
+                </span>
+              </h1>
             </div>
           </div>
 
-          {/* RIGHT: 2×2 stats grid */}
-          <div className="lg:w-[42%] grid grid-cols-2 lg:border-l border-t lg:border-t-0 border-gray-200">
+          {/* RIGHT: 2×2 stats grid — dark glass cards */}
+          <div className="lg:w-[44%] grid grid-cols-2 lg:border-l border-t lg:border-t-0 border-white/10">
             {[
               {
                 label: "Active listings",
                 value: loading ? "—" : stats.active,
                 note: "currently live",
                 live: !loading && stats.active > 0,
+                accent: "#22c55e",
               },
               {
                 label: "Bids received",
                 value: loading ? "—" : totalBidsReceived,
                 note: "on your items",
+                accent: "#F5C842",
               },
               {
                 label: "Items sold",
                 value: loading ? "—" : stats.sold,
                 note: "all time",
+                accent: "#a78bfa",
               },
               {
                 label: "AI credits",
                 value: aiCredits,
-                note: aiCredits === 0 ? "buy credits →" : "never expire",
+                note: aiCredits === 0 ? "earn more →" : "never expire",
+                accent: "#F5C842",
               },
             ].map((s, i) => (
               <div
                 key={s.label}
                 className={[
-                  "px-5 py-5 flex flex-col justify-between min-h-[110px]",
-                  i % 2 === 1 ? "border-l border-gray-200" : "",
-                  i >= 2 ? "border-t border-gray-200" : "",
+                  "group relative px-6 py-6 flex flex-col justify-between min-h-[130px] transition-colors hover:bg-white/5",
+                  i % 2 === 1 ? "border-l border-white/10" : "",
+                  i >= 2 ? "border-t border-white/10" : "",
                 ].join(" ")}
               >
+                {/* Hover accent line */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-px opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: `linear-gradient(90deg, transparent, ${s.accent}, transparent)`,
+                  }}
+                />
                 <div className="flex items-center gap-1.5">
                   {s.live && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span
+                      className="w-1.5 h-1.5 rounded-full animate-pulse"
+                      style={{
+                        background: s.accent,
+                        boxShadow: `0 0 8px ${s.accent}`,
+                      }}
+                    />
                   )}
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40">
                     {s.label}
                   </p>
                 </div>
-                <p className="text-[40px] font-semibold tabular-nums leading-none tracking-tight text-gray-900">
+                <p
+                  className="text-[44px] font-black tabular-nums leading-none tracking-tighter"
+                  style={{ color: s.live ? s.accent : "#fff" }}
+                >
                   {typeof s.value === "number"
                     ? s.value.toLocaleString()
                     : s.value}
                 </p>
-                <p className="text-[10px] text-gray-400">{s.note}</p>
+                <p className="text-[10px] text-white/40 font-medium">{s.note}</p>
               </div>
             ))}
           </div>

@@ -129,7 +129,7 @@ const SLIDES: Slide[] = [
       items: [
         { value: "10K+", label: "Listings" },
         { value: "4.9★", label: "Trust" },
-        { value: "AI", label: "Verified" },
+        { value: "AI", label: "Scoring" },
         { value: "EU", label: "Shipping" },
       ],
     },
@@ -152,7 +152,7 @@ const TICKER = [
   "Hockey Gear",
   "Motorsport",
   "Vintage Kits",
-  "AI Verified",
+  "AI Scoring",
   "EU Shipping",
   "Live Bidding",
 ];

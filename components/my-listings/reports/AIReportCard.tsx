@@ -33,10 +33,15 @@ export default function AIReportCard({ listing }: { listing: MyListing }) {
   const score = Math.round(ai.authenticityScore ?? 0);
   const defectsCount = ai.defects?.length ?? 0;
 
+  // Label intentionally avoids "Verified" — every listing still goes
+  // through a human moderator queue (/approvals), so even a high AI
+  // score is just a recommendation, not a stamp of authenticity. Trust
+  // language matches: "High AI confidence" vs "Review recommended" vs
+  // "Potential issues". Buyer never sees this surface directly.
   const tier =
     score >= 80
       ? {
-          label: "Verified",
+          label: "High AI confidence",
           icon: ShieldCheck,
           ring: "ring-emerald-200",
           chip: "bg-emerald-500 text-white",
@@ -44,14 +49,14 @@ export default function AIReportCard({ listing }: { listing: MyListing }) {
         }
       : score >= 60
         ? {
-            label: "Review",
+            label: "Review recommended",
             icon: ShieldAlert,
             ring: "ring-amber-200",
             chip: "bg-amber-500 text-white",
             glow: "shadow-amber-100",
           }
         : {
-            label: "Flagged",
+            label: "Potential issues",
             icon: Shield,
             ring: "ring-red-200",
             chip: "bg-red-500 text-white",

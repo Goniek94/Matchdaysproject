@@ -23,9 +23,13 @@ const SORTS: { id: SortMode; label: string }[] = [
 
 const TIERS: { id: FilterTier; label: string }[] = [
   { id: "all", label: "All reports" },
-  { id: "verified", label: "Verified (80+)" },
-  { id: "review", label: "Review (60-79)" },
-  { id: "flagged", label: "Flagged (<60)" },
+  // "verified" tier id retained for stable storage / URL filtering; only
+  // the label changed. Buyer-facing copy now says "high AI confidence"
+  // instead of "Verified" because every listing still goes through a
+  // human moderator queue before going live — AI is a hint, not a stamp.
+  { id: "verified", label: "High AI confidence (80+)" },
+  { id: "review", label: "Review recommended (60-79)" },
+  { id: "flagged", label: "Potential issues (<60)" },
 ];
 
 export default function AIReportsView({

@@ -48,8 +48,8 @@ export default function AddressSettings() {
         // Backend wraps in { data: { address } }. Older shape returned
         // address at the root — handle both defensively so we don't blank
         // the form on a transitional deploy.
-        const addr =
-          (res as any)?.data?.address ?? (res as any)?.address ?? null;
+        const r = res as { data?: { address?: UserAddress }; address?: UserAddress };
+        const addr = r?.data?.address ?? r?.address ?? null;
         if (addr) {
           setForm({
             street: addr.street ?? "",
@@ -120,10 +120,11 @@ export default function AddressSettings() {
         postalCode: form.postalCode?.trim() || null,
         country: form.country?.trim() || null,
       });
-      if ((res as any)?.success === false) {
+      const r = res as { success?: boolean; message?: string };
+      if (r?.success === false) {
         setFeedback({
           kind: "error",
-          message: (res as any)?.message ?? "Failed to save address.",
+          message: r?.message ?? "Failed to save address.",
         });
         return;
       }
@@ -131,11 +132,12 @@ export default function AddressSettings() {
         kind: "success",
         message: "Address saved. You can now proceed to checkout.",
       });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const e = err as { message?: string; error?: string };
       setFeedback({
         kind: "error",
         message:
-          err?.message ?? err?.error ?? "Failed to save address. Try again.",
+          e?.message ?? e?.error ?? "Failed to save address. Try again.",
       });
     } finally {
       setSaving(false);

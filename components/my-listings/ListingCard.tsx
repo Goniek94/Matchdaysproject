@@ -536,12 +536,18 @@ export default function ListingCard({
 }
 
 // ─── AI score badge ────────────────────────────────────────────────────────
-// Renders the listing's authenticity score in the top-right of the image:
+// Renders the listing's AI confidence score in the top-right of the image:
 //   - null score on a fresh PENDING_APPROVAL listing → "Scanning…" spinner
-//   - >= 90  → emerald "Verified 92"
-//   - 60–89  → amber  "Review 75"
-//   - < 60   → rose   "Flagged 42"
+//   - >= 90  → emerald "AI High 92"      (high confidence, NOT a verification stamp)
+//   - 60–89  → amber  "Review 75"        (moderator review recommended)
+//   - < 60   → rose   "Manual check 42"  (NOT "Flagged" — low AI score does not
+//                                         imply counterfeit; match-worn jerseys
+//                                         legitimately lack tags, etc.)
 //   - null on a published listing → no badge (worker hasn't run yet on legacy data)
+//
+// "Verified" was deliberately removed here: every listing still passes
+// through a human moderator queue before going live (see /approvals),
+// so the AI badge is a recommendation, not a stamp of authenticity.
 function AiScoreBadge({
   score,
   status,
@@ -565,7 +571,7 @@ function AiScoreBadge({
   const tier =
     rounded >= 90
       ? {
-          label: "Verified",
+          label: "AI High",
           icon: ShieldCheck,
           bg: "bg-emerald-500",
           text: "text-white",
@@ -578,7 +584,7 @@ function AiScoreBadge({
             text: "text-white",
           }
         : {
-            label: "Flagged",
+            label: "Manual check",
             icon: ShieldAlert,
             bg: "bg-rose-500",
             text: "text-white",

@@ -38,20 +38,20 @@ export default function TermsPage() {
         <li><strong>Użytkownik</strong> — osoba fizyczna (powyżej 16. roku życia), prawna lub jednostka organizacyjna posiadająca konto na Platformie.</li>
         <li><strong>Sprzedający</strong> — Użytkownik wystawiający przedmiot na sprzedaż.</li>
         <li><strong>Kupujący</strong> — Użytkownik nabywający lub licytujący przedmiot.</li>
-        <li><strong>Ogłoszenie</strong> — oferta sprzedaży konkretnego przedmiotu w formie aukcji lub „Kup teraz".</li>
+        <li><strong>Ogłoszenie</strong> — oferta sprzedaży konkretnego przedmiotu w formie aukcji lub „Kup teraz&quot;.</li>
         <li><strong>Zamówienie</strong> — umowa sprzedaży zawarta między Sprzedającym a Kupującym za pośrednictwem Platformy.</li>
       </ul>
 
       <h2 id="konto"><span className="num">02</span>Konto użytkownika</h2>
       <p>Rejestracja jest bezpłatna. Aby założyć konto, należy mieć ukończone 16 lat oraz podać prawdziwe i aktualne dane osobowe.</p>
-      <p>Każdy Użytkownik może posiadać tylko jedno konto. Sprzedawanie z kont „pomocniczych" w celu manipulacji ocenami lub licytacjami jest zabronione i skutkuje permanentnym zablokowaniem wszystkich kont.</p>
+      <p>Każdy Użytkownik może posiadać tylko jedno konto. Sprzedawanie z kont „pomocniczych&quot; w celu manipulacji ocenami lub licytacjami jest zabronione i skutkuje permanentnym zablokowaniem wszystkich kont.</p>
       <p>Użytkownik ponosi odpowiedzialność za zachowanie poufności hasła i wszystkie działania wykonywane z jego konta. W przypadku podejrzenia nieautoryzowanego dostępu należy niezwłocznie zmienić hasło i zawiadomić Operatora.</p>
 
       <h2 id="sprzedaz"><span className="num">03</span>Wystawianie i sprzedaż</h2>
       <p>Sprzedający odpowiada za zgodność opisu ze stanem faktycznym przedmiotu — zdjęcia, opis, stan zachowania, autentyczność, rozmiar, ewentualne wady.</p>
       <p><strong>Zabronione jest:</strong></p>
       <ul>
-        <li>wystawianie podróbek („replik") jako oryginałów,</li>
+        <li>wystawianie podróbek („replik&quot;) jako oryginałów,</li>
         <li>celowe wprowadzanie w błąd co do stanu przedmiotu,</li>
         <li>wystawianie przedmiotów, do których Sprzedający nie ma prawa,</li>
         <li>licytowanie własnych aukcji (shill bidding) lub umawianie się z innymi Użytkownikami w celu sztucznego windowania ceny,</li>
@@ -63,7 +63,7 @@ export default function TermsPage() {
       <h2 id="kupno"><span className="num">04</span>Kupowanie i licytacje</h2>
       <p>Złożenie oferty w aukcji jest <strong>wiążące</strong>. Po wygranej aukcji Kupujący zobowiązany jest do opłacenia zamówienia w ciągu 48 godzin.</p>
       <p>Wycofanie oferty jest możliwe wyłącznie przed zakończeniem aukcji i tylko w wyjątkowych przypadkach (np. błąd w opisie po stronie Sprzedającego). Wycofanie nieuzasadnione może skutkować ostrzeżeniem lub czasowym zablokowaniem konta.</p>
-      <p>„Kup teraz" działa natychmiastowo — kliknięcie przycisku tworzy zamówienie ze statusem „oczekuje na płatność".</p>
+      <p>„Kup teraz&quot; działa natychmiastowo — kliknięcie przycisku tworzy zamówienie ze statusem „oczekuje na płatność&quot;.</p>
 
       <h2 id="platnosci"><span className="num">05</span>Płatności, prowizje, wypłaty</h2>
       <p>Platforma pośredniczy w płatnościach — środki Kupującego są zatrzymywane w escrow do momentu potwierdzenia dostawy. Akceptowane metody: karta płatnicza (Stripe), portfel platformy.</p>

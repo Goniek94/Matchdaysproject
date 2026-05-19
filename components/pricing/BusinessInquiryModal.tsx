@@ -50,10 +50,11 @@ export function BusinessInquiryModal({ onClose }: Props) {
       });
       setSubmitted(true);
       setTimeout(onClose, 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
       setError(
-        err?.response?.data?.message ??
-          err?.message ??
+        e?.response?.data?.message ??
+          e?.message ??
           "Something went wrong. Please try again.",
       );
     } finally {

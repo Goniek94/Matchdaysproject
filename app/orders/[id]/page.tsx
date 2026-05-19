@@ -588,8 +588,8 @@ function OrderActions({
           <p className="text-xs text-amber-900 leading-relaxed">
             <strong>Item paid €{parseFloat(order.itemPrice).toFixed(2)}</strong>{" "}
             into escrow at auction close. Buyer is still confirming their
-            shipping address — you'll get a notification + email the moment
-            they do, then you'll have 48h to ship.
+            shipping address — you&apos;ll get a notification + email the moment
+            they do, then you&apos;ll have 48h to ship.
           </p>
           <SellerCancelButton
             busy={busy}
@@ -852,9 +852,9 @@ function WonOrderActions(props: {
         <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl">
           <p className="text-xs text-blue-900 leading-relaxed">
             <strong>What happens next:</strong> The seller is notified to ship
-            within 48h. You'll get an email + in-app alert when the parcel is
+            within 48h. You&apos;ll get an email + in-app alert when the parcel is
             on the way, with the tracking number. Once delivered, you have
-            <strong> 48h to confirm everything's OK or open a dispute</strong>
+            <strong> 48h to confirm everything&apos;s OK or open a dispute</strong>
             {" "}— after that, the funds release to the seller automatically.
           </p>
         </div>
@@ -948,7 +948,7 @@ function CancelReasonModal(props: {
         <div>
           <h3 className="text-base font-black">Why are you cancelling?</h3>
           <p className="text-xs text-gray-500 mt-1">
-            Some reasons cost a 7-day bid ban — we'll flag them clearly so
+            Some reasons cost a 7-day bid ban — we&apos;ll flag them clearly so
             you know before confirming.
           </p>
         </div>
@@ -1000,7 +1000,7 @@ function CancelReasonModal(props: {
           <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-xs text-red-700 leading-relaxed">
               <strong>Heads up:</strong> Cancelling for this reason triggers a
-              <strong> 7-day bid ban</strong> on your account. You'll still
+              <strong> 7-day bid ban</strong> on your account. You&apos;ll still
               be able to browse + buy-now, but not place new bids.
             </p>
           </div>
@@ -1110,7 +1110,7 @@ function SellerShipBlock(props: {
         >
           {lateForShipping ? (
             <>
-              <strong>You're past the 48h ship window.</strong> Shipping ASAP
+              <strong>You&apos;re past the 48h ship window.</strong> Shipping ASAP
               keeps your reputation intact — repeated late shipments lead to
               listing penalties.
             </>
@@ -1320,8 +1320,8 @@ function DeliveredCountdown(props: {
         {overdue ? (
           <>
             <strong>48h window passed</strong> — funds will auto-release to
-            the seller shortly. You can still open a dispute if something's
-            wrong, but it'll go through manual review.
+            the seller shortly. You can still open a dispute if something&apos;s
+            wrong, but it&apos;ll go through manual review.
           </>
         ) : (
           <>
@@ -1339,7 +1339,7 @@ function DeliveredCountdown(props: {
         onClick={props.onConfirm}
         className="w-full py-3 text-sm font-bold bg-black text-white rounded-xl disabled:opacity-50"
       >
-        ✓ Everything's OK — release funds to seller
+        ✓ Everything&apos;s OK — release funds to seller
       </button>
     </div>
   );

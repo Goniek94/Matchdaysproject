@@ -57,14 +57,19 @@ const AIVerificationCard = ({ data }: AIVerificationCardProps) => {
             : "border-gray-50",
   };
 
+  // AI gives a probabilistic score from photo analysis — it never confirms
+  // authenticity. "Verified" is reserved for moderator approval (gold badge
+  // on the listing page). Low score ≠ counterfeit: match-worn jerseys often
+  // lack tags, vintage items predate hologram codes. Phrase the label as a
+  // neutral observation so we don't insinuate fake.
   const scoreLabel =
     score >= 80
-      ? "Authenticity Confirmed"
+      ? `AI Score: ${score}% — High confidence`
       : score >= 50
-        ? "Review Recommended"
+        ? `AI Score: ${score}% — Moderator review recommended`
         : score > 0
-          ? "Potential Issues Found"
-          : "Not Yet Verified";
+          ? `AI Score: ${score}% — Manual verification needed`
+          : "Not yet analyzed";
 
   return (
     <div
@@ -90,7 +95,7 @@ const AIVerificationCard = ({ data }: AIVerificationCardProps) => {
               variant="outline"
               className="text-[10px] font-bold bg-green-100 text-green-700 border-green-300 ml-auto"
             >
-              ✓ Verified
+              AI High
             </Badge>
           )}
           {score >= 50 && score < 80 && (
@@ -98,7 +103,7 @@ const AIVerificationCard = ({ data }: AIVerificationCardProps) => {
               variant="outline"
               className="text-[10px] font-bold bg-yellow-100 text-yellow-700 border-yellow-300 ml-auto"
             >
-              Needs Review
+              Review recommended
             </Badge>
           )}
           {score > 0 && score < 50 && (
@@ -106,7 +111,7 @@ const AIVerificationCard = ({ data }: AIVerificationCardProps) => {
               variant="outline"
               className="text-[10px] font-bold bg-red-100 text-red-700 border-red-300 ml-auto"
             >
-              Flagged
+              Manual verification
             </Badge>
           )}
         </div>
